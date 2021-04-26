@@ -23,24 +23,22 @@
 #define SAMPLING_WS_EVERAGE 2   // Repeat samplings and compute everage
 #define SAMPLING_AV_PBUFFER 3   // Buffer to match P-P  points
 
-
 /* -------------------------------------------------------------------------- *
  * DEMO SIGNAL
  * 4 single samples,  N/2 sequenced samples
  * { [period],[ampmax],[nT,A],... }
  * -------------------------------------------------------------------------- */
-const float ADC_T = 0.001; // 1ms (1KHz) Fix !!!
-const sample_t SIG_AMPLITUDE = 2047;
+static float const ADC_FQ = 1000; // 1KHz Fix !!! T=0.001 (1ms) 
+static sample_t const SIG_AMPLITUDE = 2047;
 //const float Pi = 3.141592653589793;
-const float _2Pi = 6.283;
+static float const _2Pi = 6.283185308;
 
 uint16_t acquireSig(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t sig_freq) {
     sample_t nT = 0;
     sample_t *pSSBUF = dbuf;
     float Ft, dTr = 0, kTr = 0;
 
-    kTr = _2Pi / (1000 / sig_freq); // freq. in Hz del segnale  
-    //kTr = ADC_T * _2Pi / (1/sig_freq); // freq. in Hz del segnale 
+    kTr = _2Pi / (ADC_FQ / sig_freq); // signal frequency (ADC fix 1Khz)
 
     maxpoints -= 2; // Add <Period> & <Offset> as single sample 
     *pSSBUF = (sample_t) (ADC_T * FLOAT2INT_FACTOR);
@@ -61,8 +59,6 @@ uint16_t acquireSig(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t 
     }
     return (nT);
 }
-
-
 
 /*----------------------------------------------------------------------------*
  * L V D T  ( A E O L I A N  V I B R A T I O N )                              *   
@@ -470,8 +466,8 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t a
     Tc = 0;
     Tcp = 0;
     _TRISB2 = 0;
-    _ANSB2 = 0; 
-        _LATB2 = 0; 
+    _ANSB2 = 0;
+    _LATB2 = 0;
     acquireAV_START(nsec);
     while ((ppPoints <= maxpoints) && !isTimeout()) { // Loop until cycle-time or full filled buffer
 
@@ -479,8 +475,8 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t a
 
             // =============== BEGIN:READ
             _adcReady--;
-               _LATB2 ^= 1; // IO_LED2_Toggle() 
-            *pSSBUF = Tc-Tcp; //-Tcp;
+            _LATB2 ^= 1; // IO_LED2_Toggle() 
+            *pSSBUF = Tc - Tcp; //-Tcp;
             Tcp = Tc;
             pSSBUF++;
             *pSSBUF = ADC1BUF0; //(SCALE_TOUNSIGNED - ADC1BUF0); // Positive point
@@ -559,11 +555,8 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t a
 
 
 
-
-
-
 /* -------------------------------------------------------------------------- *
- * MEASURE ENVIROMENT TEMPERATURE
+ * E N V I R O M E N T   T E M P E R A T U R E
  * Read analog pin value (ADC)
  * Sum readed values to compute everage on 6 measures.
  * -------------------------------------------------------------------------- */
