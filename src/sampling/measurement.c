@@ -132,7 +132,6 @@ uint16_t measurementAcquire(measurement_t * ms) {
             ms->nss = (nsamples) * 2; // Sequenced [<t,av>,...]
             Device_SwitchSys(SYS_DEFAULT); // Device_SwitchPower(lastPwrState);
             // Reorder / Process FFT 
-
             break;
 
         case _AV01: // Aeolian Vibration, Occurencies [<ET>,<WS>,<PER>,<OFF>,{<Occ>,<Amp>,<Per>,...}]
@@ -140,13 +139,18 @@ uint16_t measurementAcquire(measurement_t * ms) {
             Device_SwitchSys(SYS_ON_SAMP_WST); // lastPwrState = Device_SwitchPower(PW_ON_SAMP_WST);      
 
             ms->ss = SSBUF;
-            ms->typeset = g_dev.cnf.general.typeset;
+            ms->typeset = _AV01; // g_dev.cnf.general.typeset;
             ms->dtime = RTCC_GetTimeL(); // get RTC datetime
-            ms->ns = 2; // ET,WS
+            ms->ns = 4; // ET,WS
 
             acquireET(ptrSSBUF); // RET: success
             ptrSSBUF++;
             acquireWS(ptrSSBUF); // RET: success
+            ptrSSBUF++;
+
+            *ptrSSBUF = 500; // Sampling freq. (Hz))
+            ptrSSBUF++;
+            *ptrSSBUF = 1U < 12; // max Scale
             ptrSSBUF++;
 
             Device_SwitchSys(SYS_ON_SAMP_ADA);
@@ -155,7 +159,7 @@ uint16_t measurementAcquire(measurement_t * ms) {
             // uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t adc_fq, uint16_t fft_pw)
 
             short m = 0;
-            short l2 = SS_BUF_SIZE - ms->ns;
+            short l2 = (SS_BUF_SIZE - ms->ns);
 
             while (l2 > 0) { // log2_npoints
                 m++;
@@ -163,24 +167,23 @@ uint16_t measurementAcquire(measurement_t * ms) {
             }
 
             // Force ADC frequency 0.5Khz ( g_dev.cnf.calibration.av_period )
-
-            nsamples = acquireAV_FFT(ptrSSBUF, g_dev.cnf.general.cycletime, m, \
+            fft_init(); // Initialize tables 
+            
+            nsamples = acquireAV_FFT(ptrSSBUF, g_dev.cnf.general.cycletime, 10, \
                                  ADC_FRQ_05Khz, g_dev.cnf.calibration.av_filter);
 
             //ms->ns = 4; // <temperature>,<windspeed>,<tick_period>,<scale_offset> populated by acquireAV
 
             Device_SwitchSys(SYS_DEFAULT); // Device_SwitchPower(lastPwrState);
             // Process samples / Format measurament with only significative harmonics
-
-
-            ms->nss = (nsamples) * 2; // Sequenced [<t,av>,...]
+            // Send only ((2^m)/2) samples, from 1 to N2+1
+            ms->nss = nsamples; // send 1024 couple of samples
 
             break;
 
         case _SS00: // Vamp1K encoder Sub-span oscillation: // Raw sample signal
             break;
     };
-
     return (nsamples);
 }
 

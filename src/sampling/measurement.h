@@ -27,8 +27,10 @@
 #define SS_BUF_SIZE_NVM 1536    // Flash
 
 #elif defined(__PIC24FJ256GA702__)
-#define SS_BUF_SIZE 4096+4 // SRam
+
+#define SS_BUF_SIZE 4100 // SRam
 //#define SS_BUF_SIZE_NVM 1536    // Flash
+
 #endif
 //------------------------------------------------------------------------------
 
@@ -43,7 +45,7 @@ typedef enum e_dimension { // physical phenomenon
 typedef enum e_typeset {
     _SIG0 = 0x02, // Test Ttypeset (DIM_TR,DIM_DD)
     _AV00 = 0x0A, // Aeolean Vibration, points
-    _AV01 = 0x0B, // Aeolean Vibration, vibration
+    _AV01 = 0x0C, // Aeolean Vibration, vibration
     _SS00 = 0xB0 // Vamp1K Sub-Span
 } typeset_t;
 

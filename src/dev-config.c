@@ -20,7 +20,7 @@ static __prog__ uint8_t nvmConfigDatas[FLASH_ERASE_PAGE_SIZE_IN_PC_UNITS] __attr
 const unsigned int ramConfigSize = sizeof (config_t);
 #endif
 
-/* constant to initialise CRC table */
+// constant to initialise CRC table 
 #define POLY 0x5A
 
 uint16_t computeCRC16(uint8_t *strtochk, uint16_t length) {
@@ -38,7 +38,7 @@ void Device_ConfigDefaultSet(config_t * config) {
 #endif            
     memset(config, 0, sizeof (config_t));
     // General settings
-    config->general.typeset = _AV00; // _SIG0; // 
+    config->general.typeset =  _AV01; // _SIG0; // 
     config->general.cycletime = 5;
     config->general.delaytime = 59; // 1 min
     config->general.timezone = 9; // Rome
@@ -92,6 +92,7 @@ bool Device_ConfigWrite(uint8_t * pSrc) {
     bool result = true;
 
     // Check consistency 
+    
     memcpy(&g_dev.cnf, pSrc, sizeof (config_t)); // Update active
 
 #ifndef __NOFLASH // Save config in Flash
@@ -102,6 +103,7 @@ bool Device_ConfigWrite(uint8_t * pSrc) {
     uint32_t towrite[2U];
     nvm_address = FLASH_GetErasePageAddress((uint32_t) & nvmConfigDatas);
     FLASH_Unlock(FLASH_UNLOCK_KEY);
+    
     result = FLASH_ErasePage(nvm_address);
 #else
     uint32_t towrite[FLASH_WRITE_ROW_SIZE_IN_INSTRUCTIONS];

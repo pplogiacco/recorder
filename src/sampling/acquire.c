@@ -744,7 +744,9 @@ uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uin
     uint16_t iP = 0;
 
     acquire_INIT(adc_fq); // ADC sampling frequency
-    acquire_START(0); // No timeout, full filled buffer
+    ADA2200_Enable(); // Power-on: SPI1, Sensor Board LINE1
+        
+    acquireAV_START(0); // No timeout, full filled buffer
 
     while (iP < npoints) {
         if (_adcReady) {
@@ -754,8 +756,9 @@ uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uin
             iP++;
         } // _adcReady
     }; 
-    acquire_STOP();
+    acquireAV_STOP();
     fft_spectrum(dbuf, log2_npoints);
+  
     return (iP);
 }
 

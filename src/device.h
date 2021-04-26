@@ -25,7 +25,7 @@
 // #define __HW_TEST    // Perform hardware check
 
 // Dongle:
-#define __DONGLE
+//#define __DONGLE
 //#define __DONGLE_PASSTHRU
 //#define __DONGLE_VAMP1K    // Simulate Device ( Demo Signal only !!)
 //#define __DONGLE_VAMP1K_AUTOSEND // Simulate Device ( Demo Signal only !!)
@@ -69,7 +69,6 @@
 #define SYS_CLK_FrequencySystemGet()        _FOSC_
 #define SYS_CLK_FrequencyPeripheralGet()    _FOSC_
 #define SYS_CLK_FrequencyInstructionGet()   _FCY_
-
 
 
 typedef enum { // 
