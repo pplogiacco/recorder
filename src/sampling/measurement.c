@@ -136,9 +136,44 @@ uint16_t measurementAcquire(measurement_t * ms) {
             break;
 
         case _AV01: // Aeolian Vibration, Occurencies [<ET>,<WS>,<PER>,<OFF>,{<Occ>,<Amp>,<Per>,...}]
-            // RETURN: 
-            // classified acquired vibration ( 3 samples each one  )
 
+            Device_SwitchSys(SYS_ON_SAMP_WST); // lastPwrState = Device_SwitchPower(PW_ON_SAMP_WST);      
+
+            ms->ss = SSBUF;
+            ms->typeset = g_dev.cnf.general.typeset;
+            ms->dtime = RTCC_GetTimeL(); // get RTC datetime
+            ms->ns = 2; // ET,WS
+
+            acquireET(ptrSSBUF); // RET: success
+            ptrSSBUF++;
+            acquireWS(ptrSSBUF); // RET: success
+            ptrSSBUF++;
+
+            Device_SwitchSys(SYS_ON_SAMP_ADA);
+
+            // Manage g_dev parameters  
+            // uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t adc_fq, uint16_t fft_pw)
+
+            short m = 0;
+            short l2 = SS_BUF_SIZE - ms->ns;
+
+            while (l2 > 0) { // log2_npoints
+                m++;
+                l2 >>= 1;
+            }
+
+            // Force ADC frequency 0.5Khz ( g_dev.cnf.calibration.av_period )
+
+            nsamples = acquireAV_FFT(ptrSSBUF, g_dev.cnf.general.cycletime, m, \
+                                 ADC_FRQ_05Khz, g_dev.cnf.calibration.av_filter);
+
+            //ms->ns = 4; // <temperature>,<windspeed>,<tick_period>,<scale_offset> populated by acquireAV
+
+            Device_SwitchSys(SYS_DEFAULT); // Device_SwitchPower(lastPwrState);
+            // Process samples / Format measurament with only significative harmonics
+
+
+            ms->nss = (nsamples) * 2; // Sequenced [<t,av>,...]
 
             break;
 

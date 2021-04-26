@@ -47,7 +47,7 @@
 //#define __VAMP1K_TEST_ADG
 
 //#define __VAMP1K_TEST_adc_printf   // Acquire & print samples ( no process)
-//#define __VAMP1K_TEST_adc_DATAVIS             // send ADC to serial datavis
+//#define __VAMP1K_TEST_AV0ADC_DATAVIS             // send ADC to serial datavis
 
 //#define __VAMP1K_TEST_measurement_printf
 //#define __VAMP1K_TEST_measurement_DATAVIS    // send ADC to serial mc datavis

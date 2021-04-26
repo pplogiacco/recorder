@@ -197,50 +197,8 @@ void acquireAV_INIT(uint16_t av_period) {
     // 00000001 = 2·TCY = TAD
     AD1CON3bits.PUMPEN = 0; // If AVDD is < 2.7V enable the Charge Pump 
 
-    // ____________________________________Input channels 
+    // ____________________________________Input channels ( Single Ended)
 
-#if (0)  // No single ended    
-    AD1CON5bits.BGREQ = 1; // Band Gap Req. ( VBG=1.2V, Vdd = 3.3 Volt +/-5%)
-    //1 = Band gap is enabled when the A/D is enabled and active
-    //0 = Band gap is not enabled by the A/D
-    AD1CON5bits.CTMREQ = 0; // CTMU Request bit
-    //1 = CTMU is enabled when the A/D is enabled and active
-    //0 = CTMU is not enabled by the A/D
-
-    AD1CON2bits.PVCFG = 1; // ADC Positive Reference
-    // 1 = External VREF+ ( Pin AN0 )
-    // 0 = AVDD
-    AD1CON2bits.NVCFG0 = 0; // ADC Negative Reference 
-    // 1 = External VREF- ( Pin AN1 )
-    // 0 = AVSS
-    AD1CHSbits.CH0NA = 0; // S/H- Input A
-    // 000 = AVSS (NVCFG0) !!!!!!!!!!!!!  
-
-    _ANSB3 = 1; // AN5
-    _TRISB3 = 1; // Analog Input  
-
-    AD1CHSbits.CH0SA = 0b00101; // 1; // S/H+ Input A 
-    //11110 = AVDD(1)
-    //11101 = AVSS(1)
-    //11100 = Band Gap Reference (VBG)(1)
-    //10000-11011 = Reserved
-    //01111 = No external channels connected (used for CTMU)
-    //01110 = No external channels connected (used for CTMU temperature sensor)
-    //01101 = AN13
-    //01100 = AN12
-    //01011 = AN11
-    //01010 = AN10
-    //01001 = AN9
-    //01000 = AN8
-    //00111 = AN7
-    //00110 = AN6
-    //00101 = AN5
-    //00100 = AN4
-    //00011 = AN3
-    //00010 = AN2
-    //00001 = AN1
-    //00000 = AN0
-#else
     AD1CON5bits.BGREQ = 0; // Band Gap Req. ( VBG=1.2V, Vdd = 3.3 Volt +/-5%)
     //1 = Band gap is enabled when the A/D is enabled and active
     //0 = Band gap is not enabled by the A/D
@@ -280,7 +238,6 @@ void acquireAV_INIT(uint16_t av_period) {
     //00010 = AN2
     //00001 = AN1
     //00000 = AN0
-#endif
 
     ADA2200_Enable(); // Power-on: SPI1, Sensor Board LINE1
     _adcReady = 0;
@@ -496,9 +453,8 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t a
     ppPoints--;
     acquireAV_STOP();
 
-#elif defined( __AV0ADC )
+#elif defined( __AV0ADC_DATAVIS )
 
-#ifdef __AV0ADC_DATAVIS
 
     uint16_t adc12bit;
     acquireAV_START(nsec);
@@ -522,38 +478,6 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t a
         }// _adcReady
     }
     acquireAV_STOP();
-
-#else
-
-    Tc = 0;
-    Tcp = 0;
-
-    acquireAV_START(nsec);
-    while ((ppPoints < maxpoints) && _cycletime) { //   Loop until cycle-time or full filled buffer
-
-        if (_adcReady) { // New data available
-
-            // =============== BEGIN:READ
-            _adcReady--;
-
-            *pSSBUF = Tc - Tcp;
-            pSSBUF++;
-            *pSSBUF = ADC1BUF0; //(SCALE_TOUNSIGNED - ADC1BUF0); // Positive point
-
-            pSSBUF++;
-            ppPoints++;
-            Tcp = Tc;
-            pIndex++;
-
-            Tc++; // T = fSynco/16
-            // =============== END:READ
-
-        }// _adcReady
-    }
-
-    acquireAV_STOP();
-    //ppPoints = maxpoints - (maxpoints - ppPoints);
-#endif // __DATAVIS
 
 #endif 
     return (ppPoints - 1);
@@ -713,9 +637,7 @@ uint16_t acquireWS(sample_t* dbuf) {
  * wind_speed = pulses * wsFactor = m/s                                       *
  *----------------------------------------------------------------------------*/
 
-#define ADC_FRQ_1Khz 8000U
-#define ADC_FRQ_24Khz 3200U
-#define ADC_FRQ_05Khz 16000U
+
 
 void acquire_INIT(uint16_t freq) {
 
@@ -815,7 +737,8 @@ void acquire_STOP() {
     // =============== END:STOP  
 }
 
-uint16_t acquire_fft(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uint16_t adc_fq) {
+
+uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uint16_t adc_fq, uint16_t fft_pw) {
 
     uint16_t npoints = (1U << log2_npoints);
     uint16_t iP = 0;
@@ -837,3 +760,23 @@ uint16_t acquire_fft(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uint1
 }
 
 
+//uint16_t acquire_fft(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uint16_t adc_fq) {
+//
+//    uint16_t npoints = (1U << log2_npoints);
+//    uint16_t iP = 0;
+//
+//    acquire_INIT(adc_fq); // ADC sampling frequency
+//    acquire_START(0); // No timeout, full filled buffer
+//
+//    while (iP < npoints) {
+//        if (_adcReady) {
+//            _adcReady--;
+//            *(dbuf + iP) = fft_windowing((ADC1BUF0 + ADC1BUF1) >> 1, iP);
+//            //*(dbuf + iP + npoints) = 0;
+//            iP++;
+//        } // _adcReady
+//    }; 
+//    acquire_STOP();
+//    fft_spectrum(dbuf, log2_npoints);
+//    return (iP);
+//}

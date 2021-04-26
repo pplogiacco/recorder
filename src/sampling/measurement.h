@@ -13,7 +13,7 @@
 #include "../device.h"    // Typeset defs / config params
 #include "measurement.h" // Typeset defs / config params
 
-#define sample_t uint16_t  // unsigned short
+#define sample_t signed short // fix14_t 
 
 //typedef unsigned short sample_t; // ADC FormatAbsolute Integer Format
 #define FLOAT2INT_FACTOR 100000U
