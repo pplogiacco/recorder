@@ -1,0 +1,129 @@
+/* -------------------------------------------------------------------------- */
+/* MEASURE WIND SPEED
+   Count the pulses on pin for fixed time period:
+      pulse / period  = velocity * wsFactor = m/s                          */
+/* -------------------------------------------------------------------------- */
+const float Pi = 3.141592653589793;
+const float Kws = 1;
+
+
+
+#define _nWSS 3
+volatile int _wsready;
+volatile int _wsptime[_nWSS];
+
+void __attribute__((__interrupt__, no_auto_psv)) _T4Interrupt(void) {
+    //printf("Int TMR4, TMR4=%u\n", TMR4);
+    _wsptime[_wsready] = TMR4;
+    //TMR4 = 0;
+    IFS1bits.T4IF = 0; //Clear interrupt flag
+    _wsready++;
+}
+
+/*
+volatile int wst[4];
+void __attribute__((__interrupt__, auto_psv)) _T3Interrupt(void) {
+    IFS0bits.T3IF = 0; //Clear interrupt flag
+    printf("TMR3=%u\n", TMR3);
+}
+void __attribute__((interrupt, no_auto_psv)) _ISR _IC1Interrupt(void) {
+    int i = 0;
+    if (IFS0bits.IC1IF) {
+        _wsready = 1;
+        while (IC1CON1bits.ICBNE) { // read data to clear bits
+            wst[i++] = IC1BUF;
+        }
+        //TMR3 = 0;
+        IFS0bits.IC1IF = 0;
+        printf("Int IC1, TMR3=%u\n", TMR3);
+    }
+}
+ */
+
+unsigned short acquireWS(sample_t* dbuf) {
+    long tmr_timeout = 0xFFFA; // n*2ms=6.5 sec
+    int i;
+
+    /* TMR3_Freerun(Freq)
+    T3CON = 0x00; // TMR3, Internal clock (FOSC/2)
+    T3CONbits.TCKPS = 0b011; // prescaler 1:8
+    TMR3 = 0; // start TMR3 counting from zero.
+    PR3 = 0x0FA3; // 500Hz/T=2mS
+    IFS0bits.T3IF = 0; // Reset Int vector
+    IEC0bits.T3IE = 0; // Enable Int
+    T3CONbits.TON = 1; // TMR3 ON
+     */
+
+    // Wind-Pulse Source Pin
+    TRISBbits.TRISB2 = 1; // Input Pin (RB2/CN6/T5CK/T4CK)
+    ANSBbits.ANSB2 = 0; // Digital IN
+    CNPD1bits.CN6PDE = 1; // Weak Pull-Down
+
+    // TMR4 as Gated Counter
+    T4CON = 0x00; // Reset TMR4, 16 Bit
+    T4CONbits.TCS = 0; //  Internal clock (Fosc/2)
+    T4CONbits.TGATE = 1; // Gated time accumulation (T4CK pin rising/falling time)
+    T4CONbits.TCKPS = 0b10; // prescaler (01=1:8,11=1:256)  16Mhz/256 = 500Khz, 2ns
+    // 10 = 1:64
+    TMR4 = 0x00; // TMR4 Counter Register
+    PR4 = 0xFFFF; // TMR4 Single Event
+    IFS1bits.T4IF = 0; // Reset Int vector
+    IPC6bits.T4IP = 4; // A/D interrupt priority
+    IEC1bits.T4IE = 1; // Enable Int
+    //T4CONbits.TON = 1; // Starts 16-bit Timery
+
+    /*
+    // TMR4 as External Interrupt Pin
+    T4CON = 0x00; // Reset TMR4, 16 Bit, No Gated, No Prescaler
+    T4CONbits.TCS = 1; // External clock from T4CK pin (on the rising edge)
+    TMR4 = 0x00; // TMR4 Counter Register
+    PR4 = 0x04; // TMR4 Single Event
+    IFS1bits.T4IF = 0; // Reset Int vector
+    IEC1bits.T4IE = 1; // Enable Int
+    T4CONbits.TON = 1; // Starts 16-bit Timery
+
+    // IC1
+    IC1CON1 = 0;
+    IC1CON1bits.IC1TSEL = 0; // Save TMR3 value (src)
+    IC1CON1bits.ICI = 0; // Interrupt on every capture event
+    //# IC1CON1bits.ICI =  0; // !!!IF NO IC1 PIN:Interrupt on every capture event
+    IC1CON2 = 0; // 16Bit
+    //IC1CON2bits.SYNCSEL = 0; //
+    IC1CON2bits.SYNCSEL = 0b01110; // Trig on TMR4 event
+    IC1CON2bits.ICTRIG = 0; // Triggers ICx from SYNCSELx /(0=Input Pin IC1)
+    IFS0bits.IC1IF = 0;
+    //IPC0bits.IC1IP = 1;
+    IEC0bits.IC1IE = 1;
+    IC1CON1bits.ICM = 0b011; // Simple Capture mode: Capture on every rising edge
+     */
+    _wsready = 0;
+    for (i = 0; i < _nWSS; i++) {
+        _wsptime[i] = 0;
+    }
+
+    T4CONbits.TON = 1; // Starts Timery
+
+
+    while ((_wsready < _nWSS) && (tmr_timeout-- > 0)) {
+    }
+    T4CONbits.TON = 0;
+    /*
+    T3CONbits.TON = 0;
+    IC1CON1bits.ICM = 0;
+    if (_wsready > 0) { //  !!!!  TIMEOUT  !!!!
+        wst[0] = 0;
+        wst[1] = wst[0];
+        wst[2] = wst[0];
+    } else {
+        float dT = (float) (_wsready) * ((float) 1 / 2000);
+        printf("dT=%3.3f \n", dT);
+        float ms = (Pi * Kws) / dT;
+        printf("ms=%3.3f \n", ms);
+    }
+     */
+    for (i = 1; i < _wsready; i++) {
+        _wsptime[1] += _wsptime[i];
+    }
+    *dbuf = (_wsptime[1] / (_wsready - 1));
+    return (_wsready > 0);
+}

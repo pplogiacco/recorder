@@ -1,0 +1,366 @@
+
+
+// =============================================================================
+
+/*  case _ADCT: // ADC Sampling
+      ms->typeset = _AV00;
+      ms->ns = 0x0;
+      ms->nss = SS_BUF_SIZE;
+      // total samples to acquire nsec = CNF.measure.cycle
+      // unsigned long ns = SS_BUF_SIZE; // nsec * 1000; // expand samples
+      // MEMORY !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      acquireADC1(ms->ss, ms->nss, TMR3T_30Hz);
+      break;
+   case _FFT0: // FFT
+      ms->typeset = _FFT0;
+      ms->ns = 0x0;
+      ms->nss = 62; // acquireFFT64...
+      acquireFFT64(ms->ss);
+      break;
+
+
+
+// DEMO SINGLE
+// -------------
+// fills the buffer with one sample only
+
+void acquireSingle(sample_t* dbuf) // Fill buffer with one fix value sample_t
+{
+ *dbuf = 0x666; // Devil's number !!!!
+}
+
+
+// FFT SEQUENCE
+// -------------
+// fills the buffer with 31 harmonics coefficients
+
+void acquireFFT64(sample_t* dbuf) // Fill buffer with 62 values for 31 real/imaginary harmonics coeff.
+{
+//  m = log2(dsize); 512/9, 64/6
+int n;
+short fr[64]; // inputData / realPart
+short fi[64]; // imaginaryPart
+
+demoSignal(fr, 64);
+fix_fft(fr, fi, 6); // log2(64)
+
+for (n = 1; n < 32; n += 2) {
+ *(dbuf + n) = fr[n];
+ *(dbuf + (n + 1)) = fi[n];
+}
+}
+
+ */
+
+
+/* ACQUIRE ADC1 SEQUENCE
+// -------------
+// fills the buffer with "nss" samples sampled by ADC1 at Tmr3 Period
+
+unsigned long _SampleCounter;
+const uint8_t TMR3_TCKPS = 0b011; // prescaler 1:8
+const uint16_t TMR3_PR3 = 0x0FA3; // Fcy=8Mhz,F=500Hz/T=2mS
+
+uint16_t volatile *ADC16Ptr;
+
+void __attribute__((__interrupt__, auto_psv, weak)) _ADC1Interrupt(void) {
+
+    if (IFS0bits.AD1IF) {
+
+        int nsamp = AD1CON2bits.SMPI; // samples x int-call
+        if (AD1CON2bits.BUFS) // Alternate Buffer (BUFREGEN=0,BUFM=1)
+        {
+            ADC16Ptr = (uint16_t *) & ADC1BUF8;
+        } else {
+            ADC16Ptr = (uint16_t *) & ADC1BUF0;
+        }
+        while (nsamp-- > 1) {
+            SSBUF[_SampleCounter++] = *ADC16Ptr;
+            //printf("0x%02x \n", (uint16_t) (*ADC16Ptr));
+            ADC16Ptr++;
+        }
+        _SampleCounter++;
+        IFS0bits.AD1IF = 0; // Clear A/D conversion interrupt.
+    }
+}
+
+
+void acquireADC1(sample_t* dbuf, unsigned long nss, unsigned long t3period) {
+    unsigned long _sc = 0;
+    // ____________________________________Timer3 trig ADC
+    T3CON = 0x0; // Reset Tmr3
+    T3CONbits.TCKPS = TMR3_TCKPS; // prescaler
+    TMR3 = 0; // start TMR3 counting from zero.
+    PR3 = t3period; // Tick period
+    IFS0bits.T3IF = 0; // Reset Int vector
+    IEC0bits.T3IE = 0; // event is handled by ADC
+    T3CONbits.TON = 1;
+
+    // ____________________________________AD Analog Input Pins
+    ANSAbits.ANSA0 = 1; // AN0 (2,RA0,VRef+)
+    TRISAbits.TRISA0 = 0;
+
+    // ____________________________________AD Conversion Mode
+    AD1CON1 = 0x0; //AD1CON1 = 0x8024;
+    AD1CON1bits.ADSIDL = 1; // A/D Stop in Idle Mode
+    AD1CON1bits.MODE12 = 0; // A/D Resolution 10/12 bits (0=10bits)
+    AD1CON1bits.FORM = 0; // 00 = Absolute decimal result, unsigned, right-justified
+    AD1CON1bits.ASAM = 0; // Auto-Convert ON ( end sampling and start conversion )
+    AD1CON1bits.SSRC = 2; // Timer3 event ends sampling and starts conversion
+    // ____________________________________AD Input Channels
+    AD1CHS = 0; // A/D Sample Select Register
+    AD1CHSbits.CH0NA = 0; // MUXA Channel 0 Negative Input (000 = AVSS)
+    AD1CHSbits.CH0SA = 1; // S/H+ input ( 00010 = AN1 )
+    //AD1CHS = 0x40; // AN1
+
+    // ____________________________________AD Voltage References
+    AD1CON2bits.PVCFG = 0; // 01 = External ( Vdd/Vref+ Pin AN0 )
+    AD1CON2bits.NVCFG = 0; // 00 = Internal ( Vss/Vref- Pin AN1)
+    // ____________________________________AD Buffering Mode
+    AD1CON2 = 0; // Inputs are not scanned
+    AD1CON2bits.BUFREGEN = 0; // A/D result buffer is treated as a FIFO
+    AD1CON2bits.BUFM = 0; // Filling alternate buffer ADCBUF0/ADC1BUF8
+    AD1CON2bits.SMPI = 0b11111; // Interrupt on 16th sample/conversion cycle
+    //AD1CON2bits.SMPI = 0b11111; // Interrupts on 32th samples
+    //AD1CON2 = 0x00;
+    // ____________________________________AD Conversion Timing
+    // Clock: Fcy 4Mhz -> Tcy = 250nS
+    // Tad=Tcy*(ADCS+1)= (1/4M)*33 =  XXXXus (625Khz)
+    // 10bit ADC Conversion Time: Tc=(10+2)*Tad = 8.25us
+    // 12bit ADC Conversion Time: Tc=(12+2)*Tad = ??us
+    AD1CON3 = 0;
+    AD1CON3bits.ADRC = 0; // A/D Conversion Clock Source (from Fcy)
+    AD1CON3bits.ADCS = 64; // A/D Conversion Clock TAD = n*Tcy
+    // 00111111 = 64·Tcy = TAD (0x3F )
+    // 00000001 = 2·Tcy = TAD
+    // 00000000 = Tcy = TAD
+    AD1CON3bits.SAMC = 22; // Auto-Sample Time ( ? ADC Convertion Time)
+    // 11111 = 31 TAD
+    // 00001 = 1 TAD...
+    AD1CON3bits.EXTSAM = 0; // Extended Sampling-time (1=Still Sampling)
+    AD1CON3 = 0x1405;
+    // ____________________________________AD Auto-Scan/CTMU/Threshold OFF
+    AD1CON5 = 0x0; // (ASEN) Auto-scan is disabled
+    //AD1CSSL = 0; // A/D Input Scan Select (No scan)
+    //AD1CSSH = 0;
+    //AD1CHITH = 0; // A/D Scan Compare Hit Registers
+    //AD1CHITL = 0;
+    //AD1CTMUENH = 0; // CTMU enable Registers
+    //AD1CTMUENL = 0;
+    // ____________________________________AD Interrupt Handler Vector
+    IFS0bits.AD1IF = 0; // Clear A/D conversion interrupt.
+    IPC3bits.AD1IP = 1; // Configure A/D interrupt priority
+    IEC0bits.AD1IE = 1; // Enable A/D conversion interrupt
+
+    AD1CON1bits.ADON = 1; // ADC On
+
+    _SampleCounter = 0;
+    _sc = _SampleCounter;
+    while (_SampleCounter < nss) { //  !!!!  TIMEOUT  !!!!
+        if (_SampleCounter != _sc) {
+            _sc = _SampleCounter;
+            printf(">>>n=%lu\n", _SampleCounter);
+            //_SampleCounter = 0;
+        }
+    }
+    AD1CON1bits.ADON = 0; // Converter Off
+    T3CONbits.TON = 0;
+    // Acquired samples in SSBUF
+}*/
+
+
+
+// !!!!! ----------------------------------------- DELETE
+
+
+/*
+void acquireZZ(void) {
+
+    uint16_t count;
+    uint16_t *ADC16Ptr;
+    uint16_t sample;
+    int prevsamp = 0; // Init cycle p-p check
+    int decsample;
+    uint8_t samplenotpp; //
+    uint8_t nsample;
+    //char *cbuf;
+    //int x = 0;
+
+
+    if (1) { // ADC Buffer filled
+        //   #1: AcquireAV(long nsamples, char* measBuffer )
+        //   #2: AcquireSS
+        //printf("Sampled (%d) \n", AD1CON2bits.SMPI);
+
+        // --------------------
+        nsample = (AD1CON2bits.SMPI >> 1) - 1; // -1 analyze prevsample...buffer-1
+        decsample = prevsamp; // Initialize to sum if not p-p
+        samplenotpp = 1; // Assume not mached p-p
+
+
+        if (AD1CON2bits.BUFS) // Half Buffer, BUFREGEN=0 (FIFO) and BUFM=1 (half buffer))
+        {
+            ADC16Ptr = (uint16_t *) & ADC1BUF8;
+        } else {
+            ADC16Ptr = (uint16_t *) & ADC1BUF0;
+        }
+
+        for (count = 0; count < nsample; count++) // Mach p-p & decimate
+        {
+            sample = (uint16_t) (*ADC16Ptr);
+            printf("0x%02x \n", sample);
+            // p-p check (prev-sample)*(sample-next)<0
+            //printf("%d ,",  prevsamp );
+            //printf("%d ,",  sample );
+            //printf("%d \n", *(ADC16Ptr+1) );
+
+            if (((prevsamp - sample) * (sample - *(ADC16Ptr + 1))) < 0) { //rintf("p-p ");
+                decsample = sample;
+                samplenotpp = 0; // is p-p
+            } else { // printf("%u \n", (uint16_t)*ADC16Ptr );
+                decsample += sample; // sum values if p-p not mach
+            }
+
+            decsample += sample; // compute average
+            prevsamp = sample; //
+            ADC16Ptr++;
+        } // for
+
+        prevsamp = (uint16_t) * ADC16Ptr; // Save last sample for next cycle
+
+        if (samplenotpp) // if not p-p
+        {
+            decsample = decsample / (nsample + 1);
+        }// compute n-samples average
+        else printf("pp:"); // else use p-p
+        // printf("%u \n", decsample );
+        // Out 16 bit right aligned
+
+        //txbuf = (uint16_t)decsample;        // save point
+
+
+        // --------------------
+    } // End ADC
+
+}
+
+
+
+
+
+// Trig sample/convert on external Event
+// AD1CON1.SSRC = 001;  // Conversion Trigger Source ( 010 = TMR3 One Shot / 001 =  INT0 )
+// AD1CON1.FORM = 00 ;  // Data Output Format: Absolute decimal result, unsigned, right-justified
+
+// Config two 8-word buffers
+// AD1CON2.BUFM = 1 Buffer Mode (config two 8-word buffers ADC1BUF0-ADC1BUF7, ADC1BUF8-ADC1BUFF)
+
+#define _HHADDR  ADC1BUF0      // ADC1 Low 8bit half buffer
+#define _HLADDR  ADC1BUF8      // ADC1 Hi 8b half buf
+uint16_t *ADC16Ptr;
+
+
+#define _PBUFSIZE 1024         // 1K
+uint16_t *pBuffer[_PBUFSIZE];  // Allocated in RAM
+uint16_t pbIndex = 0;
+uint16_t pbiLastPP = 0;
+
+#define _DECIFACT 8           // decimator Factor (Freq./8 2Khz,1s -> 250 Sample)
+
+
+uint16_t t=0;
+uint8_t pd1s=0;       // last derivate sign
+
+typedef struct {
+    uint16_t t;  // ticks 65536
+    uint16_t a;  // 10 bits unsigned Int
+} ppoint_t;
+
+
+
+
+void __attribute__ ((__interrupt__)) _ADC1Interrupt(void)   // Internal Buffer Interrupt Event
+{                                                          // Called every 8 samples                                                         // ( D1CON2.BUFM = 1 Splitted buffer )
+
+ halfAddr = (AD1CON2.BUFS)?_HLADDR:_HHADDR;           // check AD1CON2.BUFS to read half-low/hi
+
+  for ( int i=0;i<AD1CON2.SMPI;i++) {                  // scan hi/low buffer
+    t++;                                              // increment sample's time counter
+
+    uint8_t d1s = ( (pBuffer[pbIndex] > *(halfAddr+i) ))?1:0; // Derivate sign
+
+    if ( d1s != pd1s ) {    // Pick-Point
+                            // decimate samples & re-order buffer
+
+    //uint16_t nsample = (pbiLastPP - pbIndex) >>_DECIFACT;  // saved samples
+
+     for ( int j=pbiLastPP; j<pbIndex ; j+=_DECIFACT)
+     {
+     pBuffer[j
+     }
+
+
+     pbiLastPP = pbIndex;
+    };
+
+    pBuffer[pbIndex] = *(halfAddr+i); // save sample in buffer
+    pbIndex+=2;
+ }
+}  // End ISR
+
+
+
+uint16_t ADC1_ConversionResultBufferGet(uint16_t *buffer)
+{
+    int count;
+    uint16_t *ADC16Ptr;
+    uint16_t sampleCount = AD1CON2bits.SMPI;
+
+    ADC16Ptr = (uint16_t *)&(ADC1BUF0);
+
+    for(count=0;count<=sampleCount;count++)
+    {
+        buffer[count] = (uint16_t)*ADC16Ptr;
+        ADC16Ptr++;
+    }
+    return count;
+}
+
+
+ */
+
+
+
+
+/*
+
+The __interrupt(type) specifier may be used to indicate that a function is to act
+as an interrupt service routine. The type is a comma-separated list of keywords that
+indicate information about the interrupt function.
+The current interrupt types are:
+<empty>
+Implement the default interrupt function
+low_priority
+The interrupt function corresponds to the low priority interrupt source (XC8 ? PIC18
+only)
+high_priority
+The interrupt function corresponds to the high priority interrupt source (XC8)
+save(symbol-list)
+Save on entry and restore on exit the listed symbols (XC16)
+irq(irqid)
+Specify the interrupt vector associated with this interrupt (XC16)
+altirq(altirqid)
+Specify the alternate interrupt vector associated with this interrupt (XC16)
+preprologue(asm)
+Specify assembly code to be executed before any compiler-generated interrupt code
+(XC16)
+shadow
+Allow the ISR to utilise the shadow registers for context switching (XC16)
+auto_psv
+The ISR will set the PSVPAG register and restore it on exit (XC16)
+no_auto_psv
+The ISR will not set the PSVPAG register (XC16)
+Use the native keywords discussed in the Differences section to look up information on
+the semantics of this specifier
+ 
+ */
