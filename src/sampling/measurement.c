@@ -125,7 +125,7 @@ uint16_t measurementAcquire(measurement_t * ms) {
 #endif            
             Device_SwitchSys(SYS_ON_SAMP_ADA);
 
-            nsamples = acquireAV(ptrSSBUF, g_dev.cnf.general.cycletime, ((SS_BUF_SIZE - ms->ns) / 2), \
+            nsamples = acquireAV00(ptrSSBUF, g_dev.cnf.general.cycletime, ((SS_BUF_SIZE - ms->ns) / 2), \
                                   g_dev.cnf.calibration.av_period, g_dev.cnf.calibration.av_filter);
 
             ms->ns = 4; // <temperature>,<windspeed>,<tick_period>,<scale_offset> populated by acquireAV
@@ -167,7 +167,7 @@ uint16_t measurementAcquire(measurement_t * ms) {
             }
 
             // Force ADC frequency 0.5Khz ( g_dev.cnf.calibration.av_period )
-            fft_init(); // Initialize tables 
+     
             
             nsamples = acquireAV_FFT(ptrSSBUF, g_dev.cnf.general.cycletime, 10, \
                                  ADC_FRQ_05Khz, g_dev.cnf.calibration.av_filter);

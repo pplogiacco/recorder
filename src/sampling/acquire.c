@@ -46,7 +46,7 @@ uint16_t acquireSig(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t 
     pSSBUF += 2;
 
     // Couples of sequenced samples { [dT,A],... }
-    while ((nT < maxpoints) && ((nT * (1.0/ADC_FQ)) <= nsec)) {
+    while ((nT < maxpoints) && ((nT * (1.0 / ADC_FQ)) <= nsec)) {
         *pSSBUF = (nT == 0) ? 0 : 1;
         Ft = (sin(dTr) * (float) SIG_AMPLITUDE);
         *(pSSBUF + 1) = ((sample_t) Ft) + SIG_AMPLITUDE;
@@ -59,12 +59,6 @@ uint16_t acquireSig(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t 
     }
     return (nT);
 }
-
-
-
-
-
-
 
 /*----------------------------------------------------------------------------*
  * L V D T  ( A E O L I A N  V I B R A T I O N )                              *   
@@ -260,13 +254,15 @@ void acquireAV_START(uint16_t nsec) {
 void acquireAV_STOP() {
     // =============== BEGIN:STOP   
     AD1CON1bits.ADON = 0; // Converter Off
+    IEC0bits.AD1IE = 0; // Disable A/D conversion interrupt
+    IFS0bits.AD1IF = 0; // Clear A/D conversion interrupt.
     T3CONbits.TON = 0;
     ADA2200_Disable();
     Timeout_Unset();
     // =============== END:STOP  
 }
 
-uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t av_period, uint16_t av_filter) {
+uint16_t acquireAV00(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t av_period, uint16_t av_filter) {
 
 #ifdef __VAMP1K_TEST
     printf("AV\n");
@@ -298,7 +294,7 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t a
     pSSBUF++;
 
 
-#if defined(__VAMP1K_TEST_print_lvdt)
+#if defined(__VAMP1K_TEST_AV_printf)
 
     acquireAV_START(nsec);
     maxpoints--; // Reserve one for last sample
@@ -341,7 +337,7 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t a
     acquireAV_STOP();
 
 
-#elif defined( __AV0PP )
+#elif defined( __AV00_PP )
 
     Tc = 0;
     Tcp = 0;
@@ -424,7 +420,7 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t a
     *pSSBUF = points[pIndex - 1].A; // Amplitude
     //ppPoints++;
 
-#elif defined( __AV0NOPP )
+#elif defined( __AV00_RAW )
 
     Tc = 0;
     Tcp = 0;
@@ -442,7 +438,7 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t a
             *pSSBUF = Tc - Tcp; //-Tcp;
             Tcp = Tc;
             pSSBUF++;
-            *pSSBUF = ADC1BUF0; //(SCALE_TOUNSIGNED - ADC1BUF0); // Positive point
+            *pSSBUF = ADC1BUF0;
             pSSBUF++;
             ppPoints++;
             pIndex++;
@@ -453,8 +449,7 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t a
     ppPoints--;
     acquireAV_STOP();
 
-#elif defined( __AV0ADC_DATAVIS )
-
+#elif defined( __VAMP1K_TEST_AV_datavis )
 
     uint16_t adc12bit;
     acquireAV_START(nsec);
@@ -482,8 +477,6 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t a
 #endif 
     return (ppPoints - 1);
 }
-
-
 
 /* -------------------------------------------------------------------------- *
  * E N V I R O M E N T   T E M P E R A T U R E
@@ -603,7 +596,6 @@ uint16_t acquireWS(sample_t* dbuf) {
     for (i = 0; i < _nWSS; i++) {
         _wsptime[i] = 0;
     }
-
     _icycle = 0;
     _wsready = 0;
 
@@ -629,27 +621,24 @@ uint16_t acquireWS(sample_t* dbuf) {
 
 }
 
-
-
 /*----------------------------------------------------------------------------*
  * A C Q U I R E    F F T                                          *
  * Count the pulses (rotations) on pin for fixed time period (1sec):          *
  * wind_speed = pulses * wsFactor = m/s                                       *
  *----------------------------------------------------------------------------*/
 
-
-
-void acquire_INIT(uint16_t freq) {
+void acquireAVFFT_INIT(uint16_t freq) {
 
 #if defined( __PIC24FJ256GA702__ ) // New sensor board & PIC 702
 
-    // =============== BEGIN:INIT    
-    //ANCFG |= 0x100; // A/D Band Gap Enable (1ms to tune-up)  
-    IEC0bits.AD1IE = 0; // Enable A/D conversion interrupt
-    IFS0bits.AD1IF = 0; // Clear A/D conversion interrupt.
-    IPC3bits.AD1IP = 1; // High Interrupt Priority
+    // ____________________________________Input Analog pins
     //    AV_SYN_SetDigital();
     //    AV_SYN_SetDigitalInput(); // Input T3CK/RB15 (SYNCO)
+    //ANCFG |= 0x100; // A/D Band Gap Enable (1ms to tune-up)  
+
+    IEC0bits.AD1IE = 0; // Disable A/D conversion interrupt
+    IFS0bits.AD1IF = 0; // Clear A/D conversion interrupt.
+    //IPC3bits.AD1IP = 1; // High Interrupt Priority
 
 
     // ==== TMR3 as pulse counter on T3CK pin (SYNCO) ====
@@ -677,9 +666,6 @@ void acquire_INIT(uint16_t freq) {
 
     PR3 = freq; // (16000000/adc_freq)+1; // FRequency divider
     IFS0bits.T3IF = 0; // Reset int flag
-
-    // ____________________________________Input Analog pins
-
     // ____________________________________A/D Converter Setup
     // AD1CON1bits.ADON = 0; // Converter off
     AD1CON2 = 0; // Inputs are not scanned
@@ -687,16 +673,14 @@ void acquire_INIT(uint16_t freq) {
     AD1CHS = 0; // No channels
     // ____________________________________Clock and Conversion Mode
     AD1CON1 = 0; // No operation in Idle mode (ADSIDL=1)
-    AD1CON1bits.DMABM = 0; // bit 12 : Extended DMA Buffer Mode ( PIA mode )
-    AD1CON1bits.DMAEN = 0; // bit 11 : Extended DMA/Buffer (features are disabled)
-    AD1CON1bits.MODE12 = 1; // Resolution 12 bit
     AD1CON1bits.FORM = 0b00; // Format (Decimal result, signed, right-justified)
+    AD1CON1bits.MODE12 = 1; // Resolution 12 bit
     AD1CON1bits.SSRC = 2; // Timer 3
     AD1CON1bits.ASAM = 1; // Auto-Convert ON (end sampling and start conversion)
     // ____________________________________Buffering & References
     AD1CON2bits.BUFREGEN = 0; // A/D result buffer is treated as a FIFO
     AD1CON2bits.BUFM = 0; // No alternate half-buffer (starts ADCBUF0)
-    AD1CON2bits.SMPI = 1; // Interrupt Sample/DMA Increment Rate 
+    AD1CON2bits.SMPI = 1; // Interrupt every 2 samples
     // ____________________________________Conversion Timing   
     AD1CON3bits.ADRC = 0; // Clock is derived from the system clock (Tcy= 1/Fcy)
     AD1CON3bits.EXTSAM = 0; // Extended Sampling Time bit
@@ -712,40 +696,20 @@ void acquire_INIT(uint16_t freq) {
     AD1CON2bits.NVCFG0 = 0; // ADC Negative Reference 
     AD1CHSbits.CH0NA = 0; // S/H- Input A
     AD1CHSbits.CH0SA = 0; // 1; // S/H+ Input A 
-
     _adcReady = 0;
-    // =============== END:INIT   
-
 #endif // __PIC24FJ256GA702__
 }
-
-void acquire_START(uint16_t nsec) {
-    _cycletime = true;
-    if (nsec > 0) {
-        Timeout_Set(nsec, 0);
-        Timeout_SetCallBack(&cycletimer);
-    }
-    AD1CON1bits.ADON = 1; // Start ADC
-    IEC0bits.AD1IE = 1; // Enable A/D conversion interrupt
-}
-
-void acquire_STOP() {
-    // =============== BEGIN:STOP   
-    AD1CON1bits.ADON = 0; // Converter Off
-    T3CONbits.TON = 0;
-    Timeout_Unset();
-    // =============== END:STOP  
-}
-
 
 uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uint16_t adc_fq, uint16_t fft_pw) {
 
     uint16_t npoints = (1U << log2_npoints);
     uint16_t iP = 0;
 
-    acquire_INIT(adc_fq); // ADC sampling frequency
+    acquireAVFFT_INIT(adc_fq); // ADC sampling frequency
+
+    fft_init(log2_npoints); // Initialize tables 
     ADA2200_Enable(); // Power-on: SPI1, Sensor Board LINE1
-        
+
     acquireAV_START(0); // No timeout, full filled buffer
 
     while (iP < npoints) {
@@ -755,31 +719,9 @@ uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uin
             //*(dbuf + iP + npoints) = 0;
             iP++;
         } // _adcReady
-    }; 
+    };
     acquireAV_STOP();
     fft_spectrum(dbuf, log2_npoints);
-  
     return (iP);
 }
 
-
-//uint16_t acquire_fft(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uint16_t adc_fq) {
-//
-//    uint16_t npoints = (1U << log2_npoints);
-//    uint16_t iP = 0;
-//
-//    acquire_INIT(adc_fq); // ADC sampling frequency
-//    acquire_START(0); // No timeout, full filled buffer
-//
-//    while (iP < npoints) {
-//        if (_adcReady) {
-//            _adcReady--;
-//            *(dbuf + iP) = fft_windowing((ADC1BUF0 + ADC1BUF1) >> 1, iP);
-//            //*(dbuf + iP + npoints) = 0;
-//            iP++;
-//        } // _adcReady
-//    }; 
-//    acquire_STOP();
-//    fft_spectrum(dbuf, log2_npoints);
-//    return (iP);
-//}
