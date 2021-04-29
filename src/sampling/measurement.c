@@ -3,7 +3,6 @@
 #include <stdio.h>  // printf
 #include <stdlib.h>  // abs
 #include <string.h>
-//#include "sampling/sampling.h"
 
 #include "measurement.h"
 #include "acquire.h"
@@ -27,131 +26,112 @@ static __prog__ uint8_t nvmDepot[DEPOT_SIZE] __attribute__((space(psv), aligned(
 //==============================================================================
 
 uint16_t measurementAcquire(measurement_t * ms) {
-    sample_t *ptrSSBUF = SSBUF;
+    sample_t *ptrSS = SSBUF;
     sample_t nsamples;
-
-#if !defined(__SENSOR_BOARD) || defined(__VAMP1K_TEST_SIG0_FFT)  
-    g_dev.cnf.general.typeset = _SIG0;
-#endif
+    uint16_t adc_fq;
 
 #ifdef __VAMP1K_TEST
     printf("Tset=%u\n", g_dev.cnf.general.typeset);
 #endif
 
-    switch (g_dev.cnf.general.typeset) { // g_config.general.samplingmode
+    
+    if ((g_dev.cnf.general.typeset == _AV00) || (g_dev.cnf.general.typeset == _AV01)) {
+        ms->ss = ptrSS;
+        ms->dtime = RTCC_GetTimeL(); // get RTC datetime
+
+        // ------------------ Single Samples
+        Device_SwitchSys(SYS_ON_SAMP_WST); // lastPwrState = Device_SwitchPower(PW_ON_SAMP_WST); 
+        acquireET(ptrSS); // RET: success
+        ptrSS++;
+        acquireWS(ptrSS); // RET: success
+        ptrSS++;
+        *ptrSS = SYNCO_FREQUENCY >> g_dev.cnf.calibration.av_period; // Compute ADC frequency (Hz)
+        ptrSS++;
+        *ptrSS = 4200; // Scale Resolution 2^12 (12 Bit ADC)
+        //*ptrSS = SCALE_TOUNSIGNED << 1; // Max ADC value
+        ptrSS++;
+        ms->ns = 4;
+        // -----------------
+
+        Device_SwitchSys(SYS_ON_SAMP_ADA);
+        /* -- TMR3/ADC frequency selector ----------------------------------       
+        3: 2^3 -1,  PR3 = 63, Synco 38.4 Khz : 8 =  4.8Khz, T=0,000208s
+        4: 2^4 -1,  PR3 = 127, Synco 38.4 Khz :16 = 2.4Khz, T=0,000416s 
+        5: 2^5 -1,  PR3 = 255, Synco 38.4 Khz :32 = 1.2Khz, T=0.000833s 
+        6: 2^6 -1,  PR3 = 511, Synco 38.4 Khz :64 = 600Hz, T=0.0017s (1,7 ms) */
+        if ((g_dev.cnf.calibration.av_period < 2) || (g_dev.cnf.calibration.av_period > 6)) {
+            g_dev.cnf.calibration.av_period = 6; // Default: SYNCO_FREQUENCY / 2^6 = 600Hz
+        }
+        adc_fq = (1U << (g_dev.cnf.calibration.av_period - 1)) - 1; // Frequency divider, compute PR3 
+    }
+
+
+    switch (g_dev.cnf.general.typeset) { // (0x02) Test signal  
 
         case _SIG0: // Demo signal
-            ms->ss = SSBUF;
+            ms->ss = ptrSS;
             ms->typeset = _SIG0;
             ms->dtime = RTCC_GetTimeL(); // get RTC datetime
 
-#if !(defined( __PIC24FJ256GA702__ ) && defined(__VAMP1K_TEST_SIG0_FFT))  
-            ms->ns = 2; // ET,WS   
-            *ptrSSBUF = 0x0; // Single Sample 1
-            ptrSSBUF++;
-            *ptrSSBUF = 0x0; // Single Sample 2
-            ptrSSBUF++;
-            //------------------------------------------
-            // add singles samples: <tick_duration>, <scale_offset>
-            // add couples of { delta-time, amplitude }
-            // return nsamples
-            nsamples = acquireSig(ms->ss, g_dev.cnf.general.cycletime, ((SS_BUF_SIZE - ms->ns) / 2), \
-                       g_dev.cnf.calibration.av_period); // av_period is signal frequency in Hz       
-            ms->ns = 4; // <value1>, <value2>, <tick_period>, <scale>
-            ms->nss = (nsamples - 1) * 2; // Sequenced [<t,av>,...]
-#else
-            nsamples = acquireSig(ms->ss, 10, (SS_BUF_SIZE / 2), \
-                       40); //  frequency in Hz
-            ms->ns = 0; // <value1>, <value2>, <tick_period>, <scale>
-            ms->nss = nsamples * 2; // 2048 samples 1024 points
-            ptrNSS = ms->ss + 2; // Point to first value 
-
-            //FFT_FillSinewave(); // Init tables
-            // one cycle sine table required for FFT
-            int ii;
-            for (ii = 0; ii < N_WAVE; ii++) {
-                Sinewave[ii] = float2fix14(sin(6.283 * ((float) ii) / N_WAVE)*0.5);
-                window[ii] = float2fix14(1.0 * (1.0 - cos(6.283 * ((float) ii) / (N_WAVE - 1))));
-                //window[ii] = float2fix(1.0) ;
-            }
-            int i; // load input array
-            for (i = 0; i < nsamples; i++) {
-                *(ptrSSBUF + i) = multfix14(*(ptrNSS + (i * 2) + 1), window[i]);
-
-                //fr[i] = multfix14(v_in[i], window[i]);
-                //fi[i] = 0;
-            }
-
-            ptrNSS = (ms->ss + nsamples);
-            memset(ptrNSS, 0, nsamples);
-            printf("FFT (n=%u,m=%u)\n", nsamples, 10);
-
-            /* for (sample_number = 0; sample_number < nSamp - 1; sample_number++) {
-                        // window the input and perhaps scale it
-                        fr[sample_number] = multfix14(v_in[sample_number], window[sample_number]);
-                        fi[sample_number] = 0;
-                    }
-             */
-            // do FFT
-            //FFTfix(PtrSSBUF, ptrNSS, LOG2_N_WAVE);
-
-            //---
-            //fft(PtrSSBUF, ptrNSS, 10); // Perform the FFT
-            //---
-            for (i = 0; i < (1U << LOG2_N_WAVE); i++) {
-                printf("#%u: %u)\n", i, ptrNSS[i]);
-            }
-#endif
+            *ptrSS = g_dev.cnf.calibration.av_period; // Add <sig_freq> as single sample 
+            *(ptrSS + 1) = g_dev.cnf.calibration.av_filter; // Add <sig_maxamp> as single sample 
+            ptrSS += 2;
+            nsamples = acquireSig(ptrSS, g_dev.cnf.general.cycletime, ((SS_BUF_SIZE - 2) / 2), \
+                    g_dev.cnf.calibration.av_period, g_dev.cnf.calibration.av_filter);
+            ms->ns = 4; // Use first samples in buffer as singles {<adc_freq>,<res_scale>} 
+            ms->nss = (nsamples - 1) * 2;
+            // { <sig_freq>, <sig_maxa>, <adc_fq>, <res_scale>, [<dT>,<a>],[...] }
             break;
 
-        case _AV00: // Aeolian Vibration, Points [<ET>,<WS>,<PER>,<OFF>,{<d(T)>,<A>,...}]
-            // RETURN: 
-            // n-acquired points ( 2 samples each one  )
-            // First point is used to store <tick_duration>, <scale_offset>
-            // Second to store first sampled value at T=0
-            // Last used to store last sampled point at T=last-sampling-tick
-            Device_SwitchSys(SYS_ON_SAMP_WST); // lastPwrState = Device_SwitchPower(PW_ON_SAMP_WST);      
-#if !defined(__VAMP1K_TEST_adc_printf)            
+        case _AV00: // Aeolian Vibration, RAW
 
-            ms->ss = SSBUF;
             ms->typeset = _AV00;
-            ms->dtime = RTCC_GetTimeL(); // get RTC datetime
-            ms->ns = 2; // ET,WS
-
-            acquireET(ptrSSBUF); // RET: success
-            ptrSSBUF++;
-            acquireWS(ptrSSBUF); // RET: success
-            ptrSSBUF++;
-#endif            
-            Device_SwitchSys(SYS_ON_SAMP_ADA);
-
-            nsamples = acquireAV(ptrSSBUF, g_dev.cnf.general.cycletime, ((SS_BUF_SIZE - ms->ns) / 2), \
-                                  g_dev.cnf.calibration.av_period, g_dev.cnf.calibration.av_filter);
-
-            ms->ns = 4; // <temperature>,<windspeed>,<tick_period>,<scale_offset> populated by acquireAV
-            ms->nss = (nsamples) * 2; // Sequenced [<t,av>,...]
+            nsamples = acquireAV(ptrSS, g_dev.cnf.general.cycletime, (SS_BUF_SIZE - ms->ns), adc_fq, 0);
+            ms->nss = nsamples;
             Device_SwitchSys(SYS_DEFAULT); // Device_SwitchPower(lastPwrState);
-            // Reorder / Process FFT 
+
             break;
 
-        case _AV01: // Aeolian Vibration, Occurencies [<ET>,<WS>,<PER>,<OFF>,{<Occ>,<Amp>,<Per>,...}]
+        case _AV01: // Aeolian Vibration, Peak-Peak
+
+            ms->typeset = _AV01;
+            nsamples = acquireAV(ptrSS, g_dev.cnf.general.cycletime, (SS_BUF_SIZE - ms->ns), adc_fq, \
+                    g_dev.cnf.calibration.av_filter);
+            ms->nss = nsamples;
+            Device_SwitchSys(SYS_DEFAULT); // Device_SwitchPower(lastPwrState);
+            break;
+
+        case _AV02: // Aeolian Vibration, FFT 
 
             Device_SwitchSys(SYS_ON_SAMP_WST); // lastPwrState = Device_SwitchPower(PW_ON_SAMP_WST);      
 
             ms->ss = SSBUF;
-            ms->typeset = _AV01; // g_dev.cnf.general.typeset;
+            ms->typeset = _AV02; // g_dev.cnf.general.typeset;
             ms->dtime = RTCC_GetTimeL(); // get RTC datetime
             ms->ns = 4; // ET,WS
 
-            acquireET(ptrSSBUF); // RET: success
-            ptrSSBUF++;
-            acquireWS(ptrSSBUF); // RET: success
-            ptrSSBUF++;
+            acquireET(ptrSS); // RET: success
+            ptrSS++;
+            acquireWS(ptrSS); // RET: success
+            ptrSS++;
 
-            *ptrSSBUF = 500; // Sampling freq. (Hz))
-            ptrSSBUF++;
-            *ptrSSBUF = 1U < 12; // max Scale
-            ptrSSBUF++;
+            switch (g_dev.cnf.calibration.av_period) {
+                case 11: // ADC_FRQ_24Khz
+                    *ptrSS = 2400; // Sampling freq. (Hz)
+                    adc_fq = ADC_FRQ_24Khz; //  PR3=3200U
+                    break;
+                case 12: // ADC_FRQ_1Khz
+                    *ptrSS = 1000; // Sampling freq. (Hz))
+                    adc_fq = ADC_FRQ_1Khz; //  PR3=8000U
+                    break;
+
+                default: // ADC_FRQ_05Khz
+                    *ptrSS = 500; // Sampling freq. (Hz))
+                    adc_fq = ADC_FRQ_05Khz; //  PR3=8000U
+                    break;
+            }
+            *(ptrSS + 1) = 1U < 12; // max Scale
+            ptrSS += 2;
 
             Device_SwitchSys(SYS_ON_SAMP_ADA);
 
@@ -167,10 +147,9 @@ uint16_t measurementAcquire(measurement_t * ms) {
             }
 
             // Force ADC frequency 0.5Khz ( g_dev.cnf.calibration.av_period )
-            fft_init(); // Initialize tables 
-            
-            nsamples = acquireAV_FFT(ptrSSBUF, g_dev.cnf.general.cycletime, 10, \
-                                 ADC_FRQ_05Khz, g_dev.cnf.calibration.av_filter);
+
+            nsamples = acquireAV_FFT(ptrSS, g_dev.cnf.general.cycletime, 10, \
+                                 adc_fq, g_dev.cnf.calibration.av_filter);
 
             //ms->ns = 4; // <temperature>,<windspeed>,<tick_period>,<scale_offset> populated by acquireAV
 

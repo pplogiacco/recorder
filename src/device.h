@@ -33,30 +33,25 @@
 
 // Vamp1K:
 #define __VAMP1K
-#define __AV00_RAW     // no process p-p 
-//#define __AV00_PP     // process p-p algorithm
-//#define __AV_FFT     // process p-p algorithm
 
 //#define __NOFLASH    // Use RAM to store config
 //#define __NOUSB      // Force to use RF ( USB not connect )
 
+
 //#define __VAMP1K_TEST
+#ifdef __VAMP1K_TEST
 //#define __VAMP1K_TEST_RESET
 //#define __VAMP1K_TEST_TIMER
 //#define __VAMP1K_TEST_CONFIG // ok !
 //#define __VAMP1K_TEST_ADG
+//#define __VAMP1K_TEST_USB
 
-//#define __VAMP1K_TEST_adc_printf   // Acquire & print samples ( no process)
-//#define __VAMP1K_TEST_AV0ADC_DATAVIS             // send ADC to serial datavis
+#define __VAMP1K_TEST_AV_printf    // Test Acquire/ADC HW
 
-//#define __VAMP1K_TEST_measurement_printf
+//#define __VAMP1K_TEST_measurement_printf  // Test Measurement format 
 //#define __VAMP1K_TEST_measurement_DATAVIS    // send ADC to serial mc datavis
-
-
 //#define __AV0NVM     // Save samples in flash
-
-// #define __VAMP1K_TEST_SIG0_FFT     // Process FFT algorithm 
-
+#endif
 
 
 //------------------------------------------------------------------------------

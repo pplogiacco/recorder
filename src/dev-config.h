@@ -6,7 +6,7 @@
  Device_ReadConfig(config_t * config)
  
  bool Device_GetStatus(status_t * status) 
-  
+
  void Device_LockKeySet(uint32_t skey)
  
  REQUIRE : device_t g_dev;  // Global configuration 
