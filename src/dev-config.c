@@ -38,29 +38,28 @@ const unsigned int ramConfigSize = sizeof (config_t);
 #define POLYNOM CRC16_DNP
 
 uint16_t computeCRC16(uint8_t *strtochk, uint16_t length) {
-	uint16_t crc;
+    uint16_t crc;
     uint8_t i = 0;
-	uint16_t aux = 0;
+    uint16_t aux = 0;
     uint16_t newByte;
-    
-	crc = 0x0000; //Initialization of crc to 0x0000 for DNP
-	//crc = 0xFFFF; //Initialization of crc to 0xFFFF for CCITT
-    
-	while (aux < length){
+
+    crc = 0x0000; //Initialization of crc to 0x0000 for DNP
+    //crc = 0xFFFF; //Initialization of crc to 0xFFFF for CCITT
+
+    while (aux < length) {
         newByte = strtochk[aux];
         for (i = 0; i < 8; i++) {
-            if (((crc & 0x8000) >> 8) ^ (newByte & 0x80)){
-                crc = (crc << 1)  ^ POLYNOM;
-            }else{
+            if (((crc & 0x8000) >> 8) ^ (newByte & 0x80)) {
+                crc = (crc << 1) ^ POLYNOM;
+            } else {
                 crc = (crc << 1);
             }
             newByte <<= 1;
         }
-		aux++;
-	}
-	return (~crc); //The crc value for DNP it is obtained by NOT operation
+        aux++;
+    }
+    return (~crc); //The crc value for DNP it is obtained by NOT operation
 }
-
 
 void Device_ConfigDefaultSet(config_t * config) {
 #ifdef __VAMP1K_TEST_CONFIG
@@ -91,7 +90,7 @@ void Device_ConfigDefaultSet(config_t * config) {
 #ifdef __VAMP1K_TEST_CONFIG
 
 void printConfig() {
-   timestamp_t stime; // Use: g_dev.st.lasttime
+    timestamp_t stime; // Use: g_dev.st.lasttime
     RTCC_GetTime(&stime);
     printf("---Time: %u:%u:%u\n#:", stime.hour, stime.min, stime.sec);
     // General settings
@@ -99,7 +98,7 @@ void printConfig() {
     printf("cycletime=%u\n", g_dev.cnf.general.cycletime);
     printf("delaytime=%u\n", g_dev.cnf.general.delaytime);
     //printf("timezone=%u", g_dev.cnf.general.timezone);
-    
+
     // Calibration
     //printf("et_factor=%lu\n", g_dev.cnf.calibration.et_factor);
     //printf("ws_factor=%lu\n", g_dev.cnf.calibration.ws_factor);
@@ -107,7 +106,7 @@ void printConfig() {
     printf("av_filterr=%lu\n", g_dev.cnf.calibration.av_filter);
     //g_dev.cnf.calibration.av_factor = 500005;
     //g_dev.cnf.calibration.ss_factor = 600006;
-    
+
     // Exchange
     printf("attempt_mode=%u\n", g_dev.cnf.exchange.attempt_mode);
     //    printf("app_timeout=%u", g_dev.cnf.exchange.app_timeout);
@@ -122,23 +121,17 @@ bool Device_ConfigWrite(uint8_t * pSrc) {
     bool result = true;
 
     // Check consistency 
-    
     memcpy(&g_dev.cnf, pSrc, sizeof (config_t)); // Update active
-    
-
-    //uint16_t savedcrc = g_dev.cnf.CRC16;
-//    g_dev.cnf.CRC16  = 0x0;
-    //g_dev.cnf.CRC16  = computeCRC16((uint8_t *) &g_dev, sizeof (config_t));
 
 #ifndef __NOFLASH // Save config in Flash
     uint32_t nvm_address; // 24 bit address
     uint16_t iR, iF;
-    
+
 #if defined( __PIC24FJ256GA702__)
     uint32_t towrite[2U];
     nvm_address = FLASH_GetErasePageAddress((uint32_t) & nvmConfigDatas);
     FLASH_Unlock(FLASH_UNLOCK_KEY);
-    
+
     result = FLASH_ErasePage(nvm_address);
 #else
     uint32_t towrite[FLASH_WRITE_ROW_SIZE_IN_INSTRUCTIONS];
@@ -150,7 +143,7 @@ bool Device_ConfigWrite(uint8_t * pSrc) {
     if (result) {
         iR = 0; // Bytes
         iF = iR; // Words
-        
+
 #if defined( __PIC24FJ256GA702__)
         while (iR < ramConfigSize) { //  Sizeof(config_t)
             towrite[0] = *(pSrc + iR + 2);
@@ -186,12 +179,13 @@ bool Device_ConfigWrite(uint8_t * pSrc) {
     }
     FLASH_Lock();
     //_LATB2 = 1;
-#endif
+#endif  // NoFLASH
     return result;
 }
 
 bool Device_ConfigRead(config_t * config) {
     bool result = true;
+
 #ifdef __NOFLASH
     Device_ConfigDefaultSet(config);
 #else    // Read flash/eeprom 
@@ -202,7 +196,7 @@ bool Device_ConfigRead(config_t * config) {
 
     pDst = (uint8_t*) config;
     nvm_address = FLASH_GetErasePageAddress((uint32_t) & nvmConfigDatas);
-    
+
     iR = 0;
     iF = iR;
     while (iR < ramConfigSize) { // && iF << flash page
@@ -218,16 +212,11 @@ bool Device_ConfigRead(config_t * config) {
         iF += 2U;
     }
 
-    uint16_t savedcrc = config->CRC16;
-    config->CRC16 = 0x0;
-
-    if (savedcrc != computeCRC16((uint8_t *) config, sizeof (config_t))) { /// Check XOR checksum
+    if (config->CRC16 != computeCRC16((uint8_t *) config, sizeof (config_t) - 2)) { /// Check XOR checksum
         Device_ConfigDefaultSet(config);
-        savedcrc = computeCRC16((uint8_t *) config, sizeof (config_t));
-        config->CRC16 = savedcrc;
+        config->CRC16 = computeCRC16((uint8_t *) config, sizeof (config_t) - 2);
         Device_ConfigWrite((uint8_t*) config); // Write EEprom/Flash
     }
-
 #endif
 
 #ifdef __VAMP1K_TEST_CONFIG

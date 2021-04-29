@@ -32,29 +32,13 @@ uint16_t measurementAcquire(measurement_t * ms) {
 
 #ifdef __VAMP1K_TEST
     printf("Tset=%u\n", g_dev.cnf.general.typeset);
-    g_dev.cnf.general.typeset= _AV00;
+    g_dev.cnf.general.typeset = _AV00;
 #endif
 
     if ((g_dev.cnf.general.typeset == _AV00) || (g_dev.cnf.general.typeset == _AV01)) {
         ms->ss = ptrSS;
         ms->dtime = RTCC_GetTimeL(); // get RTC datetime
-
-        // ------------------ Single Samples
-        Device_SwitchSys(SYS_ON_SAMP_WST); // lastPwrState = Device_SwitchPower(PW_ON_SAMP_WST); 
-        acquireET(ptrSS); // RET: success
-        ptrSS++;
-        acquireWS(ptrSS); // RET: success
-        ptrSS++;
-        *ptrSS = SYNCO_FREQUENCY >> g_dev.cnf.calibration.av_period; // Compute ADC frequency (Hz)
-        ptrSS++;
-        *ptrSS = 4200; // Scale Resolution 2^12 (12 Bit ADC)
-        //*ptrSS = SCALE_TOUNSIGNED << 1; // Max ADC value
-        ptrSS++;
-        ms->ns = 4;
-        // -----------------
-
-        Device_SwitchSys(SYS_ON_SAMP_ADA);
-        /* -- TMR3/ADC frequency selector ----------------------------------       
+        /* ----------------- TMR3/ADC Frequency    
         3: 2^3 -1,  PR3 = 63, Synco 38.4 Khz : 8 =  4.8Khz, T=0,000208s
         4: 2^4 -1,  PR3 = 127, Synco 38.4 Khz :16 = 2.4Khz, T=0,000416s 
         5: 2^5 -1,  PR3 = 255, Synco 38.4 Khz :32 = 1.2Khz, T=0.000833s 
@@ -63,10 +47,25 @@ uint16_t measurementAcquire(measurement_t * ms) {
             g_dev.cnf.calibration.av_period = 6; // Default: SYNCO_FREQUENCY / 2^6 = 600Hz
         }
         adc_fq = (1U << (g_dev.cnf.calibration.av_period - 1)) - 1; // Frequency divider, compute PR3 
+
+        // ----------------- Add Single Samples
+        Device_SwitchSys(SYS_ON_SAMP_WST); // lastPwrState = Device_SwitchPower(PW_ON_SAMP_WST); 
+        acquireET(ptrSS); // RET: success
+        ptrSS++;
+        acquireWS(ptrSS); // RET: success
+        ptrSS++;
+        *ptrSS = SYNCO_FREQUENCY >> g_dev.cnf.calibration.av_period; // Compute ADC frequency (Hz)
+        ptrSS++;
+        *ptrSS = 4200; // Scale Resolution 2^12 (12 Bit ADC)
+        ptrSS++;
+        ms->ns = 4;
+        // -----------------
+
+        Device_SwitchSys(SYS_ON_SAMP_ADA);
     }
 
-    
-    switch (g_dev.cnf.general.typeset) { 
+
+    switch (g_dev.cnf.general.typeset) {
 
         case _SIG0: // Demo signal
             ms->ss = ptrSS;
@@ -95,8 +94,10 @@ uint16_t measurementAcquire(measurement_t * ms) {
 
         case _AV01: // Aeolian Vibration, Peak-Peak
 
-
             ms->typeset = _AV01;
+            if (g_dev.cnf.calibration.av_filter < 1) {
+                g_dev.cnf.calibration.av_filter = 1;
+            }
             nsamples = acquireAV(ptrSS, g_dev.cnf.general.cycletime, (SS_BUF_SIZE - ms->ns), adc_fq, \
                     g_dev.cnf.calibration.av_filter);
             ms->nss = nsamples;
@@ -111,7 +112,7 @@ uint16_t measurementAcquire(measurement_t * ms) {
             ms->typeset = _AV02; // g_dev.cnf.general.typeset;
             ms->dtime = RTCC_GetTimeL(); // get RTC datetime
             ms->ns = 4; // ET,WS
-            
+
             acquireET(ptrSS); // RET: success
             ptrSS++;
             acquireWS(ptrSS); // RET: success
@@ -162,14 +163,14 @@ uint16_t measurementAcquire(measurement_t * ms) {
             // Send only ((2^m)/2) samples, from 1 to N2+1
             //ms->ss = SSBUF; // Return 1..N/2+1 
             //
-                        
+
             int i;
-            ms->nss = (nsamples>>1); // send 512 Coefficients
+            ms->nss = (nsamples >> 1); // send 512 Coefficients
             ptrSS = (ms->ss + ms->ns);
-            for (i=0;i<ms->nss;i++) {
-                *(ptrSS+i) = *(ptrSS+i+1);
+            for (i = 0; i < ms->nss; i++) {
+                *(ptrSS + i) = *(ptrSS + i + 1);
             }
- 
+
             break;
 
         case _SS00: // Vamp1K encoder Sub-span oscillation: // Raw sample signal

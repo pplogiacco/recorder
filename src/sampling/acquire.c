@@ -264,24 +264,36 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
     Tc = 0;
     Tcp = 0;
     nSamples = 0;
-    //    _TRISB2 = 0;
-    //    _ANSB2 = 0;
-    //    _LATB2 = 0;
+
+
     acquireAV_INIT(adc_pr3, true); // Use ADA2200 Synco 
     __delay(2); // wait to stabilize
 
     if (pp_filter == 0) { // Raw data
 
         acquireAV_START(nsec);
-#ifdef __VAMP1K_TEST_AV_printf
+#if defined( __VAMP1K_TEST )
+#if define(__VAMP1K_TEST_AV_RB2) 
+        _TRISB2 = 0;
+        _ANSB2 = 0;
+        _LATB2 = 0;
+#endif        
         while (!isTimeout()) { // Loop until cycle-time or full filled buffer
             if (_adcReady) { // New data available
                 _adcReady--;
-                // _LATB2 ^= 1; // IO_LED2_Toggle() 
+#if define(__VAMP1K_TEST_AV_RB2) 
+                _LATB2 ^= 1; // IO_LED2_Toggle() 
+#endif
+#if defined( __VAMP1K_TEST_AV_printf )
                 printf("%d \n", ADC1BUF0);
+#endif                
             }// _adcReady
         }
-#else
+#else        
+//        _TRISB2 = 0;
+//        _ANSB2 = 0;
+//        _LATB2 = 0;
+        
         while ((nSamples < db_size) && !isTimeout()) { // Loop until cycle-time or full filled buffer
             if (_adcReady) { // New data available
                 _adcReady--;
@@ -289,7 +301,7 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
                 Tcp = Tc;
                 ptrDB++;
                 *ptrDB = ADC1BUF0; //(SCALE_TOUNSIGNED - ADC1BUF0); // Positive point
-
+        //_LATB2 ^= 1; // IO_LED2_Toggle() 
                 ptrDB++;
                 nSamples += 2;
                 Tc++; // T = fSynco/16
@@ -304,6 +316,7 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
         point_t points[3]; // SAMPLING_AV_PBUFFER
         uint16_t pIndex;
         int pm01, pm12, lpm;
+        
         db_size -= 2; // Reserve one for last point
 
         acquireAV_START(nsec);
@@ -315,7 +328,7 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
                 points[pIndex].A = ADC1BUF0; //(SCALE_TOUNSIGNED - ADC1BUF0); // Positive point
                 points[pIndex].T = Tc;
                 if (pIndex > 0) { // !!! Inizializzare a 2 volte SCALE_... ed elimina IF nel ciclo
-                    if (abs(points[pIndex].A - points[pIndex - 1].A) < g_dev.cnf.calibration.av_filter) {
+                    if (abs((points[pIndex].A) - (points[pIndex - 1].A)) < pp_filter) { // All positive samples
                         points[pIndex - 1] = points[pIndex];
                     } else {
                         pIndex++;
@@ -366,19 +379,16 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
                         pIndex = 2;
                     }
                 }
-
             }// _adcReady
         }
 
         acquireAV_STOP();
-
 
         *ptrDB = points[pIndex - 1].T - Tcp; // Last Sample Tn  
         ptrDB++;
         *ptrDB = points[pIndex - 1].A; // Amplitude
         nSamples += 2;
     } // End Peak2Peak
-
 
     return (nSamples);
 }
@@ -497,9 +507,6 @@ uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uin
 
     return (iP);
 }
-
-
-
 
 /* -------------------------------------------------------------------------- *
  * E N V I R O M E N T   T E M P E R A T U R E
