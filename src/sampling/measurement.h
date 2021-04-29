@@ -53,12 +53,12 @@ typedef enum e_dimension { // physical phenomenon
 typedef enum e_typeset {
     _SIG0 = 0x02, // Test Signal 
     _AV00 = 0x0A, // Aeolean Vibration, raw
-    _AV01 = 0x0B, // Aeolean Vibration, peak-peak
+    _SS00 = 0xB0, // Sub-Span, raw
+    _AV01 = 0x0E, // Aeolean Vibration, peak-peak
     _AV02 = 0x0C, // Aeolean Vibration, vibration ( Real FFT )
-    _AV03 = 0x0D, // Aeolean Vibration, vibration ( Complex FFT )
-    _SS00 = 0xB0  // Sub-Span
-} typeset_t;
+    _AV03 = 0x0D  // Aeolean Vibration, vibration ( Complex FFT )
 
+} typeset_t;
 
 typedef struct {
     uint32_t dtime; // Timestamp
@@ -99,7 +99,7 @@ typedef enum {
     typeset: _SIG0
     
     typeset: _AV00
-     * ws, temp, period, scala
+ * ws, temp, period, scala
 
     //  sample: 16 bits unsigned
     //  Single: { Wind Speed } , { Env.Temperature }
@@ -118,7 +118,7 @@ uint16_t measurementLoad(uint16_t index, measurement_t *ms); // ret: -1 error or
 uint16_t measurementDelete(uint16_t index); // ret: -1 error or Index
 
 uint16_t getRTMeasure(measureCmd_t cmd, measure_t mtype, sample_t *nsamp);
-void getMeasurementBlock(uint8_t *pbuf,uint16_t offset, uint16_t size ); // Exchange needs !!!
+void getMeasurementBlock(uint8_t *pbuf, uint16_t offset, uint16_t size); // Exchange needs !!!
 
 // Dimensions Acquiring Routines
 // -------------------------------------------------------------------------
@@ -135,7 +135,7 @@ void getMeasurementBlock(uint8_t *pbuf,uint16_t offset, uint16_t size ); // Exch
 
 
 
-    
+
 #endif	/* MEASUREMENT_H */
 
 

@@ -18,7 +18,6 @@ uint16_t acquireET(sample_t *dbuf); // ENV.TEMPERATURE
 
 uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t av_period, uint16_t pp_filter);
 
-
 uint16_t acquireSS(); // ENV.TEMPERATURE
 
 #define ADC_FRQ_24Khz 3200U

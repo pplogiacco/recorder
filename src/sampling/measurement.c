@@ -66,7 +66,7 @@ uint16_t measurementAcquire(measurement_t * ms) {
     }
 
 
-    switch (g_dev.cnf.general.typeset) { // (0x02) Test signal  
+    switch (g_dev.cnf.general.typeset) { 
 
         case _SIG0: // Demo signal
             ms->ss = ptrSS;

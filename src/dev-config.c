@@ -38,7 +38,7 @@ void Device_ConfigDefaultSet(config_t * config) {
 #endif            
     memset(config, 0, sizeof (config_t));
     // General settings
-    config->general.typeset =  _AV01; // _SIG0; // 
+    config->general.typeset = _SIG0; // 
     config->general.cycletime = 5;
     config->general.delaytime = 59; // 1 min
     config->general.timezone = 9; // Rome

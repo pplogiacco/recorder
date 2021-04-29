@@ -166,17 +166,19 @@ int main(void) {
                 rtDataSize = 0;
                 switch (rtCommand) {
                     case RTCMD_TEST:
-                        rtDataBuffer[rtDataSize++] = 'H';
-                        rtDataBuffer[rtDataSize++] = 'E';
-                        rtDataBuffer[rtDataSize++] = 'L';
-                        rtDataBuffer[rtDataSize++] = 'L';
-                        rtDataBuffer[rtDataSize++] = 'O';
-                        rtDataBuffer[rtDataSize++] = ' ';
-                        rtDataBuffer[rtDataSize++] = 'W';
-                        rtDataBuffer[rtDataSize++] = 'O';
-                        rtDataBuffer[rtDataSize++] = 'R';
-                        rtDataBuffer[rtDataSize++] = 'L';
-                        rtDataBuffer[rtDataSize++] = 'D';
+                        rtDataBuffer[rtDataSize++] = g_dev.cnf.general.typeset && 0xFF;                        
+                        rtDataBuffer[rtDataSize++] = (g_dev.cnf.general.typeset>>8) && 0xFF; 
+//                        rtDataBuffer[rtDataSize++] = 'H';
+//                        rtDataBuffer[rtDataSize++] = 'E';
+//                        rtDataBuffer[rtDataSize++] = 'L';
+//                        rtDataBuffer[rtDataSize++] = 'L';
+//                        rtDataBuffer[rtDataSize++] = 'O';
+//                        rtDataBuffer[rtDataSize++] = ' ';
+//                        rtDataBuffer[rtDataSize++] = 'W';
+//                        rtDataBuffer[rtDataSize++] = 'O';
+//                        rtDataBuffer[rtDataSize++] = 'R';
+//                        rtDataBuffer[rtDataSize++] = 'L';
+//                        rtDataBuffer[rtDataSize++] = 'D';
                         break;
                     case RTCMD_START_MEASUREMENT:
                         rtDataBuffer[rtDataSize++] = 0;
@@ -201,7 +203,7 @@ int main(void) {
                         __clearWDT();
                     }
                 } else {
-                    __delay(10000);
+                    __delay(20000);
                 }
                 state = SAMPLING;
                 /*
