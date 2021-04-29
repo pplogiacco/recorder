@@ -245,13 +245,17 @@ void acquireAV_START(uint16_t nsec) {
 void acquireAV_STOP() {
     // =============== BEGIN:STOP   
     AD1CON1bits.ADON = 0; // Converter Off
+    IEC0bits.AD1IE = 0; // Disable A/D conversion interrupt
+    IFS0bits.AD1IF = 0; // Clear A/D conversion interrupt.
     T3CONbits.TON = 0;
     ADA2200_Disable();
     Timeout_Unset();
     // =============== END:STOP  
 }
 
+
 uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc_pr3, uint16_t pp_filter) {
+
 
 #ifdef __VAMP1K_TEST
     printf("AV00\n");
@@ -295,10 +299,12 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
 
     } else { // Peak-Peak
 
+
         point_t points[3]; // SAMPLING_AV_PBUFFER
         uint16_t pIndex;
         int pm01, pm12, lpm;
         db_size -= 2; // Reserve one for last point
+
 
         while ((nSamples < db_size) && !isTimeout()) { // Loop until cycle-time or full filled buffer
 
@@ -365,11 +371,13 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
 
         acquireAV_STOP();
 
+
         *ptrDB = points[pIndex - 1].T - Tcp; // Last Sample Tn  
         ptrDB++;
         *ptrDB = points[pIndex - 1].A; // Amplitude
         nSamples += 2;
     } // End Peak2Peak
+
 
     return (nSamples);
 }
@@ -392,6 +400,7 @@ void acquire_INIT(uint16_t freq) {
     IPC3bits.AD1IP = 1; // High Interrupt Priority
     //    AV_SYN_SetDigital();
     //    AV_SYN_SetDigitalInput(); // Input T3CK/RB15 (SYNCO)
+
 
 
     // ==== TMR3 as pulse counter on T3CK pin (SYNCO) ====
@@ -417,10 +426,12 @@ void acquire_INIT(uint16_t freq) {
     // 500	32000
     // 250	64000
 
+
     PR3 = freq; // (16000000/adc_freq)+1; // FRequency divider
     IFS0bits.T3IF = 0; // Reset int flag
 
     // ____________________________________Input Analog pins
+
 
     // ____________________________________A/D Converter Setup
     // AD1CON1bits.ADON = 0; // Converter off
@@ -460,6 +471,7 @@ void acquire_INIT(uint16_t freq) {
 
 #endif // __PIC24FJ256GA702__
 }
+
 
 uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uint16_t adc_fq, uint16_t fft_pw) {
 
@@ -604,7 +616,6 @@ uint16_t acquireWS(sample_t* dbuf) {
     for (i = 0; i < _nWSS; i++) {
         _wsptime[i] = 0;
     }
-
     _icycle = 0;
     _wsready = 0;
 
@@ -630,25 +641,3 @@ uint16_t acquireWS(sample_t* dbuf) {
 
 }
 
-
-
-//uint16_t acquire_fft(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uint16_t adc_fq) {
-//
-//    uint16_t npoints = (1U << log2_npoints);
-//    uint16_t iP = 0;
-//
-//    acquire_INIT(adc_fq); // ADC sampling frequency
-//    acquire_START(0); // No timeout, full filled buffer
-//
-//    while (iP < npoints) {
-//        if (_adcReady) {
-//            _adcReady--;
-//            *(dbuf + iP) = fft_windowing((ADC1BUF0 + ADC1BUF1) >> 1, iP);
-//            //*(dbuf + iP + npoints) = 0;
-//            iP++;
-//        } // _adcReady
-//    }; 
-//    acquire_STOP();
-//    fft_spectrum(dbuf, log2_npoints);
-//    return (iP);
-//}

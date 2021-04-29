@@ -15,7 +15,9 @@ uint16_t acquireSig(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t 
 
 uint16_t acquireWS(sample_t *dbuf); // WIND SPEED
 uint16_t acquireET(sample_t *dbuf); // ENV.TEMPERATURE
+
 uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t av_period, uint16_t pp_filter);
+
 
 uint16_t acquireSS(); // ENV.TEMPERATURE
 

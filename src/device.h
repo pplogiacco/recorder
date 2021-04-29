@@ -14,15 +14,14 @@
 #define __DEVICE_USB_SR 0310      // Usb enumeration  
 //------------------------------------------------------------------------------
 
-// Hardware model:
-// ------------------------------------
+// Hardware:
+// ---------
 //#define __HWDONGLE
 #define __HWDEVICE
 //#define __HWDEVICE_V2_302
 
-// Firmware model:
-// ------------------------------------
-// #define __HW_TEST    // Perform hardware check
+// Firmware:
+// ---------
 
 // Dongle:
 //#define __DONGLE
@@ -31,20 +30,26 @@
 //#define __DONGLE_VAMP1K_AUTOSEND // Simulate Device ( Demo Signal only !!)
 //#define __DONGLE_TEST_FILE
 
-// Vamp1K:
+// Recorder:
 #define __VAMP1K
 
 //#define __NOFLASH    // Use RAM to store config
 //#define __NOUSB      // Force to use RF ( USB not connect )
+#endif
+
 
 
 //#define __VAMP1K_TEST
 #ifdef __VAMP1K_TEST
+
+// Testing
+//#define __VAMP1K_TEST_HW                      // Perform hardware test
 //#define __VAMP1K_TEST_RESET
 //#define __VAMP1K_TEST_TIMER
-//#define __VAMP1K_TEST_CONFIG // ok !
+//#define __VAMP1K_TEST_CONFIG 
 //#define __VAMP1K_TEST_ADG
 //#define __VAMP1K_TEST_USB
+
 
 #define __VAMP1K_TEST_AV_printf    // Test Acquire/ADC HW
 

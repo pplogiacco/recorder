@@ -92,7 +92,9 @@ uint16_t measurementAcquire(measurement_t * ms) {
 
             break;
 
+
         case _AV01: // Aeolian Vibration, Peak-Peak
+
 
             ms->typeset = _AV01;
             nsamples = acquireAV(ptrSS, g_dev.cnf.general.cycletime, (SS_BUF_SIZE - ms->ns), adc_fq, \
@@ -148,8 +150,10 @@ uint16_t measurementAcquire(measurement_t * ms) {
 
             // Force ADC frequency 0.5Khz ( g_dev.cnf.calibration.av_period )
 
+
             nsamples = acquireAV_FFT(ptrSS, g_dev.cnf.general.cycletime, 10, \
                                  adc_fq, g_dev.cnf.calibration.av_filter);
+
 
             //ms->ns = 4; // <temperature>,<windspeed>,<tick_period>,<scale_offset> populated by acquireAV
 
