@@ -454,6 +454,7 @@ bool Exchange_sendHandshake(void) {
     offset += 4;
     memcpy(&buffer[offset], &g_dev.st.version, 2);
     offset += 2;
+    //g_dev.cnf.CRC16 = 331; // Test
     memcpy(&buffer[offset], &g_dev.cnf.CRC16, 2);
     offset += 2;
     buffer[offset++] = Device_IsUsbConnected();

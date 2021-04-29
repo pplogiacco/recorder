@@ -21,13 +21,13 @@ const unsigned int ramConfigSize = sizeof (config_t);
 #endif
 
 // constant to initialise CRC table 
-#define POLY 0x5A
+#define POLY 0x5A // 01011010
 
 uint16_t computeCRC16(uint8_t *strtochk, uint16_t length) {
     uint16_t i, valcrc = 0;
     for (i = 0; i < length; i++) {
         valcrc |= strtochk[i] ^ POLY; // XOR 
-        valcrc <<= 2 + (strtochk[i] % 2); // Alternate shifting
+        valcrc <<= 2 + (valcrc % 2); // Alternate shifting
     }
     return (valcrc);
 }
@@ -38,7 +38,7 @@ void Device_ConfigDefaultSet(config_t * config) {
 #endif            
     memset(config, 0, sizeof (config_t));
     // General settings
-    config->general.typeset = _SIG0; // 
+    config->general.typeset = _AV00; // _SIG0; // 
     config->general.cycletime = 5;
     config->general.delaytime = 59; // 1 min
     config->general.timezone = 9; // Rome
@@ -94,6 +94,11 @@ bool Device_ConfigWrite(uint8_t * pSrc) {
     // Check consistency 
     
     memcpy(&g_dev.cnf, pSrc, sizeof (config_t)); // Update active
+    
+
+    //uint16_t savedcrc = g_dev.cnf.CRC16;
+    g_dev.cnf.CRC16  = 0x0;
+    g_dev.cnf.CRC16  = computeCRC16((uint8_t *) &g_dev, sizeof (config_t));
 
 #ifndef __NOFLASH // Save config in Flash
     uint32_t nvm_address; // 24 bit address

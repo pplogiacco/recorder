@@ -177,7 +177,7 @@ void acquireAV_INIT(uint16_t tmr_pr3, bool ada_sync) {
     AD1CON3bits.ADRC = 0; // Clock is derived from the system clock (Tcy= 1/Fcy)
     AD1CON3bits.EXTSAM = 0; // Extended Sampling Time bit
     AD1CON3bits.SAMC = 14; //14; // 16 Auto-Sample Time TAD
-    AD1CON3bits.ADCS = 3; // 0x7; // ADC Clock ( 1TAD = 4 TCY -> 250 nS)
+    AD1CON3bits.ADCS = 7; // 0x3; // ADC Clock ( 1TAD = 4 TCY -> 250 nS)
     // 00111111 = 64·TCY = TAD
     // 00000001 = 2·TCY = TAD
     AD1CON3bits.PUMPEN = 0; // If AVDD is < 2.7V enable the Charge Pump 
@@ -238,7 +238,7 @@ void acquireAV_START(uint16_t nsec) {
     Timeout_SetCallBack(&cycletimer);
     IEC0bits.AD1IE = 1; // Enable A/D conversion interrupt
     AD1CON1bits.ADON = 1; // Start ADC
-    ADA2200_Synco(0b011); // Enable SYNC 
+    ADA2200_Synco(0b111); // Enable SYNC 
     // =============== END:START
 }
 
@@ -277,7 +277,7 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
             if (_adcReady) { // New data available
                 _adcReady--;
                 // _LATB2 ^= 1; // IO_LED2_Toggle() 
-                printf("%d ", ADC1BUF0);
+                printf("%d \n", ADC1BUF0);
             }// _adcReady
         }
 #else
