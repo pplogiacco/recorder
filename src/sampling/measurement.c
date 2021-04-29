@@ -32,9 +32,9 @@ uint16_t measurementAcquire(measurement_t * ms) {
 
 #ifdef __VAMP1K_TEST
     printf("Tset=%u\n", g_dev.cnf.general.typeset);
+    g_dev.cnf.general.typeset= _AV00;
 #endif
 
-    
     if ((g_dev.cnf.general.typeset == _AV00) || (g_dev.cnf.general.typeset == _AV01)) {
         ms->ss = ptrSS;
         ms->dtime = RTCC_GetTimeL(); // get RTC datetime
@@ -65,7 +65,7 @@ uint16_t measurementAcquire(measurement_t * ms) {
         adc_fq = (1U << (g_dev.cnf.calibration.av_period - 1)) - 1; // Frequency divider, compute PR3 
     }
 
-
+    
     switch (g_dev.cnf.general.typeset) { 
 
         case _SIG0: // Demo signal
@@ -111,18 +111,18 @@ uint16_t measurementAcquire(measurement_t * ms) {
             ms->typeset = _AV02; // g_dev.cnf.general.typeset;
             ms->dtime = RTCC_GetTimeL(); // get RTC datetime
             ms->ns = 4; // ET,WS
-
+            
             acquireET(ptrSS); // RET: success
             ptrSS++;
             acquireWS(ptrSS); // RET: success
             ptrSS++;
 
             switch (g_dev.cnf.calibration.av_period) {
-                case 11: // ADC_FRQ_24Khz
+                case 3: // ADC_FRQ_24Khz
                     *ptrSS = 2400; // Sampling freq. (Hz)
                     adc_fq = ADC_FRQ_24Khz; //  PR3=3200U
                     break;
-                case 12: // ADC_FRQ_1Khz
+                case 4: // ADC_FRQ_1Khz
                     *ptrSS = 1000; // Sampling freq. (Hz))
                     adc_fq = ADC_FRQ_1Khz; //  PR3=8000U
                     break;
@@ -160,8 +160,16 @@ uint16_t measurementAcquire(measurement_t * ms) {
             Device_SwitchSys(SYS_DEFAULT); // Device_SwitchPower(lastPwrState);
             // Process samples / Format measurament with only significative harmonics
             // Send only ((2^m)/2) samples, from 1 to N2+1
-            ms->nss = nsamples; // send 1024 couple of samples
-
+            //ms->ss = SSBUF; // Return 1..N/2+1 
+            //
+                        
+            int i;
+            ms->nss = (nsamples>>1); // send 512 Coefficients
+            ptrSS = (ms->ss + ms->ns);
+            for (i=0;i<ms->nss;i++) {
+                *(ptrSS+i) = *(ptrSS+i+1);
+            }
+ 
             break;
 
         case _SS00: // Vamp1K encoder Sub-span oscillation: // Raw sample signal

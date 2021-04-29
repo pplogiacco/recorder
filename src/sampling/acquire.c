@@ -234,11 +234,11 @@ void acquireAV_INIT(uint16_t tmr_pr3, bool ada_sync) {
 void acquireAV_START(uint16_t nsec) {
     // =============== BEGIN:START  
     _cycletime = true;
-    Timeout_Set(nsec, 0);
     Timeout_SetCallBack(&cycletimer);
+    ADA2200_Synco(0b111); // Enable SYNC
+    Timeout_Set(nsec, 0);
     IEC0bits.AD1IE = 1; // Enable A/D conversion interrupt
-    AD1CON1bits.ADON = 1; // Start ADC
-    ADA2200_Synco(0b111); // Enable SYNC 
+    AD1CON1bits.ADON = 1; // Start ADC  
     // =============== END:START
 }
 
@@ -252,7 +252,6 @@ void acquireAV_STOP() {
     Timeout_Unset();
     // =============== END:STOP  
 }
-
 
 uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc_pr3, uint16_t pp_filter) {
 
@@ -269,9 +268,11 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
     //    _ANSB2 = 0;
     //    _LATB2 = 0;
     acquireAV_INIT(adc_pr3, true); // Use ADA2200 Synco 
-    acquireAV_START(nsec);
+    __delay(2); // wait to stabilize
 
-    if (pp_filter == 0) {
+    if (pp_filter == 0) { // Raw data
+
+        acquireAV_START(nsec);
 #ifdef __VAMP1K_TEST_AV_printf
         while (!isTimeout()) { // Loop until cycle-time or full filled buffer
             if (_adcReady) { // New data available
@@ -305,7 +306,7 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
         int pm01, pm12, lpm;
         db_size -= 2; // Reserve one for last point
 
-
+        acquireAV_START(nsec);
         while ((nSamples < db_size) && !isTimeout()) { // Loop until cycle-time or full filled buffer
 
             if (_adcReady) { // New data available
@@ -472,7 +473,6 @@ void acquire_INIT(uint16_t freq) {
 #endif // __PIC24FJ256GA702__
 }
 
-
 uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uint16_t adc_fq, uint16_t fft_pw) {
 
     uint16_t npoints = (1U << log2_npoints);
@@ -497,6 +497,9 @@ uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uin
 
     return (iP);
 }
+
+
+
 
 /* -------------------------------------------------------------------------- *
  * E N V I R O M E N T   T E M P E R A T U R E

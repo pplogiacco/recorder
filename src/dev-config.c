@@ -20,17 +20,47 @@ static __prog__ uint8_t nvmConfigDatas[FLASH_ERASE_PAGE_SIZE_IN_PC_UNITS] __attr
 const unsigned int ramConfigSize = sizeof (config_t);
 #endif
 
-// constant to initialise CRC table 
-#define POLY 0x5A // 01011010
+//// constant to initialise CRC table 
+//#define POLY 0x5A // 01011010
+//
+//uint16_t computeCRC16(uint8_t *strtochk, uint16_t length) {
+//    uint16_t i, valcrc = 0;
+//    for (i = 0; i < length; i++) {
+//        valcrc |= strtochk[i] ^ POLY; // XOR 
+//        valcrc <<= 2 + (valcrc % 2); // Alternate shifting
+//    }
+//    return (valcrc);
+//}
+
+//CRC-16 type
+#define CRC16_DNP	0x3D65		// DNP, IEC 870, M-BUS, wM-BUS, ...
+#define CRC16_CCITT	0x1021		// X.25, V.41, HDLC FCS, Bluetooth, ...
+#define POLYNOM CRC16_DNP
 
 uint16_t computeCRC16(uint8_t *strtochk, uint16_t length) {
-    uint16_t i, valcrc = 0;
-    for (i = 0; i < length; i++) {
-        valcrc |= strtochk[i] ^ POLY; // XOR 
-        valcrc <<= 2 + (valcrc % 2); // Alternate shifting
-    }
-    return (valcrc);
+	uint16_t crc;
+    uint8_t i = 0;
+	uint16_t aux = 0;
+    uint16_t newByte;
+    
+	crc = 0x0000; //Initialization of crc to 0x0000 for DNP
+	//crc = 0xFFFF; //Initialization of crc to 0xFFFF for CCITT
+    
+	while (aux < length){
+        newByte = strtochk[aux];
+        for (i = 0; i < 8; i++) {
+            if (((crc & 0x8000) >> 8) ^ (newByte & 0x80)){
+                crc = (crc << 1)  ^ POLYNOM;
+            }else{
+                crc = (crc << 1);
+            }
+            newByte <<= 1;
+        }
+		aux++;
+	}
+	return (~crc); //The crc value for DNP it is obtained by NOT operation
 }
+
 
 void Device_ConfigDefaultSet(config_t * config) {
 #ifdef __VAMP1K_TEST_CONFIG
@@ -38,7 +68,7 @@ void Device_ConfigDefaultSet(config_t * config) {
 #endif            
     memset(config, 0, sizeof (config_t));
     // General settings
-    config->general.typeset = _AV00; // _SIG0; // 
+    config->general.typeset = _AV02; // _SIG0; // 
     config->general.cycletime = 5;
     config->general.delaytime = 59; // 1 min
     config->general.timezone = 9; // Rome
@@ -97,8 +127,8 @@ bool Device_ConfigWrite(uint8_t * pSrc) {
     
 
     //uint16_t savedcrc = g_dev.cnf.CRC16;
-    g_dev.cnf.CRC16  = 0x0;
-    g_dev.cnf.CRC16  = computeCRC16((uint8_t *) &g_dev, sizeof (config_t));
+//    g_dev.cnf.CRC16  = 0x0;
+    //g_dev.cnf.CRC16  = computeCRC16((uint8_t *) &g_dev, sizeof (config_t));
 
 #ifndef __NOFLASH // Save config in Flash
     uint32_t nvm_address; // 24 bit address

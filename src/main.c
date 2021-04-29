@@ -203,7 +203,7 @@ int main(void) {
                         __clearWDT();
                     }
                 } else {
-                    __delay(20000);
+                    __delay(5000);
                 }
                 state = SAMPLING;
                 /*
