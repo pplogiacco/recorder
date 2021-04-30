@@ -54,7 +54,9 @@ POWER   27  Vss
 #define __MRF24
 #undef __SDCARD
 #define __SENSOR_BOARD
-
+// Battery Level
+// 10  OSCO/AN14/CLKO/CN29/RA3     (S) Batt Level
+#define BAT_LVL_SetAnalogInput()   { _TRISA3=1;  _ANSA3=1; }   // AN0 
 #endif  
 
 

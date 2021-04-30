@@ -10,7 +10,7 @@
 //#define __DEVICE_DIN 333222111  // HWDONGLE (Marco)
 //#define __DEVICE_DIN 999888777  // HWDONGLE (Marcello)
 
-#define __DEVICE_VER    1001001   // ver-rel-bld
+#define __DEVICE_VER    10101   // ver-rel-bld
 #define __DEVICE_USB_SR 0310      // Usb enumeration  
 //------------------------------------------------------------------------------
 
@@ -151,6 +151,6 @@ uint8_t Device_SwitchADG(uint8_t reg);
 #define Device_IsUsbConnected() USB_Status
 //#define Device_IsUsbConnected() true
 
-uint16_t Device_GetPowerLevel();
+uint16_t Device_GetBatteryLevel();
 uint16_t Device_CheckHwReset(void);
 #endif

@@ -79,7 +79,7 @@ void Device_ConfigDefaultSet(config_t * config) {
     config->calibration.av_factor = 500005;
     config->calibration.ss_factor = 600006;
     // Exchange
-    config->exchange.attempt_mode = EXCHANGE_ATTEMPTMODE_EVERYCYCLE;
+    config->exchange.attempt_mode = CNF_ATTEMPTMODE_EVERYCYCLE;
     config->exchange.app_timeout = 3000; //30sec
     config->exchange.handshake_timeout = 500; //1sec
     config->exchange.interchar_timeout = 100;
@@ -228,20 +228,36 @@ bool Device_ConfigRead(config_t * config) {
     return result;
 }
 
-bool Device_GetStatus(status_t * status) {
-    status->DIN = __DEVICE_DIN;
-    status->version = (unsigned short) __DEVICE_VER;
-    status->timestamp = RTCC_GetTimeL(); // time evaluation reference
-    status->alarm_counter = Device_CheckHwReset(); // Persistent: wdt, critical errors/reset
-    status->power_status = g_dev.cnf.general.powermode; // (1)line, (3)battery, (5)harvesting, (9)battery+harvesting,
-    status->power_level = Device_GetBatteryLevel(); // battery/harvesting level/status
-    status->storage_space = 10; // available meas?s storage memory
-    status->link_status = Device_IsUsbConnected(); // USB / RF-RSSI
-    status->meas_counter = measurementCounter(); // Persistent: stored measurements
+
+
+bool Device_StatusGet(status_t * status) {
+    uint32_t lctime = RTCC_GetTimeL(); // time evaluation reference
+
+    // Through the calls 
+    if (lctime - status->timestamp < STATUS_UPDATE_DELAY) { 
+        status->power_level = Device_GetBatteryLevel(); // battery/harvesting level/status
+    }
+
+    // Every call
+    status->timestamp = lctime;
     status->config_counter = g_dev.cnf.CRC16; // To evaluate VMS alignment
+    
+    // Boot time... 
+    status->alarm_counter = Device_CheckHwReset(); // Persistent: wdt, critical errors/reset
+    status->DIN = __DEVICE_DIN;
+    status->version = __DEVICE_VER;
+
+    // Measurement
+    status->meas_counter = measurementCounter(); // Persistent: stored measurements
+    status->storage_space = 10; // available meas?s storage memory
+
+    // Exchange
+    status->link_status = USB_Status; // Exchange: USB / RF-RSSI
     status->locked = (g_dev.cnf.exchange.SKEY > 0); // Locked/not locked !!!
+
     return true;
 }
+
 
 void Device_SetLockSKEY(uint32_t skey) { // skey: >0 lock, =0 unlock 
 

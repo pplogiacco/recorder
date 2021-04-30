@@ -724,8 +724,11 @@ Max acceptable ADC Reading = (1.2*1.05)* 1024 / (3.3*0.95) = (Approximately)412
 Min acceptable ADC Reading = (1.2*0.95)* 1024 / (3.3*1.05) = (Approximately)337
  *******************************************************************************/
 
-uint16_t Device_GetPowerLevel() {
 
+uint16_t Device_GetBatteryLevel() {
+
+    
+    
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
     // ____________________________________ADC Input Pin
     
@@ -765,8 +768,36 @@ uint16_t Device_GetPowerLevel() {
 #endif   
 
 #ifdef __PIC24FJ256GA702__
+   
+     // Enable ADG port 
+    BAT_LVL_SetAnalogInput();  // 10  OSCO/AN14/CLKO/CN29/RA3     (S) Batt Level
+
+        // ____________________________________A/D Converter Setup
+    AD1CON1 = 0; // No operation in Idle mode, Converter off
+    AD1CON1bits.MODE12 = 0; // Resolution 10 bit (1=12)
+    AD1CON1bits.ASAM = 1; // Auto-Convert ON (end sampling and start conversion)
+    AD1CON2 = 0; // Inputs are not scanned
+    AD1CON3 = 0;
+    AD1CON3bits.SAMC = 14; // 16 Auto-Sample Time TAD
+    AD1CON3bits.ADCS = 0x7; // ADC Clock ( 1TAD = 4 TCY -> 250 nS)
+    AD1CON5 = 0; // No CTMU, No Band Gap Req. ( VBG=1.2V, Vdd = 3.3 Volt +/-5%)
+    AD1CHS = 0; // No channels
+    // AD1CHSbits.CH0SA = 0b00101; // S/H+ Input A (AN5)  
+        // AD1CHSbits.CH0SA = 0b00101; // S/H+ Input A (AN5)  ???????
+    AD1CSSL = 0; // No Scan, ADC1MD bit in the PMD1
     
-    // Enable 
+    // ____________________________________Acquire
+    AD1CON1bits.ADON = 1; // Turn on A/D
+    //while (0) {
+    AD1CON1bits.SAMP = 1; // Start sampling the input
+   //  __delay(1); // Ensure the correct sampling time has elapsed
+    AD1CON1bits.SAMP = 0; // End sampling and start conversion
+    while (!AD1CON1bits.DONE) {
+        Nop();
+        Nop(); //printf("adc=%d \n", ADC1BUF0);
+    }
+    AD1CON1bits.ADON = 0; // ADC Off
+    //*dbuf =  (1024 - ADC1BUF0);
     
     return 0;
 #endif

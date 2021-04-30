@@ -98,7 +98,7 @@ int main(void) {
 
             case EXCHANGE:
                 lstate = state;
-                Device_GetStatus(&g_dev.st);
+                Device_StatusGet(&g_dev.st);
                 Device_SwitchSys(SYS_ON_EXCHANGE);
                 do {
                     switch (exchState) {
@@ -152,7 +152,7 @@ int main(void) {
                     Exchange_Disconnect();
                 }
 
-                if (g_dev.cnf.exchange.attempt_mode != EXCHANGE_ATTEMPTMODE_EVERYCYCLE) {
+                if (g_dev.cnf.exchange.attempt_mode != CNF_ATTEMPTMODE_EVERYCYCLE) {
                     // Scheduled
                     // Set wake-up time to attempt exchange 
                 }
@@ -380,12 +380,12 @@ int main(void) {
                 measurementAcquire(&g_measurement);
                 //measurementSave(&g_measurement);
                 //!!};
-                state = (g_dev.cnf.exchange.attempt_mode == EXCHANGE_ATTEMPTMODE_EVERYCYCLE) ? EXCHANGE : TOSLEEP;
+                state = (g_dev.cnf.exchange.attempt_mode == CNF_ATTEMPTMODE_EVERYCYCLE) ? EXCHANGE : TOSLEEP;
                 break;
 
             case EXCHANGE:
                 lstate = state;
-                Device_GetStatus(&g_dev.st);
+                Device_StatusGet(&g_dev.st);
                 //Device_SwitchPower(PW_ON_EXCHANGE);
                 //mode = TOSLEEP;
                 //mode = exchangeHandler();
@@ -471,7 +471,7 @@ int main(void) {
         __delay(50);
     }
     Device_ConfigRead(&g_dev.cnf); // Read from EEprom/Flash
-    Device_GetStatus(&g_dev.st);
+    Device_StatusGet(&g_dev.st);
     elapsed = 0;
 #ifdef __DONGLE_VAMP1K_AUTOSEND    
     IO_LED1_On(); // Start in AUTOSEND  !

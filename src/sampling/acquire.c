@@ -518,8 +518,11 @@ uint16_t acquireET(sample_t* dbuf) { // RealTime ?
 #ifdef __VAMP1K_TEST
     printf("ET\n");
 #endif    
-#if defined(__SENSOR_BOARD)
-
+#ifndef __SENSOR_BOARD
+    *dbuf = -1;
+    return (0); // Hardware not supported
+#endif
+    
     IEC0bits.AD1IE = 0; // Disable ADC Int
     IFS0bits.AD1IF = 0; // Clear flag
     // ____________________________________ADC Input Pin
@@ -553,6 +556,7 @@ uint16_t acquireET(sample_t* dbuf) { // RealTime ?
     AD1CHSbits.CH0SA = 0b00101; // S/H+ Input A (AN5)  
     AD1CSSL = 0; // No Scan, ADC1MD bit in the PMD1
 #endif
+    
     // ____________________________________Acquire
     AD1CON1bits.ADON = 1; // Turn on A/D
     //while (0) {
@@ -566,10 +570,8 @@ uint16_t acquireET(sample_t* dbuf) { // RealTime ?
     AD1CON1bits.ADON = 0; // ADC Off
     *dbuf =  (1024 - ADC1BUF0);
     return (1); // check !!!!!
-#else
-    *dbuf = -1;
-    return (0); // Hardware not supported
-#endif
+
+
 }
 
 
@@ -597,6 +599,8 @@ void everySecond(void) {
 #endif   
 
 #ifdef __PIC24FJ256GA702__
+    
+    
 #endif 
 }
 
@@ -645,8 +649,47 @@ uint16_t acquireWS(sample_t* dbuf) {
     }
     *dbuf = (_wsptime[1] / (_icycle - 1));
     return (_icycle > 0);
-#elif defined( __PIC24FJ256GA702__)
+#elif defined( __PIC24FJ256GA702_XX__)
 
+    // TMR2 as Pulses Counter    
+    WS_IN_SetDigitalInput();  // Input RB2 (6) 
+    
+    T2CON = 0x00; // Reset TMR4, 16 Bit
+    T2CONbits.TCS = 1; //  T4CK pin Clock source
+    T2CONbits.TCKPS = 0; // No Prescaler
+    TMR2 = 0x00; // TMR4 Counter Register
+    PR2 = 0xFFFF; // TMR4 Single Event
+   
+//    IFS1bits.T2IF = 0; // Reset Int vector
+//    IEC1bits.T2IE = 0; // Disable Int
+
+    // Initialize
+    //memset(...))
+    int i;
+    for (i = 0; i < _nWSS; i++) {
+        _wsptime[i] = 0;
+    }
+    _icycle = 0;
+    _wsready = 0;
+
+    Timeout_SetCallBack(everySecond);
+
+    
+    Timeout_Set(1, 0); // TMR1 1Second Start !
+
+    while ((_icycle < _nWSS)) {
+        Nop();
+    }
+    Timeout_Unset();
+    T2CONbits.TON = 0;
+
+    for (i = 1; i < _icycle; i++) { // Compute average
+        _wsptime[1] += _wsptime[i];
+    }
+    *dbuf = (_wsptime[1] / (_icycle - 1));
+    return (_icycle > 0);
+
+#else
     return (0); // Hardware not supported
 #endif
 
