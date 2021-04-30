@@ -109,6 +109,8 @@ void Device_SwitchPins() {
     ANSA = 0x0008;
     ANSB = 0x0000;
     
+    
+    
     //  Set the PPS
     __builtin_write_OSCCONL(OSCCON & 0xbf); // unlock PPS
 
@@ -154,15 +156,16 @@ void Device_SwitchPins() {
     AV_SYN_SetDigital();    // Input T3CK/RB15 (SYNCO)
     AV_SYN_SetDigitalInput();
 
-    AV_INP_SetAnalog();     // RA0 AN0 (2 DIP20) VRef+
-    AV_INP_SetAnalogInput();
-    AV_INN_SetAnalog();     //  RA1 AN1 (3 DIP20) VRef-
-    AV_INN_SetAnalogInput();
+//    AV_INP_SetAnalog();     // RA0 AN0 (2 DIP20) VRef+
+//    AV_INP_SetAnalogInput();
+//    AV_INN_SetAnalog();     //  RA1 AN1 (3 DIP20) VRef-
+//    AV_INN_SetAnalogInput();
+    AV_IN_SetAnalogInput();
     
-    ET_IN_SetAnalog();      // ADC ( Pin 7 AN5/RP3 )
-    ET_IN_SetAnalogInput(); 
+//    ET_IN_SetAnalog();      
+    ET_IN_SetAnalogInput(); // ADC ( Pin 7 AN5/RP3 )
     
-    WS_IN_SetDigital();
+//    WS_IN_SetDigital();
     WS_IN_SetDigitalInput();
   
 #endif
@@ -707,9 +710,9 @@ void Device_Boot(void) { // call each sys boot
 
 /*******************************************************************************
 Device_GetPowerLevel()
-Set up the ADC with +Reference set to AVdd, and -Reference set to AVss
-Set up ADC channel to read Vbg (the Bandgap Reference voltage).
+Set up the ADC with +Reference set to AVdd, and -Reference set to AVss.
 Set up BandGap reference to be enabled for ADC.
+Set up ADC channel to read Vbg (the Bandgap Reference voltage).
 Read the ADC value, for 10-bit ADC format, compute:
 
     Vadc = (ADC Reading / 1024) * AVdd
@@ -725,6 +728,7 @@ uint16_t Device_GetPowerLevel() {
 
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
     // ____________________________________ADC Input Pin
+    
     // ____________________________________ADC setup
     IEC0bits.AD1IE = 0; // Disable A/D conversion interrupt
     AD1CON1 = 0x2200; // Configure clock and trigger mode.
@@ -761,6 +765,9 @@ uint16_t Device_GetPowerLevel() {
 #endif   
 
 #ifdef __PIC24FJ256GA702__
+    
+    // Enable 
+    
     return 0;
 #endif
 }

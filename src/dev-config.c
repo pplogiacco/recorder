@@ -67,7 +67,7 @@ void Device_ConfigDefaultSet(config_t * config) {
 #endif            
     memset(config, 0, sizeof (config_t));
     // General settings
-    config->general.typeset = _AV02; // _SIG0; // 
+    config->general.typeset = _AV01; // _SIG0; // 
     config->general.cycletime = 5;
     config->general.delaytime = 59; // 1 min
     config->general.timezone = 9; // Rome
@@ -234,7 +234,7 @@ bool Device_GetStatus(status_t * status) {
     status->timestamp = RTCC_GetTimeL(); // time evaluation reference
     status->alarm_counter = Device_CheckHwReset(); // Persistent: wdt, critical errors/reset
     status->power_status = g_dev.cnf.general.powermode; // (1)line, (3)battery, (5)harvesting, (9)battery+harvesting,
-    status->power_level = 0; //Device_GetBatteryLevel(); // battery/harvesting level/status
+    status->power_level = Device_GetBatteryLevel(); // battery/harvesting level/status
     status->storage_space = 10; // available meas?s storage memory
     status->link_status = Device_IsUsbConnected(); // USB / RF-RSSI
     status->meas_counter = measurementCounter(); // Persistent: stored measurements

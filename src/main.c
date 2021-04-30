@@ -238,7 +238,15 @@ int main(void) {
     RTCC_GetTime(&stime);
     printf("[%u:%u:%u]\n#:", stime.hour, stime.min, stime.sec);
 
-
+#ifdef __VAMP1K_TEST_USB
+    while (! Device_IsUsbConnected()) {
+                printf("Waiting USB... \n");
+        __delay(1000);
+    }
+    printf("USB Ready ! \n");
+#endif
+    
+    
 #ifdef __VAMP1K_TEST_CONFIG
     while (1) {
         Device_ConfigRead(&g_dev.cnf); // Read from EEprom/Flash

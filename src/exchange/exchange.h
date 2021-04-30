@@ -12,7 +12,7 @@
 /* -------------------------------------------------------------------------- */
 devicestate_t exchangeHandler();
 
-#define Exchange_Connect(x) Exchange_openChannel()
+#define Exchange_Connect(x) Exchange_openChannel(x)
 #define Exchange_Disconnect() Exchange_closeChannel()
 
 

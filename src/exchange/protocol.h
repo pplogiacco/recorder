@@ -86,7 +86,7 @@ typedef enum {
     EXCH_EXIT,
 } exchangestate_t;
 
-bool Exchange_openChannel();
+bool Exchange_openChannel(bool usbReady);
 
 void Exchange_closeChannel();
 

@@ -74,18 +74,23 @@ POWER   27  Vss
 #define AV_SYN_SetDigital()         _ANSB15=0  // Digital
 #define AV_SYN_SetDigitalInput()    _TRISB15=1 // Input T3CK/RB15 (SYNCO)
 
-#define AV_INP_SetAnalog()          _ANSA0=1   // RA0 AN0 (2 DIP20) VRef+
-#define AV_INP_SetAnalogInput()     _TRISA0=1     
-#define AV_INN_SetAnalog()          _ANSA1=1   //  RA1 AN1 (3 DIP20) VRef-
-#define AV_INN_SetAnalogInput()     _TRISA1=1 
+//#define AV_INP_SetAnalog()          _ANSA0=1   // RA0 AN0 (2 DIP20) VRef+
+//#define AV_INP_SetAnalogInput()     _TRISA0=1     
+//#define AV_INN_SetAnalog()          _ANSA1=1   //  RA1 AN1 (3 DIP20) VRef-
+//#define AV_INN_SetAnalogInput()    { _TRISA1=1; _ANSA1=1; } 
+
+#define AV_IN_SetAnalogInput()   { _TRISA0=1;  _ANSA0=1; }   // AN0 
+
+
 
 #define ET_IN     _RB3  // AN5/C1INA/C2INC/SCL2/CN7/RB3 (7)
-#define ET_IN_SetAnalogInput()    (_TRISB3 = 1 ) 
-#define ET_IN_SetAnalog()         (_ANSB3 = 1 ) 
+//#define ET_IN_SetAnalog()         (_ANSB3 = 1 ) 
+#define ET_IN_SetAnalogInput()    {_TRISB3 = 1; _ANSB3 = 1; }
+
 
 #define WS_IN     _RB2  // AN4/C1INB/C2IND/SDA2/T5CK/T4CK/U1RX/CTED13/CN6/RB2 (6)
-#define WS_IN_SetDigital()         (_ANSB2 = 0 ) 
-#define WS_IN_SetDigitalInput()    (_TRISB2 = 1 ) 
+//#define WS_IN_SetDigital()         (_ANSB2 = 0 ) 
+#define WS_IN_SetDigitalInput()    { _TRISB2 = 1; _ANSB2 = 0; } 
 #endif
 
 #endif // __SENSOR_BOARD
@@ -128,19 +133,21 @@ POWER   27  Vss
 
 #ifdef __USB  // ___________________________________________________________USB
 
+//#define USB_WK_SetDigital()  
 #define USB_WK_SetDigitalInput()  _TRISB7 = 1
+
 #define __UART2
 
 #ifdef __HWDEVICE
 
 #ifdef __NOUSB
-#define USB_WK_Value()   (0)
+#define USB_Status 0
 #else
-#define USB_WK_Value() ( _RB7 )
+#define USB_Status _RB7 
 #endif
 
 #else // HWDONGLE
-#define USB_WK_Value() (1)
+#define USB_Status() (1)
 #endif
 #endif // __USB
 

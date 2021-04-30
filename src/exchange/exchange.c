@@ -27,7 +27,7 @@ devicestate_t exchangeHandler() {
     do {
         switch (state) {
             case EXCH_OPEN:
-                if (!Exchange_openChannel()) {
+                if (!Exchange_Connect(Device_IsUsbConnected())) {
                     state = EXCH_EXIT;
                 } else {
                     state = EXCH_START_DISCOVERY;

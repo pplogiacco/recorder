@@ -15,13 +15,9 @@
 //------------------------------------------------------------------------------
 
 // Hardware:
-// ---------
 //#define __HWDONGLE
 #define __HWDEVICE
 //#define __HWDEVICE_V2_302
-
-// Firmware:
-// ---------
 
 // Dongle:
 //#define __DONGLE
@@ -31,12 +27,13 @@
 //#define __DONGLE_TEST_FILE
 
 // Recorder:
+// #define __VAMP1K_TEST
 #define __VAMP1K
 //#define __NOFLASH    // Use RAM to store config
 //#define __NOUSB      // Force to use RF ( USB not connect )
+//------------------------------------------------------------------------------
 
 
-//#define __VAMP1K_TEST
 #ifdef __VAMP1K_TEST
 #undef __VAMP1K
 // Testing
@@ -45,12 +42,12 @@
 //#define __VAMP1K_TEST_TIMER
 //#define __VAMP1K_TEST_CONFIG 
 //#define __VAMP1K_TEST_ADG
-//#define __VAMP1K_TEST_USB
+#define __VAMP1K_TEST_USB
 
-define __VAMP1K_TEST_AV_printf    // Test Acquire/ADC HW
-define __VAMP1K_TEST_AV_RB2       // Test Acquire/ADC HW
+//#define __VAMP1K_TEST_AV_printf    // Test Acquire/ADC HW
+//#define __VAMP1K_TEST_AV_RB2       // Test Acquire/ADC HW
 
-//#define __VAMP1K_TEST_measurement_printf  // Test Measurement format 
+#define __VAMP1K_TEST_measurement_printf  // Test Measurement format 
 //#define __VAMP1K_TEST_measurement_DATAVIS    // send ADC to serial mc datavis
 
 //#define __AV0NVM     // Save samples in flash
@@ -151,7 +148,9 @@ uint8_t Device_SwitchADG(uint8_t reg);
 #define PMD1_ADC1MD _bs(6)  // Bit 0
 
 // bool Device_IsUsbConnected(void);
-//#define Device_IsUsbConnected() USB_WK_Value()
-#define Device_IsUsbConnected() true
+#define Device_IsUsbConnected() USB_Status
+//#define Device_IsUsbConnected() true
+
+uint16_t Device_GetPowerLevel();
 uint16_t Device_CheckHwReset(void);
 #endif

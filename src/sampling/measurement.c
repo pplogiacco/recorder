@@ -32,7 +32,7 @@ uint16_t measurementAcquire(measurement_t * ms) {
 
 #ifdef __VAMP1K_TEST
     printf("Tset=%u\n", g_dev.cnf.general.typeset);
-    g_dev.cnf.general.typeset = _AV00;
+    //g_dev.cnf.general.typeset = _AV00;
 #endif
 
     if ((g_dev.cnf.general.typeset == _AV00) || (g_dev.cnf.general.typeset == _AV01)) {
@@ -95,11 +95,8 @@ uint16_t measurementAcquire(measurement_t * ms) {
         case _AV01: // Aeolian Vibration, Peak-Peak
 
             ms->typeset = _AV01;
-            if (g_dev.cnf.calibration.av_filter < 1) {
-                g_dev.cnf.calibration.av_filter = 1;
-            }
             nsamples = acquireAV(ptrSS, g_dev.cnf.general.cycletime, (SS_BUF_SIZE - ms->ns), adc_fq, \
-                    g_dev.cnf.calibration.av_filter);
+                    (g_dev.cnf.calibration.av_filter<1)?1:g_dev.cnf.calibration.av_filter);
             ms->nss = nsamples;
             Device_SwitchSys(SYS_DEFAULT); // Device_SwitchPower(lastPwrState);
             break;

@@ -127,11 +127,11 @@ void acquireAV_INIT(uint16_t tmr_pr3, bool ada_sync) {
     IFS0bits.T3IF = 0; // Reset int flag
 
     // ____________________________________Input Analog pins
-    AV_INP_SetAnalog(); // RA0 AN0 (2 DIP20) VRef+
-    AV_INP_SetAnalogInput();
-    AV_INN_SetAnalog(); //  RA1 AN1 (3 DIP20) VRef-
-    AV_INN_SetAnalogInput();
-
+//    AV_INP_SetAnalog(); // RA0 AN0 (2 DIP20) VRef+
+//    AV_INP_SetAnalogInput();
+//    AV_INN_SetAnalog(); //  RA1 AN1 (3 DIP20) VRef-
+//    AV_INN_SetAnalogInput();
+    AV_IN_SetAnalogInput(); // RA0 AN0 (2 DIP20) VRef+
     // ____________________________________A/D Converter Setup
     // AD1CON1bits.ADON = 0; // Converter off
     AD1CON2 = 0; // Inputs are not scanned
@@ -257,7 +257,7 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
 
 
 #ifdef __VAMP1K_TEST
-    printf("AV00\n");
+    printf("AV0X\n");
 #endif       
 
     ptrDB = dbuf;
@@ -265,15 +265,14 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
     Tcp = 0;
     nSamples = 0;
 
-
     acquireAV_INIT(adc_pr3, true); // Use ADA2200 Synco 
     __delay(2); // wait to stabilize
 
-    if (pp_filter == 0) { // Raw data
-
+    if (pp_filter == 0) { // ---------------- Raw data          
         acquireAV_START(nsec);
 #if defined( __VAMP1K_TEST )
-#if define(__VAMP1K_TEST_AV_RB2) 
+        
+#if defined(__VAMP1K_TEST_AV_RB2) 
         _TRISB2 = 0;
         _ANSB2 = 0;
         _LATB2 = 0;
@@ -281,7 +280,7 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
         while (!isTimeout()) { // Loop until cycle-time or full filled buffer
             if (_adcReady) { // New data available
                 _adcReady--;
-#if define(__VAMP1K_TEST_AV_RB2) 
+#if defined(__VAMP1K_TEST_AV_RB2) 
                 _LATB2 ^= 1; // IO_LED2_Toggle() 
 #endif
 #if defined( __VAMP1K_TEST_AV_printf )
@@ -294,7 +293,7 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
 //        _ANSB2 = 0;
 //        _LATB2 = 0;
         
-        while ((nSamples < db_size) && !isTimeout()) { // Loop until cycle-time or full filled buffer
+        while ((nSamples < db_size) && _cycletime ) { // Loop until cycle-time or full filled buffer
             if (_adcReady) { // New data available
                 _adcReady--;
                 *ptrDB = Tc - Tcp; //-Tcp;
@@ -310,25 +309,27 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
 #endif
         acquireAV_STOP();
 
-    } else { // Peak-Peak
+    } else {    // ----------------  Peak-Peak
 
 
         point_t points[3]; // SAMPLING_AV_PBUFFER
-        uint16_t pIndex;
-        int pm01, pm12, lpm;
+        uint16_t pIndex=0;
+        signed short pm01, pm12, lpm =-1;
         
         db_size -= 2; // Reserve one for last point
 
         acquireAV_START(nsec);
-        while ((nSamples < db_size) && !isTimeout()) { // Loop until cycle-time or full filled buffer
+        
+        while ((nSamples < db_size) && _cycletime ) { // Loop until cycle-time or full filled buffer
 
             if (_adcReady) { // New data available
                 // ---------------- get samples
-                _adcReady--;
-                points[pIndex].A = ADC1BUF0; //(SCALE_TOUNSIGNED - ADC1BUF0); // Positive point
+                _adcReady--;                
+                //printf("%d \n", ADC1BUF0);                        
+                points[pIndex].A = ADC1BUF0; // ADC Positive data !!!!!
                 points[pIndex].T = Tc;
                 if (pIndex > 0) { // !!! Inizializzare a 2 volte SCALE_... ed elimina IF nel ciclo
-                    if (abs((points[pIndex].A) - (points[pIndex - 1].A)) < pp_filter) { // All positive samples
+                    if (abs((points[pIndex].A) - (points[pIndex - 1].A)) < pp_filter) { // ONLY POSITIVE !!!
                         points[pIndex - 1] = points[pIndex];
                     } else {
                         pIndex++;
@@ -341,10 +342,10 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
                     nSamples += 2;
                     pIndex++;
                 }
-                Tc++; // T = fSynco/16
+                Tc++; // n Synco Pulses
                 // ---------------- get samples
 
-                if ((pIndex == 3)) { // min 3 points to mach PP
+                if (pIndex == 3) { // min 3 points to mach PP
 
                     // PPmatch = false;
                     //pm01 = (points[0].A > (points[1].A + g_dev.cnf.calibration.av_filter)); // _snr = 30;
@@ -378,7 +379,7 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
                         points[1] = points[2];
                         pIndex = 2;
                     }
-                }
+                } // Maching PP
             }// _adcReady
         }
 
@@ -522,7 +523,7 @@ uint16_t acquireET(sample_t* dbuf) { // RealTime ?
     IEC0bits.AD1IE = 0; // Disable ADC Int
     IFS0bits.AD1IF = 0; // Clear flag
     // ____________________________________ADC Input Pin
-    ET_IN_SetAnalog();
+//    ET_IN_SetAnalog();
     ET_IN_SetAnalogInput(); // Input  AN5/C1INA/C2INC/SCL2/CN7/RB3 (7)
 
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
@@ -563,10 +564,10 @@ uint16_t acquireET(sample_t* dbuf) { // RealTime ?
         Nop(); //printf("adc=%d \n", ADC1BUF0);
     }
     AD1CON1bits.ADON = 0; // ADC Off
-    *dbuf = (sample_t) ADC1BUF0;
+    *dbuf =  (1024 - ADC1BUF0);
     return (1); // check !!!!!
 #else
-    *dbuf = 0;
+    *dbuf = -1;
     return (0); // Hardware not supported
 #endif
 }

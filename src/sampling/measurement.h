@@ -53,10 +53,10 @@ typedef enum e_dimension { // physical phenomenon
  ---------------------------------------------------------------------------- */
 typedef enum e_typeset {
     _SIG0 = 0x02, // Test Signal 
-    _AV00 = 0x0A, // Aeolean Vibration, raw
+    _AV00 = 0x0A, // (10) Aeolean Vibration, raw
     _SS00 = 0x0B, // Sub-Span, raw
-    _AV01 = 0x0D, // Aeolean Vibration, peak-peak
-    _AV02 = 0x0C, // Aeolean Vibration, vibration ( Real FFT )
+    _AV01 = 0x0D, // (13) Aeolean Vibration, peak-peak
+    _AV02 = 0x0C, // (12) Aeolean Vibration, vibration ( Real FFT )
     _AV03 = 0x0E  // Aeolean Vibration, vibration ( Complex FFT/ valid Harm )
 } typeset_t;
 
