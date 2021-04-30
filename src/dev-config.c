@@ -229,13 +229,12 @@ bool Device_ConfigRead(config_t * config) {
 }
 
 
-
 bool Device_StatusGet(status_t * status) {
     uint32_t lctime = RTCC_GetTimeL(); // time evaluation reference
 
     // Through the calls 
     if (lctime - status->timestamp < STATUS_UPDATE_DELAY) { 
-        status->power_level = Device_GetBatteryLevel(); // battery/harvesting level/status
+       // status->power_level = Device_GetBatteryLevel(); // battery/harvesting level/status
     }
 
     // Every call

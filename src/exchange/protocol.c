@@ -62,7 +62,8 @@ void setLong(uint32_t val, uint8_t *buff) {
 /* -------------------------------------------------------------------------- */
 bool Exchange_openChannel(bool usbReady) {
 
-    if (usbReady) {
+    if (Device_IsUsbConnected()) {
+        
         UART2_Enable();
         channelType = CNL_USBD;
 

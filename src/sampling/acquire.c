@@ -273,9 +273,9 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
 #if defined( __VAMP1K_TEST )
         
 #if defined(__VAMP1K_TEST_AV_RB2) 
-        _TRISB2 = 0;
-        _ANSB2 = 0;
-        _LATB2 = 0;
+//        _TRISB2 = 0;
+//        _ANSB2 = 0;
+//        _LATB2 = 0;
 #endif        
         while (!isTimeout()) { // Loop until cycle-time or full filled buffer
             if (_adcReady) { // New data available
@@ -289,9 +289,9 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
             }// _adcReady
         }
 #else        
-//        _TRISB2 = 0;
-//        _ANSB2 = 0;
-//        _LATB2 = 0;
+        _TRISB2 = 0;
+        _ANSB2 = 0;
+        _LATB2 = 0;
         
         while ((nSamples < db_size) && _cycletime ) { // Loop until cycle-time or full filled buffer
             if (_adcReady) { // New data available
@@ -300,7 +300,7 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
                 Tcp = Tc;
                 ptrDB++;
                 *ptrDB = ADC1BUF0; //(SCALE_TOUNSIGNED - ADC1BUF0); // Positive point
-        //_LATB2 ^= 1; // IO_LED2_Toggle() 
+//        _LATB2 ^= 1; // IO_LED2_Toggle() 
                 ptrDB++;
                 nSamples += 2;
                 Tc++; // T = fSynco/16

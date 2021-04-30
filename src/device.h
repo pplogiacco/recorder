@@ -148,8 +148,8 @@ uint8_t Device_SwitchADG(uint8_t reg);
 #define PMD1_ADC1MD _bs(6)  // Bit 0
 
 // bool Device_IsUsbConnected(void);
-#define Device_IsUsbConnected() USB_Status
-//#define Device_IsUsbConnected() true
+//#define Device_IsUsbConnected() USB_Status
+#define Device_IsUsbConnected() true
 
 uint16_t Device_GetBatteryLevel();
 uint16_t Device_CheckHwReset(void);
