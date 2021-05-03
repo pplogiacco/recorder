@@ -19,9 +19,6 @@
 #include "ADA2200.h"        // HAL ADA2200
 #include "fourier.h"
 
-#define SAMPLING_ET_EVERAGE 2   // Repeat samplings and compute everage
-#define SAMPLING_WS_EVERAGE 2   // Repeat samplings and compute everage
-#define SAMPLING_AV_PBUFFER 3   // Buffer to match P-P  points
 
 /* -------------------------------------------------------------------------- *
  * DEMO SIGNAL
@@ -63,11 +60,11 @@ uint16_t acquireSig(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t 
     return (nT);
 }
 
+
 /*----------------------------------------------------------------------------*
  * L V D T  ( A E O L I A N  V I B R A T I O N )                              *   
  * acquireAV_INIT(adc_period)  --> tick_time                                  *
  *----------------------------------------------------------------------------*/
-
 
 volatile uint8_t _adcReady; // ADC Cycle control
 volatile bool _cycletime;
@@ -95,16 +92,11 @@ void acquireAV_INIT(uint16_t tmr_pr3, bool ada_sync) {
 
 #if defined( __PIC24FJ256GA702__ ) // New sensor board & PIC 702
 
-    // =============== BEGIN:INIT    
-    ANCFG |= 0x100; // A/D Band Gap Enable (1ms to tune-up)  
-    IEC0bits.AD1IE = 0; // Enable A/D conversion interrupt
-    IFS0bits.AD1IF = 0; // Clear A/D conversion interrupt.
-    IPC3bits.AD1IP = 1; // High Interrupt Priority
+    // if(  ada_sync ) {  }
 
+    // ______________________TMR3 as pulse counter on T3CK pin (SYNCO)
     AV_SYN_SetDigital();
     AV_SYN_SetDigitalInput(); // Input T3CK/RB15 (SYNCO)
-
-    // TMR3 as pulse counter on T3CK pin (SYNCO)
     IEC0bits.T3IE = 0; // TMR3 Int call-back disabled (Trig ADC)
     T3CONbits.TON = 1;
     T2CONbits.T32 = 0; // Configure TMR3 16Bit Operation
@@ -127,12 +119,15 @@ void acquireAV_INIT(uint16_t tmr_pr3, bool ada_sync) {
     IFS0bits.T3IF = 0; // Reset int flag
 
     // ____________________________________Input Analog pins
-//    AV_INP_SetAnalog(); // RA0 AN0 (2 DIP20) VRef+
-//    AV_INP_SetAnalogInput();
-//    AV_INN_SetAnalog(); //  RA1 AN1 (3 DIP20) VRef-
-//    AV_INN_SetAnalogInput();
+    //    AV_INP_SetAnalog(); // RA0 AN0 (2 DIP20) VRef+
+    //    AV_INP_SetAnalogInput();
+    //    AV_INN_SetAnalog(); //  RA1 AN1 (3 DIP20) VRef-
+    //    AV_INN_SetAnalogInput();
     AV_IN_SetAnalogInput(); // RA0 AN0 (2 DIP20) VRef+
     // ____________________________________A/D Converter Setup
+    // ANCFG |= 0x100; // A/D Band Gap Enable (1ms to tune-up)  
+    IEC0bits.AD1IE = 0; // Disable A/D conversion interrupt
+    IPC3bits.AD1IP = 3; // High Interrupt Priority
     // AD1CON1bits.ADON = 0; // Converter off
     AD1CON2 = 0; // Inputs are not scanned
     AD1CSSL = 0; // No Scan, ADC1MD bit in the PMD1
@@ -199,8 +194,8 @@ void acquireAV_INIT(uint16_t tmr_pr3, bool ada_sync) {
     AD1CHSbits.CH0NA = 0; // S/H- Input A
     // 000 = AVSS (NVCFG0) !!!!!!!!!!!!!  
 
-    _ANSB3 = 1; // AN5  TEST !!!!!!!!!!
-    _TRISB3 = 1; // Analog Input  
+    //    _ANSB3 = 1; // AN5  TEST !!!!!!!!!!
+    //    _TRISB3 = 1; // Analog Input  
 
     AD1CHSbits.CH0SA = 0; // 1; // S/H+ Input A 
     //11110 = AVDD(1)
@@ -225,82 +220,66 @@ void acquireAV_INIT(uint16_t tmr_pr3, bool ada_sync) {
     //00000 = AN0
 
     ADA2200_Enable(); // Power-on: SPI1, Sensor Board LINE1
-    _adcReady = 0;
-    // =============== END:INIT   
 
 #endif // __PIC24FJ256GA702__
 }
 
 void acquireAV_START(uint16_t nsec) {
-    // =============== BEGIN:START  
     _cycletime = true;
-    Timeout_SetCallBack(&cycletimer);
-    ADA2200_Synco(0b111); // Enable SYNC
-    Timeout_Set(nsec, 0);
-    IEC0bits.AD1IE = 1; // Enable A/D conversion interrupt
-    AD1CON1bits.ADON = 1; // Start ADC  
-    // =============== END:START
-}
-
-void acquireAV_STOP() {
-    // =============== BEGIN:STOP   
-    AD1CON1bits.ADON = 0; // Converter Off
-    IEC0bits.AD1IE = 0; // Disable A/D conversion interrupt
-    IFS0bits.AD1IF = 0; // Clear A/D conversion interrupt.
-    T3CONbits.TON = 0;
-    ADA2200_Disable();
-    Timeout_Unset();
-    // =============== END:STOP  
-}
-
-uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc_pr3, uint16_t pp_filter) {
-
-
-#ifdef __VAMP1K_TEST
-    printf("AV0X\n");
-#endif       
-
-    ptrDB = dbuf;
+    _adcReady = 0;
     Tc = 0;
     Tcp = 0;
     nSamples = 0;
+    Timeout_SetCallBack(&cycletimer);
+    ADA2200_Synco(0b111); // Enable SYNC
+    __delay(5);
+    Timeout_Set(nsec, 0);
+    IFS0bits.AD1IF = 0; // Clear A/D conversion interrupt.
+    IEC0bits.AD1IE = 1; // Enable A/D conversion interrupt
+    AD1CON1bits.ADON = 1; // Start ADC
+}
 
+void acquireAV_STOP() {
+    AD1CON1bits.ADON = 0; // Converter Off
+    IEC0bits.AD1IE = 0; // Disable A/D conversion interrupt
+    T3CONbits.TON = 0;
+    ADA2200_Disable();
+    Timeout_Unset();
+}
+
+uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc_pr3, uint16_t pp_filter) {
+#ifdef __VAMP1K_TEST
+    printf("AV0X\n");
+#endif  
+
+    ptrDB = dbuf;
     acquireAV_INIT(adc_pr3, true); // Use ADA2200 Synco 
-    __delay(2); // wait to stabilize
+    //__delay(2); // wait to stabilize
+    //        _TRISB2 = 0;
+    //        _ANSB2 = 0;
+    //        _LATB2 = 0;
 
-    if (pp_filter == 0) { // ---------------- Raw data          
+    if (pp_filter == 0) { // ---------------- Raw data _AV00
+
         acquireAV_START(nsec);
-#if defined( __VAMP1K_TEST )
-        
-#if defined(__VAMP1K_TEST_AV_RB2) 
-//        _TRISB2 = 0;
-//        _ANSB2 = 0;
-//        _LATB2 = 0;
-#endif        
+
+#if defined( __VAMP1K_TEST ) && defined( __VAMP1K_TEST_AV_printf )
         while (!isTimeout()) { // Loop until cycle-time or full filled buffer
             if (_adcReady) { // New data available
                 _adcReady--;
-#if defined(__VAMP1K_TEST_AV_RB2) 
-                _LATB2 ^= 1; // IO_LED2_Toggle() 
-#endif
-#if defined( __VAMP1K_TEST_AV_printf )
                 printf("%d \n", ADC1BUF0);
-#endif                
             }// _adcReady
         }
 #else        
-        _TRISB2 = 0;
-        _ANSB2 = 0;
-        _LATB2 = 0;
-        
-        while ((nSamples < db_size) && _cycletime ) { // Loop until cycle-time or full filled buffer
+
+        while ((nSamples < db_size) && _cycletime) { // Loop until cycle-time or full filled buffer
             if (_adcReady) { // New data available
                 _adcReady--;
                 *ptrDB = Tc - Tcp; //-Tcp;
                 Tcp = Tc;
                 ptrDB++;
                 *ptrDB = ADC1BUF0; //(SCALE_TOUNSIGNED - ADC1BUF0); // Positive point
-//        _LATB2 ^= 1; // IO_LED2_Toggle() 
+                //        _LATB2 ^= 1; // IO_LED2_Toggle() 
                 ptrDB++;
                 nSamples += 2;
                 Tc++; // T = fSynco/16
@@ -309,22 +288,20 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
 #endif
         acquireAV_STOP();
 
-    } else {    // ----------------  Peak-Peak
-
+    } else { // ----------------  Peak-Peak _ AV01
 
         point_t points[3]; // SAMPLING_AV_PBUFFER
-        uint16_t pIndex=0;
-        signed short pm01, pm12, lpm =-1;
-        
-        db_size -= 2; // Reserve one for last point
+        uint16_t pIndex = 0;
+        signed short pm01, pm12, lpm = -1;
 
+        db_size -= 2; // Reserve one for last point
         acquireAV_START(nsec);
-        
-        while ((nSamples < db_size) && _cycletime ) { // Loop until cycle-time or full filled buffer
+
+        while ((nSamples < db_size) && _cycletime) { // Loop until cycle-time or full filled buffer
 
             if (_adcReady) { // New data available
                 // ---------------- get samples
-                _adcReady--;                
+                _adcReady--;
                 //printf("%d \n", ADC1BUF0);                        
                 points[pIndex].A = ADC1BUF0; // ADC Positive data !!!!!
                 points[pIndex].T = Tc;
@@ -400,19 +377,9 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
  * wind_speed = pulses * wsFactor = m/s                                       *
  *----------------------------------------------------------------------------*/
 
-
 void acquire_INIT(uint16_t freq) {
 
 #if defined( __PIC24FJ256GA702__ ) // New sensor board & PIC 702
-
-    // =============== BEGIN:INIT    
-    //ANCFG |= 0x100; // A/D Band Gap Enable (1ms to tune-up)  
-    IEC0bits.AD1IE = 0; // Enable A/D conversion interrupt
-    IFS0bits.AD1IF = 0; // Clear A/D conversion interrupt.
-    IPC3bits.AD1IP = 1; // High Interrupt Priority
-    //    AV_SYN_SetDigital();
-    //    AV_SYN_SetDigitalInput(); // Input T3CK/RB15 (SYNCO)
-
 
 
     // ==== TMR3 as pulse counter on T3CK pin (SYNCO) ====
@@ -438,7 +405,6 @@ void acquire_INIT(uint16_t freq) {
     // 500	32000
     // 250	64000
 
-
     PR3 = freq; // (16000000/adc_freq)+1; // FRequency divider
     IFS0bits.T3IF = 0; // Reset int flag
 
@@ -446,6 +412,10 @@ void acquire_INIT(uint16_t freq) {
 
 
     // ____________________________________A/D Converter Setup
+    //ANCFG |= 0x100; // A/D Band Gap Enable (1ms to tune-up)  
+    IEC0bits.AD1IE = 0; // Enable A/D conversion interrupt
+    IFS0bits.AD1IF = 0; // Clear A/D conversion interrupt.
+    IPC3bits.AD1IP = 3; // High Interrupt Priority
     // AD1CON1bits.ADON = 0; // Converter off
     AD1CON2 = 0; // Inputs are not scanned
     AD1CSSL = 0; // No Scan, ADC1MD bit in the PMD1
@@ -477,24 +447,19 @@ void acquire_INIT(uint16_t freq) {
     AD1CON2bits.NVCFG0 = 0; // ADC Negative Reference 
     AD1CHSbits.CH0NA = 0; // S/H- Input A
     AD1CHSbits.CH0SA = 0; // 1; // S/H+ Input A 
-
     _adcReady = 0;
-    // =============== END:INIT   
 
 #endif // __PIC24FJ256GA702__
 }
 
 uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uint16_t adc_fq, uint16_t fft_pw) {
-
     uint16_t npoints = (1U << log2_npoints);
     uint16_t iP = 0;
 
     fft_init(log2_npoints); // Initialize tables 
     acquire_INIT(adc_fq); // ADC sampling frequency
     ADA2200_Enable(); // Power-on: SPI1, Sensor Board LINE1
-
     acquireAV_START(0); // No timeout, full filled buffer
-
     while (iP < npoints) {
         if (_adcReady) {
             _adcReady--;
@@ -504,7 +469,7 @@ uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uin
         } // _adcReady
     };
     acquireAV_STOP();
-    fft_spectrum(dbuf, log2_npoints);
+    fft_spectrum(dbuf);
 
     return (iP);
 }
@@ -522,11 +487,10 @@ uint16_t acquireET(sample_t* dbuf) { // RealTime ?
     *dbuf = -1;
     return (0); // Hardware not supported
 #endif
-    
+
     IEC0bits.AD1IE = 0; // Disable ADC Int
     IFS0bits.AD1IF = 0; // Clear flag
     // ____________________________________ADC Input Pin
-//    ET_IN_SetAnalog();
     ET_IN_SetAnalogInput(); // Input  AN5/C1INA/C2INC/SCL2/CN7/RB3 (7)
 
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
@@ -556,7 +520,7 @@ uint16_t acquireET(sample_t* dbuf) { // RealTime ?
     AD1CHSbits.CH0SA = 0b00101; // S/H+ Input A (AN5)  
     AD1CSSL = 0; // No Scan, ADC1MD bit in the PMD1
 #endif
-    
+
     // ____________________________________Acquire
     AD1CON1bits.ADON = 1; // Turn on A/D
     //while (0) {
@@ -564,11 +528,10 @@ uint16_t acquireET(sample_t* dbuf) { // RealTime ?
     __delay(1); // Ensure the correct sampling time has elapsed
     AD1CON1bits.SAMP = 0; // End sampling and start conversion
     while (!AD1CON1bits.DONE) {
-        Nop();
         Nop(); //printf("adc=%d \n", ADC1BUF0);
     }
     AD1CON1bits.ADON = 0; // ADC Off
-    *dbuf =  (1024 - ADC1BUF0);
+    *dbuf = (1024 - ADC1BUF0);
     return (1); // check !!!!!
 
 
@@ -581,11 +544,11 @@ uint16_t acquireET(sample_t* dbuf) { // RealTime ?
  * wind_speed = pulses * wsFactor = m/s                                       *
  *----------------------------------------------------------------------------*/
 
-#define _nWSS (SAMPLING_WS_EVERAGE+1)
-
+#define __nWSS 3    // Everage 2 samples
+static const uint16_t _nWSS=__nWSS;
 volatile int _icycle;
 volatile int _wsready;
-volatile int _wsptime[_nWSS];
+volatile int _wsptime[__nWSS];
 
 void everySecond(void) {
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
@@ -596,11 +559,15 @@ void everySecond(void) {
         _wsready = 1;
         TMR4 = 0;
     }
-#endif   
-
-#ifdef __PIC24FJ256GA702__
-    
-    
+#elif defined( __PIC24FJ256GA702__)
+    if (_wsready) { // Stop
+        _wsptime[_icycle] = TMR2;
+        _icycle++;
+        _wsready = 0; // re-Start
+    } else { // Start
+        _wsready = 1;
+        TMR2 = 0;
+    }
 #endif 
 }
 
@@ -649,48 +616,45 @@ uint16_t acquireWS(sample_t* dbuf) {
     }
     *dbuf = (_wsptime[1] / (_icycle - 1));
     return (_icycle > 0);
-#elif defined( __PIC24FJ256GA702_XX__)
+
+#elif defined( __PIC24FJ256GA702__)
 
     // TMR2 as Pulses Counter    
-    WS_IN_SetDigitalInput();  // Input RB2 (6) 
-    
-    T2CON = 0x00; // Reset TMR4, 16 Bit
-    T2CONbits.TCS = 1; //  T4CK pin Clock source
-    T2CONbits.TCKPS = 0; // No Prescaler
-    TMR2 = 0x00; // TMR4 Counter Register
-    PR2 = 0xFFFF; // TMR4 Single Event
-   
-//    IFS1bits.T2IF = 0; // Reset Int vector
-//    IEC1bits.T2IE = 0; // Disable Int
+    WS_IN_SetDigitalInputLow(); // Input RB2 (6) 
 
-    // Initialize
-    //memset(...))
-    int i;
-    for (i = 0; i < _nWSS; i++) {
-        _wsptime[i] = 0;
-    }
-    _icycle = 0;
-    _wsready = 0;
+    IEC0bits.T2IE = 0; // Disable Int
+    IFS0bits.T2IF = 0; // Reset Int vector
+    T2CON = 0x00; // Reset TMR2, 16 Bit, No Prescaler
+    T2CONbits.TCS = 1; //  Extended Clock Source (TECS))
+    T2CONbits.TECS = 1; // T2CK pin 
+    TMR2 = 0x00; // TMR2 Counter Register
+    PR2 = 0xFFFF; // TMR4 Single event
+
+    
+//    for (_icycle = 0; _icycle < _nWSS; _icycle++) {
+//        _wsptime[_icycle] = 0;
+//    }
+    _icycle = 0;   // Cycle index 
+    _wsready = 0;  // Start/Stop flag
 
     Timeout_SetCallBack(everySecond);
-
-    
+    T2CONbits.TON = 1;
     Timeout_Set(1, 0); // TMR1 1Second Start !
 
     while ((_icycle < _nWSS)) {
-        Nop();
     }
     Timeout_Unset();
     T2CONbits.TON = 0;
-
-    for (i = 1; i < _icycle; i++) { // Compute average
-        _wsptime[1] += _wsptime[i];
+    
+//    _wsptime[0] = 0;
+    for (_icycle = 2; _icycle < _nWSS; _icycle++) { // Compute average
+        _wsptime[1] += _wsptime[_icycle];
     }
-    *dbuf = (_wsptime[1] / (_icycle - 1));
-    return (_icycle > 0);
+    *dbuf = (_wsptime[1] / (_nWSS - 1));
+    return (true);
 
 #else
-    return (0); // Hardware not supported
+    return (false); // Hardware not supported
 #endif
 
 }

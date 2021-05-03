@@ -60,51 +60,30 @@ uint16_t measurementAcquire(measurement_t * ms) {
         ptrSS++;
         ms->ns = 4;
         // -----------------
-
         Device_SwitchSys(SYS_ON_SAMP_ADA);
     }
 
 
     switch (g_dev.cnf.general.typeset) {
 
-        case _SIG0: // Demo signal
-            ms->ss = ptrSS;
-            ms->typeset = _SIG0;
-            ms->dtime = RTCC_GetTimeL(); // get RTC datetime
-
-            *ptrSS = g_dev.cnf.calibration.av_period; // Add <sig_freq> as single sample 
-            *(ptrSS + 1) = g_dev.cnf.calibration.av_filter; // Add <sig_maxamp> as single sample 
-            ptrSS += 2;
-            nsamples = acquireSig(ptrSS, g_dev.cnf.general.cycletime, ((SS_BUF_SIZE - 2) / 2), \
-                    g_dev.cnf.calibration.av_period, g_dev.cnf.calibration.av_filter);
-            ms->ns = 4; // Use first samples in buffer as singles {<adc_freq>,<res_scale>} 
-            ms->nss = (nsamples - 1) * 2;
-            // { <sig_freq>, <sig_maxa>, <adc_fq>, <res_scale>, [<dT>,<a>],[...] }
-            break;
-
         case _AV00: // Aeolian Vibration, RAW
-
             ms->typeset = _AV00;
             nsamples = acquireAV(ptrSS, g_dev.cnf.general.cycletime, (SS_BUF_SIZE - ms->ns), adc_fq, 0);
             ms->nss = nsamples;
             Device_SwitchSys(SYS_DEFAULT); // Device_SwitchPower(lastPwrState);
-
             break;
 
 
         case _AV01: // Aeolian Vibration, Peak-Peak
-
             ms->typeset = _AV01;
             nsamples = acquireAV(ptrSS, g_dev.cnf.general.cycletime, (SS_BUF_SIZE - ms->ns), adc_fq, \
-                    (g_dev.cnf.calibration.av_filter<1)?1:g_dev.cnf.calibration.av_filter);
+                    (g_dev.cnf.calibration.av_filter < 1) ? 1 : g_dev.cnf.calibration.av_filter);
             ms->nss = nsamples;
             Device_SwitchSys(SYS_DEFAULT); // Device_SwitchPower(lastPwrState);
             break;
 
         case _AV02: // Aeolian Vibration, FFT 
-
             Device_SwitchSys(SYS_ON_SAMP_WST); // lastPwrState = Device_SwitchPower(PW_ON_SAMP_WST);      
-
             ms->ss = SSBUF;
             ms->typeset = _AV02; // g_dev.cnf.general.typeset;
             ms->dtime = RTCC_GetTimeL(); // get RTC datetime
@@ -137,7 +116,6 @@ uint16_t measurementAcquire(measurement_t * ms) {
 
             // Manage g_dev parameters  
             // uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t adc_fq, uint16_t fft_pw)
-
             short m = 0;
             short l2 = (SS_BUF_SIZE - ms->ns);
 
@@ -145,16 +123,12 @@ uint16_t measurementAcquire(measurement_t * ms) {
                 m++;
                 l2 >>= 1;
             }
-
             // Force ADC frequency 0.5Khz ( g_dev.cnf.calibration.av_period )
-
 
             nsamples = acquireAV_FFT(ptrSS, g_dev.cnf.general.cycletime, 10, \
                                  adc_fq, g_dev.cnf.calibration.av_filter);
 
-
             //ms->ns = 4; // <temperature>,<windspeed>,<tick_period>,<scale_offset> populated by acquireAV
-
             Device_SwitchSys(SYS_DEFAULT); // Device_SwitchPower(lastPwrState);
             // Process samples / Format measurament with only significative harmonics
             // Send only ((2^m)/2) samples, from 1 to N2+1
@@ -171,6 +145,21 @@ uint16_t measurementAcquire(measurement_t * ms) {
             break;
 
         case _SS00: // Vamp1K encoder Sub-span oscillation: // Raw sample signal
+            break;
+            
+        case _SIG0: // Demo signal
+            ms->ss = ptrSS;
+            ms->typeset = _SIG0;
+            ms->dtime = RTCC_GetTimeL(); // get RTC datetime
+
+            *ptrSS = g_dev.cnf.calibration.av_period; // Add <sig_freq> as single sample 
+            *(ptrSS + 1) = g_dev.cnf.calibration.av_filter; // Add <sig_maxamp> as single sample 
+            ptrSS += 2;
+            nsamples = acquireSig(ptrSS, g_dev.cnf.general.cycletime, ((SS_BUF_SIZE - 2) / 2), \
+                    g_dev.cnf.calibration.av_period, g_dev.cnf.calibration.av_filter);
+            ms->ns = 4; // Use first samples in buffer as singles {<adc_freq>,<res_scale>} 
+            ms->nss = (nsamples - 1) * 2;
+            // { <sig_freq>, <sig_maxa>, <adc_fq>, <res_scale>, [<dT>,<a>],[...] }
             break;
     };
     return (nsamples);

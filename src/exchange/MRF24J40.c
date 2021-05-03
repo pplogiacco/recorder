@@ -114,6 +114,8 @@ uint8_t rxBuf[MRF_MAX_RX_FIFO_SIZE];
 //}
 //#endif
 
+
+
 void MRF24J40_writeShort(uint8_t addr, uint8_t data) {
     uint8_t dataTransmitted[2];
     MRF24_SS_SetLow();
@@ -165,6 +167,7 @@ unsigned char MRF24J40_readLong(uint16_t addr) {
     return (toReturn);
 }
 
+
 void MRF24J40_setPanId(uint16_t panId) {
     //this->panId = panId;
     MRF24J40_writeShort(MRF_PANIDH, panId >> 8);
@@ -197,14 +200,14 @@ void MRF24J40_reset() {
     MRF24J40_writeShort(MRF_SOFTRST, 0b00000111); // Perform full software reset (RSTPWR = 1, RSTBB = 1, RSTMAC = 1)
 }
 
-void MRF24J40_init() {
 
+void MRF24J40_init() {
+    
     rxSize = 0;
     rxCount = 0;
     seqNumber = 0;
-    MRF24_SS_SetDigital();
-
-    MRF24_SS_SetHigh();
+    MRF24_SS_SetDigitalOutputHigh();        
+    //MRF24_SS_SetHigh();
 
     // -----------------------------------------
     // | b7 | b6 | b5 | b4 | b3 | b2 | b1 | b0 |
@@ -311,7 +314,7 @@ void MRF24J40_Disable() {
     MRF24J40_writeShort(MRF_SLPACK, 0b10000000); // Put the module to sleep (SLPACK = 1)
     
     SPI1_Disable();  // Disable SPI1    
-
+    MRF24_SS_SetLow();  // CS low !
 }
 
 void MRF24J40_Enable() {

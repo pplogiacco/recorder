@@ -20,24 +20,92 @@ void SPI1_Initialize(void) {
     ANSB = 0x0014; //for RX
     MRF24_SS_SetDigital();
 
-    // MSTEN Master; DISSDO disabled; PPRE 4:1; SPRE 4:1; MODE16 disabled; SMP Middle; DISSCK disabled; CKP Idle:Low, Active:High; CKE Active to Idle;
+    // MSTEN Master; DISSDO disabled; PPRE 4:1; SPRE 4:1; MODE16 disabled; SMP Middle; 
+    // DISSCK disabled; CKP Idle:Low, Active:High; CKE Active to Idle;
+    //
     SPI1CON1 = 0x132;
+  
+    // 100110010
+    //        10 = Primary prescale 4:1
+    //     100 = Secondary prescale 4:1
+    //    1 = Master mode
+    //   0 = Idle state is a low level; active state is a high level  
+    //  0 = SSx pin is not used by the module;
+    // 1 =  from active to Idle clock state (see bit 6)   
+    
+//    bit 12 DISSCK: Disable SCKx pin bit (SPIx Master modes only)
+//        1 = Internal SPIx clock is disabled, pin functions as an I/O
+//        0 = Internal SPIx clock is enabled
+//    bit 11 DISSDO: Disables SDOx pin bit
+//        1 = SDOx pin is not used by the module; pin functions as an I/O
+//        0 = SDOx pin is controlled by the module
+//    bit 10 MODE16: Word/Byte Communication Select bit
+//        1 = Communication is word-wide (16 bits)
+//        0 = Communication is byte-wide (8 bits)
+//    bit 9 SMP: SPIx Data Input Sample Phase bit
+//        Master mode:
+//            1 = Input data is sampled at the end of data output time
+//            0 = Input data is sampled at the middle of data output time
+//        Slave mode: SMP must be cleared when SPIx is used in Slave mode.
+//    bit 8 CKE: Clock Edge Select bit(1)
+//        1 = Serial output data changes on transition from active clock state to Idle clock state (see bit 6)
+//        0 = Serial output data changes on transition from Idle clock state to active clock state (see bit 6)
+//    bit 7 SSEN: Slave Select Enable bit (Slave mode)
+//        1 = SSx pin is used for Slave mode
+//        0 = SSx pin is not used by the module; pin is controlled by port function
+//    bit 6 CKP: Clock Polarity Select bit
+//        1 = Idle state for clock is a high level; active state is a low level
+//        0 = Idle state for clock is a low level; active state is a high level
+//    bit 5 MSTEN: Master Mode Enable bit
+//        1 = Master mode
+//        0 = Slave mode
+//    bit 4-2 SPRE<2:0>: Secondary Prescale bits (Master mode)
+//        111 = Secondary prescale 1:1
+//        110 = Secondary prescale 2:1
+//        ...
+//    bit 1-0 PPRE<1:0>: Primary Prescale bits (Master mode)
+//        11 = Primary prescale 1:1
+//        10 = Primary prescale 4:1
+//        01 = Primary prescale 16:1
+//        00 = Primary prescale 64:1
+    
     // SPIBEN enabled; SPIFPOL disabled; SPIFE disabled;
     SPI1CON2 = 0x01;
+    
+    
     // SPITBF disabled; SISEL SPI_INT_SPIRBF; SPIRBF disabled; SPIROV disabled; SPIEN enabled; SRXMPT disabled; SRMPT disabled; SPISIDL disabled; SPIBEC disabled;
     SPI1STAT = 0x800C;
-#endif    
+    
+    
+#elif defined(__PIC24FJ256GA702__)
 
-#ifdef __PIC24FJ256GA702__
-
+//    // AUDEN disabled; FRMEN disabled; AUDMOD I2S; FRMSYPW One clock wide; AUDMONO stereo; FRMCNT 0; MSSEN disabled; FRMPOL disabled; IGNROV disabled; SPISGNEXT not sign-extended; FRMSYNC disabled; URDTEN disabled; IGNTUR disabled; 
+//    SPI1CON1H = 0x00;
+//    // WLENGTH 0; 
+//    SPI1CON2L = 0x00;
+//    // SPIROV disabled; FRMERR disabled; 
+//    SPI1STATL = 0x00;
+//    // SPI1BRGL 0; 
+//    SPI1BRGL = 0x00;
+//    // SPITBFEN disabled; SPITUREN disabled; FRMERREN disabled; SRMTEN disabled; SPIRBEN disabled; BUSYEN disabled; SPITBEN disabled; SPIROVEN disabled; SPIRBFEN disabled; 
+//    SPI1IMSKL = 0x00;
+//    // RXMSK 0; TXWIEN disabled; TXMSK 0; RXWIEN disabled; 
+//    SPI1IMSKH = 0x00;
+//    // SPI1URDTL 0; 
+//    SPI1URDTL = 0x00;
+//    // SPI1URDTH 0; 
+//    SPI1URDTH = 0x00;
+//    // SPIEN enabled; DISSDO disabled; MCLKEN FOSC/2; CKP Idle:Low, Active:High; SSEN disabled; MSTEN Master; MODE16 disabled; SMP Middle; DISSCK disabled; SPIFE Frame Sync pulse precedes; CKE Idle to Active; MODE32 disabled; SPISIDL disabled; ENHBUF enabled; DISSDI disabled; 
+//    SPI1CON1L = 0x8021;
+  // ____________________________________SPI Clock & Mode 
     // AUDEN disabled; FRMEN disabled; AUDMOD I2S; FRMSYPW One clock wide; AUDMONO stereo; FRMCNT 0; MSSEN disabled; FRMPOL disabled; IGNROV disabled; SPISGNEXT not sign-extended; FRMSYNC disabled; URDTEN disabled; IGNTUR disabled; 
     SPI1CON1H = 0x00;
     // WLENGTH 0; 
     SPI1CON2L = 0x00;
     // SPIROV disabled; FRMERR disabled; 
     SPI1STATL = 0x00;
-    // SPI1BRGL 0; 
-    SPI1BRGL = 0x00;
+    // SPI1BRGL 79; 
+    SPI1BRGL = 0x4F;  // Baud Rate 100Khz (32Mhz)
     // SPITBFEN disabled; SPITUREN disabled; FRMERREN disabled; SRMTEN disabled; SPIRBEN disabled; BUSYEN disabled; SPITBEN disabled; SPIROVEN disabled; SPIRBFEN disabled; 
     SPI1IMSKL = 0x00;
     // RXMSK 0; TXWIEN disabled; TXMSK 0; RXWIEN disabled; 
@@ -46,9 +114,31 @@ void SPI1_Initialize(void) {
     SPI1URDTL = 0x00;
     // SPI1URDTH 0; 
     SPI1URDTH = 0x00;
-    // SPIEN enabled; DISSDO disabled; MCLKEN FOSC/2; CKP Idle:Low, Active:High; SSEN disabled; MSTEN Master; MODE16 disabled; SMP Middle; DISSCK disabled; SPIFE Frame Sync pulse precedes; CKE Idle to Active; MODE32 disabled; SPISIDL disabled; ENHBUF enabled; DISSDI disabled; 
-    SPI1CON1L = 0x8021;
-
+    // SPIEN enabled; DISSDO disabled; MCLKEN FOSC/2; CKP Idle:Low, Active:High; 
+    // SSEN disabled; MSTEN Master; MODE16 disabled; SMP Middle; DISSCK disabled; 
+    // SPIFE Frame Sync pulse precedes; CKE Idle to Active; MODE32 disabled; 
+    // SPISIDL disabled; ENHBUF enabled; DISSDI enabled; 
+   // SPI1CON1L = 0x8031;
+    
+    
+    // SPI1 Master, 8Bits
+    SPI1CON1Lbits.MSTEN = 1; // Master Mode
+    SPI1CON1Lbits.MODE = 0; // Communication is byte-wide  
+    SPI1CON2L = 0x0007; // 8 Bits word lenght 
+    //  Mode?
+    SPI1CON1Lbits.CKE = 1; // MODE?: Clock Edge (from active to Idle )
+    SPI1CON1Lbits.CKP = 0; // MODE?: Clock Polarity (active is a high level)
+    SPI1CON1Lbits.SMP = 1; // Input data is sampled at (0-middle,1-end) of data output
+    SPI1CON1Lbits.ENHBUF = 0; // Enhanced buffer disabled (0=Legacy No Buffering)
+    // 2Wire:SCK+SDIO,softSS
+    SPI1CON1Lbits.DISSCK = 0; // Internal serial clock is enabled
+    SPI1CON1Lbits.DISSDO = 0; // SDOx pin is controlled by the module
+    SPI1CON1Lbits.DISSDI = 0; // SDIx pin is controlled by the module
+    SPI1CON1Hbits.MSSEN = 0; // SPIx slave select support is disabled (no SSx)
+    //SPIxSTATL: SPIx STATUS REGISTER LOW ( ex SPI1STAT)
+    SPI1CON1Lbits.SPIEN = 1; // Enable SPI 
+    SPI1STATLbits.SPIROV = 0; // Receive Overflow Flag (0=NO Overflow).
+     
 #endif
 
 
@@ -287,7 +377,7 @@ SPI1_STATUS SPI1_StatusGet() {
 }
 
 void SPI1_Disable() {
-     #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
+#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
     SPI1STATbits.SPIEN = 0;
 #endif   
 

@@ -1,11 +1,10 @@
 /******************************************************************************\
-| V A M P -  D O N G L E                                                       |
-| Ver. 0.1.23                                                  (@)2021 DTeam ! |
+| V A M P -  R E C O R D E R                                                   |
+| Ver. 0.0.17                                                  (@)2021 DTeam ! |
 \******************************************************************************/
 
 //------------------------------------------------------------------------------
 #include "bits.h"  // PIC Settings
-#include <xc.h>
 #include "device.h"
 //
 #include "utils.h"
@@ -14,12 +13,12 @@
 //
 #include "exchange/exchange.h"
 #include "sampling/measurement.h"
-#include "memory/flash302.h"
+#include "memory/storage.h"
 
 //------------------------------------------------------------------------------
 // Global Device 
 device_t g_dev;
-timestamp_t stime; // Use: g_dev.st.lasttime
+//timestamp_t stime; // Use: g_dev.st.lasttime
 
 // Measurement
 measurement_t g_measurement;
@@ -31,35 +30,58 @@ long attempt_last_time;
 
 int waittime = 0;
 
+void __attribute__((weak)) EX_INT0_CallBack(void) {
+}
+
+void __attribute__((interrupt, no_auto_psv, weak)) _INT0Interrupt(void) {
+    IFS0bits.INT0IF = 0;
+}
+
 /*
 volatile int tmr3trig = 0;
 void __attribute__((__interrupt__, no_auto_psv)) _T3Interrupt(void) {
     tmr3trig = 1;
     IFS0bits.T3IF = 0; // ClearInt Flag
 }
+
+volatile int tmr2trig = 0;
+
+void __attribute__((__interrupt__, no_auto_psv)) _T2Interrupt(void) {
+    tmr2trig = 1;
+    IFS0bits.T2IF = 0; // ClearInt Flag
+}
+
+volatile int tmr2_wsready = 0;
+volatile int tmr2_icycle = 0;
+volatile int tmr2_wsptime[5];
+void tmr2_wscapture(void) {
+    if (tmr2_wsready) { // Stop
+        tmr2_wsptime[tmr2_icycle] = TMR2;
+        tmr2_wsready = 0; // re-Start
+        tmr2_icycle++;
+    } else { // Start
+        tmr2_wsready = 1;
+        TMR2 = 0;
+    }
+}
  */
+
 
 int main(void) {
 
     uint16_t rtDataSize = 0;
     uint8_t *rtDataBuffer = Exchange_ptrSendData();
-
     RealTimeCommandType rtCommand;
 
     devicestate_t state, lstate; // Main cycle controls
-    // g_dev.cnf.CRC16 = 0xFFFF; // Load default config
 
     Device_SwitchSys(SYS_BOOT); // Eval RCON, rtcc, pins, read config
-
-    UART2_Initialize(); // Configure UART 
-
-    RTCC_Init();
 
     state = STARTUP; // System startup
     lstate = state;
 
-    attempt_last_time = 0;
-    _TRISB2 = 0; // Out
+    //    attempt_last_time = 0;
+    //    _TRISB2 = 0; // Out
 
 
 #ifdef __DONGLE_PASSTHRU
@@ -74,25 +96,29 @@ int main(void) {
                 //------------------------------------------------------------------
             case STARTUP: // Executed only after Power-On/Reset
                 Device_ConfigRead(&g_dev.cnf); // Read from EEprom/Flash
-                // g_dev.cnf.general.delaytime = 50; /// Override nvm check 
+                //g_dev.cnf.general.delaytime = 50; /// Override nvm check 
                 //Device_GetStatus(&g_dev.st);
                 //g_dev.st.alarm_counter = Device_CheckReset();
                 state = EXCHANGE; // After start-up try to connect
                 break;
                 //------------------------------------------------------------------
             case SAMPLING:
-                lstate = state;
+                //lstate = state;
+                //state = SAMPLING;
                 //!! RTCC_TimeGet(&stime);
                 //!! if ((stime.lstamp > g_config.general.startdate) && (stime.lstamp < g_config.general.stopdate)) {
                 measurementAcquire(&g_measurement); // Device_SwitchMode() 
                 measurementSave(&g_measurement);
                 //!!};
                 if (lstate == EXCHANGE_RT) {
+                    lstate = state;
                     state = EXCHANGE_RT;
                 } else {
+                    lstate = state;
                     // state = (g_dev.cnf.exchange.attempt_mode == EXCHANGE_ATTEMPTMODE_EVERYCYCLE) ? EXCHANGE : TOSLEEP;
                     state = EXCHANGE;
                 }
+
                 break;
                 //------------------------------------------------------------------
 
@@ -100,6 +126,7 @@ int main(void) {
                 lstate = state;
                 Device_StatusGet(&g_dev.st);
                 Device_SwitchSys(SYS_ON_EXCHANGE);
+
                 do {
                     switch (exchState) {
                         case EXCH_OPEN:
@@ -111,7 +138,7 @@ int main(void) {
                             break;
 
                         case EXCH_START_DISCOVERY:
-                            //                            if (Exchange_sendHandshake( g_dev.st.DIN,g_dev.st.timestamp, g_dev.st.version, g_dev.cnf.CRC16 )) {
+                            // if (Exchange_sendHandshake( g_dev.st.DIN, g_dev.st.timestamp, g_dev.st.version, g_dev.cnf.CRC16 )) {
                             if (Exchange_sendHandshake()) {
                                 exchState = EXCH_WAIT_COMMAND;
                             } else {
@@ -121,9 +148,11 @@ int main(void) {
 
                         case EXCH_WAIT_COMMAND:
                             Exchange_commandsHandler(&rtCommand);
-                            if (rtCommand == RTCMD_NONE) {
+
+                            if (rtCommand == RTCMD_NONE) { // RTCMD_TERMINATE
                                 state = TOSLEEP;
                                 exchState = EXCH_EXIT;
+                                // not until disconnect request...
                             } else {
                                 rtDataSize = 0;
                                 state = EXCHANGE_RT;
@@ -145,19 +174,22 @@ int main(void) {
                     if (exchState == EXCH_SEND_COMMAND_RESPONSE) {
                         break;
                     }
+                    __clearWDT();
                 } while (exchState != EXCH_EXIT);
+
 
                 if (exchState != EXCH_SEND_COMMAND_RESPONSE) {
                     exchState = EXCH_OPEN;
                     Exchange_Disconnect();
+                    Device_SwitchSys(SYS_DEFAULT);
                 }
 
                 if (g_dev.cnf.exchange.attempt_mode != CNF_ATTEMPTMODE_EVERYCYCLE) {
                     // Scheduled
                     // Set wake-up time to attempt exchange 
                 }
-                break;
 
+                break;
                 //------------------------------------------------------------------
             case EXCHANGE_RT:
                 lstate = state;
@@ -166,19 +198,13 @@ int main(void) {
                 rtDataSize = 0;
                 switch (rtCommand) {
                     case RTCMD_TEST:
-                        rtDataBuffer[rtDataSize++] = g_dev.cnf.general.typeset && 0xFF;                        
-                        rtDataBuffer[rtDataSize++] = (g_dev.cnf.general.typeset>>8) && 0xFF; 
-//                        rtDataBuffer[rtDataSize++] = 'H';
-//                        rtDataBuffer[rtDataSize++] = 'E';
-//                        rtDataBuffer[rtDataSize++] = 'L';
-//                        rtDataBuffer[rtDataSize++] = 'L';
-//                        rtDataBuffer[rtDataSize++] = 'O';
-//                        rtDataBuffer[rtDataSize++] = ' ';
-//                        rtDataBuffer[rtDataSize++] = 'W';
-//                        rtDataBuffer[rtDataSize++] = 'O';
-//                        rtDataBuffer[rtDataSize++] = 'R';
-//                        rtDataBuffer[rtDataSize++] = 'L';
-//                        rtDataBuffer[rtDataSize++] = 'D';
+                        rtDataBuffer[rtDataSize++] = g_dev.cnf.general.typeset && 0xFF;
+                        rtDataBuffer[rtDataSize++] = (g_dev.cnf.general.typeset >> 8) && 0xFF;
+                        //                        rtDataBuffer[rtDataSize++] = 'H';
+                        //                        rtDataBuffer[rtDataSize++] = 'E';
+                        //                        rtDataBuffer[rtDataSize++] = 'L';
+                        //                        rtDataBuffer[rtDataSize++] = 'L';
+                        //                        rtDataBuffer[rtDataSize++] = 'O';
                         break;
                     case RTCMD_START_MEASUREMENT:
                         rtDataBuffer[rtDataSize++] = 0;
@@ -190,29 +216,37 @@ int main(void) {
                 }
                 break;
                 //------------------------------------------------------------------
-            case TOSLEEP:
-                lstate = EXCHANGE_RT;
 
-                // Device_Hybernate();
-                // Device_SwitchPower(PW_SLEEP);
-                // Device_SwitchPower(PW_ON_DEFAULT);
-                if (g_dev.cnf.general.delaytime > 60) {
-                    waittime = RTCC_GetMinutes();
-                    while ((RTCC_GetMinutes() - waittime) < (g_dev.cnf.general.delaytime / 60)) {
-                        __delay(1000);
-                        __clearWDT();
-                    }
-                } else {
-                    __delay(5000);
-                }
+            case TOSLEEP:
+                //lstate = EXCHANGE_RT;
+                lstate = state;
                 state = SAMPLING;
-                /*
-                if (g_dev.st.locked) {
-                    state = SAMPLING;
+
+                // Enable USB Wake-Up
+                // Enable RTC Alarm Wake-Up
+                if (!Device_IsUsbConnected()) {
+                    //Device_SwitchSys(SYS_SLEEP);
+                    //  until wake-up event
+                    //state = EXCHANGE;
+
+                    Device_SwitchSys(SYS_DEFAULT);
+
+
                 } else {
-                    state = EXCHANGE;
+
+                    //                    if (g_dev.cnf.general.delaytime > 60) {
+                    //                        waittime = RTCC_GetMinutes();
+                    //                        while ((RTCC_GetMinutes() - waittime) < (g_dev.cnf.general.delaytime / 60)) {
+                    //                            __delay(1000);
+                    //                            __clearWDT();
+                    //                        }
+                    //                    } else {
+                    //                        __delay(5000);
+                    //                    }
+                    //state = SAMPLING;
+                    __delay(20000);
                 }
-                 */
+
                 break;
         }
         __clearWDT();
@@ -220,11 +254,8 @@ int main(void) {
 #endif
 
 
-
     /*----------------------------------------------------------------------------*
-     *  TEST
-     * 
-     *  
+     *  TEST !!!!!!!                                                              *              
      *----------------------------------------------------------------------------*/
 
 #ifdef __VAMP1K_TEST
@@ -234,19 +265,38 @@ int main(void) {
     int i;
     //UART2_Initialize();
     UART2_Enable();
+    Device_SwitchADG(0xFF); //_bs8(PW_WST) | _bs8(PW_ADA));
 
     RTCC_GetTime(&stime);
     printf("[%u:%u:%u]\n#:", stime.hour, stime.min, stime.sec);
 
+#ifdef __VAMP1K_TEST_SLEEP
+
+    // Enable USB Wake-Up
+    // Device_IsUsbConnected()
+    // Enable RTC Alarm Wake-Up
+
+
+    while (1) {
+        printf("Put into sleep mode... \n");
+        Device_SwitchSys(SYS_SLEEP);
+        //  until wake-up event
+        Device_SwitchSys(SYS_DEFAULT);
+        printf("Hello, wake-up ! \n");
+    }
+    printf("USB Ready ! \n");
+#endif
+
+
 #ifdef __VAMP1K_TEST_USB
-    while (! Device_IsUsbConnected()) {
-                printf("Waiting USB... \n");
+    while (!Device_IsUsbConnected()) {
+        printf("Waiting USB... \n");
         __delay(1000);
     }
     printf("USB Ready ! \n");
 #endif
-    
-    
+
+
 #ifdef __VAMP1K_TEST_CONFIG
     while (1) {
         Device_ConfigRead(&g_dev.cnf); // Read from EEprom/Flash
@@ -266,7 +316,7 @@ int main(void) {
         __delay(3000);
         printf("ADG all off \n");
         Device_SwitchADG(0b0); //_bs8(PW_WST) | _bs8(PW_ADA));
-                __delay(3000);
+        __delay(3000);
     }
 #else
     Device_SwitchADG(0xFF); //_bs8(PW_WST) | _bs8(PW_ADA));
@@ -322,11 +372,75 @@ int main(void) {
         printf(".");
     }
     printf("Tmr1 ok\n");
+     */
 
+    /*
+    /// _______________TEST TMR2 COUNTER  
+    WS_IN_SetDigitalInputLow();
+    IEC0bits.T2IE = 0; // Disable Int
+    T2CON = 0x00; // Reset TMR2, 16 Bit, No Prescaler
+    T2CONbits.TCS = 1; //  Extended Clock Source (TECS))
+    T2CONbits.TECS = 1; // T2CK pin 
+    TMR2 = 0x00; // TMR2 Counter Register
+    PR2 = 0x10; // TMR2 Counter
+    IFS0bits.T2IF = 0; // Reset iflag
+    IEC0bits.T2IE = 1; // Enable Int
+    T2CONbits.TON = 1;
+    tmr2trig = false;
+    while (1) {
+        if (tmr2trig) {
+            printf("!");
+            tmr2trig = 0;
+        }
+        // printf("°");
+    }
+     */
+
+    /*
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+
+    WS_IN_SetDigitalInputLow(); // Input RB2 (6) 
+
+    IEC0bits.T2IE = 0; // Disable Int
+    T2CON = 0x00; // Reset TMR2, 16 Bit, No Prescaler
+    T2CONbits.TCS = 1; //  Extended Clock Source (TECS))
+    T2CONbits.TECS = 1; // T2CK pin 
+    TMR2 = 0x00; // TMR2 Counter Register
+    PR2 = 0xFFFF; // TMR4 Single Event
+
+    Timeout_SetCallBack(tmr2_wscapture);
+
+    memset(&tmr2_wsptime, 0, sizeof (tmr2_wsptime));
+    tmr2_icycle = 0;
+    tmr2_wsready = 0;
+    T2CONbits.TON = 1;
+
+    while (1) {
+
+        Timeout_SetCallBack(tmr2_wscapture);
+        Timeout_Set(1, 0); // TMR1 1Second Start !
+        while ((tmr2_icycle < 5)) {
+            Nop();
+        }
+        Timeout_Unset();
+
+        // T2CONbits.TON = 0;
+        printf("---------------- \n");
+        for (i = 0; i < 5; i++) {
+            printf("cycles=%d, counter=%d \n", i, tmr2_wsptime[i]);
+        }
+        printf("\n\n");
+        tmr2_icycle = 0;
+    }
+     */
+
+
+    /*
     /// _______________TEST TMR3 COUNTER
     AV_SYN_SetDigital();
     AV_SYN_SetDigitalInput(); // Input T3CK/RB15 (SYNCO)
-
 
     T3CONbits.TON = 1;
     //T3CON = 0x00; // Timer 3 Control Register
@@ -356,7 +470,6 @@ int main(void) {
     }
 
      */
-
 
 
     while (1) {

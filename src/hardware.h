@@ -1,6 +1,6 @@
 /*******************************************************************************
- * PIC24FV32KA301/302 (28 Pins)                                                 *
- ********************************************************************************
+ * PIC24FV32KA301/302 (28 Pins)                                                *
+ *******************************************************************************
 Module  PIN Signal                      BUS Function
   
 PROG 	1 	MCLR Reset  
@@ -24,7 +24,7 @@ I2C1    17  SCL1/C3OUT/CTED10/CN22/RB8
         19  SDI2/IC1/CTED3/CN9/RA7           POWER ENA 3127 ( verif. Hi/VCAP )*
         20  VCAP
         23  RB12                        (S)  ADA2200 Chip Select
-SPI1    21  SDI (S)
+SPI1    21  SDI (S) 
         22  SCLK (S)
         24  SDO
         25  AN10/INT1/RB14              (S) Encoder B
@@ -33,6 +33,48 @@ POWER   27  Vss
         28  Vdd
  *******************************************************************************/
 
+/*******************************************************************************
+ * PIC24FJ256GA702 (28 Pins) ( 705 Family )                                    *
+ *******************************************************************************
+Module  PIN Signal                      BUS Function
+  
+PROG 	1 	MCLR Reset  
+        2 	AN0                         (S) ADA2200 IN-P 
+        3	AN1                         (S) ADA2200 IN-N 
+USART2	4	U2RX/RB0/PGD1/RP0               MCP2221
+        5	U2TX/RB1/PGC1/RP1               MCP2221
+        6	AN4/T5CK/T4CK/RB2           (S) Wind speed sensor
+        7	AN5/RB3                     (S) Temperature sensor
+POWER	8	Vss
+        9	OSCI/AN13/CLKI/CN30/RA2     (S) MRF Chip Select
+    XXXXXXX      10  OSCO/AN14/CLKO/CN29/RA3     (S) Batt Level
+        11  SOSCI/AN15/U2RTS/CN1/RB4    (A) ??
+        12  SOSCO/SCLKI/U2CTS/CN0/RA4   (S)  
+POWER   13  Vdd
+        14  RB5 Programming
+        15  RB6 Programming
+        16  INT0/CN23/RB7/OC1           (S)  Wake-up USB / (diode) MRF Int
+I2C1    17  SCL1/C3OUT/CTED10/CN22/RB8
+        18  SDA1/T1CK/IC2/CN21/RB9
+        19  SDI2/IC1/CTED3/CN9/RA7           POWER ENA 3127 ( verif. Hi/VCAP )*
+        20  VCAP
+        23  RB12                        (S)  ADA2200 Chip Select
+SPI1    21  SDI/RP10                    (S) 
+        22  SCLK (S)
+        24  SDO
+        25  AN10/INT1/RB14              (S) Encoder B
+        26  AN9/C3INA/T3CK/T2CK/SS1     (S) ADA2200 Synco / Encoder A
+POWER   27  Vss
+        28  Vdd
+ *******************************************************************************/
+
+/*******************************************************************************
+    Function        ANSx    TRISx   Comments
+    Analog Input    1       1       It is recommended to keep ANSx = 1.
+    Analog Output   1       1       It is recommended to keep ANSx = 1.
+    Digital Input   0       1       Wait one cycle Nop() after configuring
+    Digital Output  0       0       Make sure to disable the analog output !!!
+ *******************************************************************************/
 
 #ifndef HARDWARE_H
 #define	HARDWARE_H
@@ -92,7 +134,7 @@ POWER   27  Vss
 
 #define WS_IN     _RB2  // AN4/C1INB/C2IND/SDA2/T5CK/T4CK/U1RX/CTED13/CN6/RB2 (6)
 //#define WS_IN_SetDigital()         (_ANSB2 = 0 ) 
-#define WS_IN_SetDigitalInput()    { _TRISB2 = 1; _ANSB2 = 0; } 
+#define WS_IN_SetDigitalInputLow()    { _TRISB2 = 1; _ANSB2 = 0; _LATB2 = 0;} 
 #endif
 
 #endif // __SENSOR_BOARD
@@ -159,12 +201,12 @@ POWER   27  Vss
 #define __SPI1
 #define MRF24_INT   _RB7   // Shared USB_WK
 
-#if defined(__HWDEVICE)
+#if defined(__HWDEVICE) //  9	OSCI/AN13/CLKI/CN30/RA2     (S) MRF Chip Select
 #define MRF24_SS    _RA2   // Chip select
 #define MRF24_SS_SetHigh()   (_LATA2 = 1)
 #define MRF24_SS_SetLow()    (_LATA2 = 0)
-#define MRF24_SS_SetDigital()  (_ANSA2 = 0)
-#define MRF24_SS_SetDigitalOutput()  (_TRISA2 = 0)
+//#define MRF24_SS_SetDigital()  (_ANSA2 = 0)
+#define MRF24_SS_SetDigitalOutputHigh()  {_TRISA2 = 0; _ANSA2 = 0; _LATA2 = 1; } 
 
 #elif defined(__HWDONGLE)
 #define MRF24_SS    _RB15   // Chip select
@@ -176,12 +218,27 @@ POWER   27  Vss
 #endif // __MRF24
 
 
-/*
-#ifdef __UART2
-#define UART2_TX      _RB0   // UART2.TX
-#define UART2_RX      _RB1   // UART2.RX
 
+#ifdef __UART2
+#define UART2_RX_SetDigitalInput() { _ANSB0 = 0; _TRISB0 = 0; _LATB0 = 1; }
+#define UART2_TX_SetDigitalOutputHigh() {_ANSB1 = 0; _TRISB1 = 1; }
+//    ANSBbits.ANSB0 = 0;
+//    ANSBbits.ANSB1 = 0;
+//    TRISBbits.TRISB0 = 0; // RB0 Out (4 DIP20)
+//    TRISBbits.TRISB1 = 1; // RB1 In (5 DIP20)
+//    LATBbits.LATB0 = 1; // Set TxPin high
+
+
+//    // UART2 INVERTED TX/RX
+//    ANSBbits.ANSB0 = 0;
+//    ANSBbits.ANSB1 = 0;
+//    TRISBbits.TRISB0 = 1; // RB0 IN (4 DIP20)
+//    TRISBbits.TRISB1 = 0; // RB1 OUT (5 DIP20)
+//    LATBbits.LATB1 = 1; // Set TxPin high
+//    RPOR0bits.RP1R = 0x0005; //RB1->UART2:U2TX
+//    RPINR19bits.U2RXR = 0x0000; //RB0->UART2:U2RX
 #endif
+
 
 #ifdef __SPI1
 
@@ -192,7 +249,7 @@ POWER   27  Vss
 #define CARD_SCL    17   // I2C1.SCL
 #define CARD_SDA    18   // I2C1.SDA
 #endif
-*/
+
 
 
 #endif // HARDWARE_H

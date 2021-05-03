@@ -42,12 +42,11 @@
 //#define __VAMP1K_TEST_TIMER
 //#define __VAMP1K_TEST_CONFIG 
 //#define __VAMP1K_TEST_ADG
-#define __VAMP1K_TEST_USB
+//#define __VAMP1K_TEST_USB
 
 //#define __VAMP1K_TEST_AV_printf    // Test Acquire/ADC HW
-//#define __VAMP1K_TEST_AV_RB2       // Test Acquire/ADC HW
 
-#define __VAMP1K_TEST_measurement_printf  // Test Measurement format 
+//#define __VAMP1K_TEST_measurement_printf  // Test Measurement format 
 //#define __VAMP1K_TEST_measurement_DATAVIS    // send ADC to serial mc datavis
 
 //#define __AV0NVM     // Save samples in flash
@@ -108,26 +107,29 @@ typedef enum {
     CK_FAST
 } sysclock_t;
 
-void Device_SwitchPins();
+void Device_Initialize();
 void Device_SwitchClock(sysclock_t ck);
 
 //----------------------------------------------------------------------------//
 //void Device_Boot(void);
+uint16_t Device_CheckHwReset(void);
 //void Device_Hybernate();
 //void Device_Resume();
 
-uint16_t Device_GetPowerLevel();
-
 #define ADG729_ADDRESS      0b10011000
 
-#define PW_ENC     (0)
-#define PW_MRF     (1)
-#define PW_WST     (2)
-#define PW_ADA     (3)
-#define PW_RS1     (6)
-#define PW_RS2     (7)
+#define PW_OFF     (0b000000)
+#define PW_MRF     (0b000001)  // OK 
+#define PW_WST     (0b000010)  // OK 
+#define PW_ADA     (0b000100)  // OK ( ADA assorbe lo stesso !!)
+#define PW_RS1     (0b000000)
+#define PW_RS2     (0b000000)
+#define PW_ENC     (0b000000)
 
 uint8_t Device_SwitchADG(uint8_t reg);
+uint16_t Device_GetBatteryLevel();
+
+
 
 #define __clearWDT()  ClrWdt()
 
@@ -148,9 +150,8 @@ uint8_t Device_SwitchADG(uint8_t reg);
 #define PMD1_ADC1MD _bs(6)  // Bit 0
 
 // bool Device_IsUsbConnected(void);
-//#define Device_IsUsbConnected() USB_Status
-#define Device_IsUsbConnected() true
+#define Device_IsUsbConnected() USB_Status
+//#define Device_IsUsbConnected() true
 
-uint16_t Device_GetBatteryLevel();
-uint16_t Device_CheckHwReset(void);
+
 #endif

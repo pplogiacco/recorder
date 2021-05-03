@@ -20,17 +20,6 @@ static __prog__ uint8_t nvmConfigDatas[FLASH_ERASE_PAGE_SIZE_IN_PC_UNITS] __attr
 const unsigned int ramConfigSize = sizeof (config_t);
 #endif
 
-//// constant to initialise CRC table 
-//#define POLY 0x5A // 01011010
-//
-//uint16_t computeCRC16(uint8_t *strtochk, uint16_t length) {
-//    uint16_t i, valcrc = 0;
-//    for (i = 0; i < length; i++) {
-//        valcrc |= strtochk[i] ^ POLY; // XOR 
-//        valcrc <<= 2 + (valcrc % 2); // Alternate shifting
-//    }
-//    return (valcrc);
-//}
 
 //CRC-16 type
 #define CRC16_DNP	0x3D65		// DNP, IEC 870, M-BUS, wM-BUS, ...
@@ -45,7 +34,6 @@ uint16_t computeCRC16(uint8_t *strtochk, uint16_t length) {
 
     crc = 0x0000; //Initialization of crc to 0x0000 for DNP
     //crc = 0xFFFF; //Initialization of crc to 0xFFFF for CCITT
-
     while (aux < length) {
         newByte = strtochk[aux];
         for (i = 0; i < 8; i++) {

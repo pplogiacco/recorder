@@ -1,8 +1,10 @@
 
 #include <string.h>
 #include <stdio.h>  // printf
-
+#include "modules/RTCC.h"
+#include "exchange/uart2.h"
 #include "device.h"
+
 //#include "modules/RTCC.h"
 //#if defined(__PIC24FJ256GA702__)   
 //#include "memory/flash702.h"
@@ -12,6 +14,8 @@
 //#include "sampling/sampling.h"  // measurementCounter()
 
 extern device_t g_dev;
+
+
 
 uint16_t Device_CheckHwReset(void) {
 
@@ -62,15 +66,7 @@ uint16_t Device_CheckHwReset(void) {
     return rreason;
 }
 
-/*******************************************************************************
-    Function        ANSx    TRISx   Comments
-    Analog Input    1       1       It is recommended to keep ANSx = 1.
-    Analog Output   1       1       It is recommended to keep ANSx = 1.
-    Digital Input   0       1       Wait one cycle Nop() after configuring
-    Digital Output  0       0       Make sure to disable the analog output !!!
- *******************************************************************************/
-
-void Device_SwitchPins() {
+void Device_Initialize() {
 
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
 
@@ -80,15 +76,6 @@ void Device_SwitchPins() {
     TRISB = 0x4393;
 
 #elif defined (__PIC24FJ256GA702__)
-
-//    LATA = 0x0000;
-//    LATB = 0x0001;
-//
-//    TRISA = 0x0017;
-//    TRISB = 0xC7FD;
-//
-//    ANSA = 0x000F;
-//    ANSB = 0x420C;
 
     // INITIAL/DEFAULT SETTING 
     // Setting the Output Latch SFR(s)
@@ -108,66 +95,65 @@ void Device_SwitchPins() {
     // Setting the Analog/Digital Configuration SFR(s)
     ANSA = 0x0008;
     ANSB = 0x0000;
-    
-    
-    
+
+
     //  Set the PPS
     __builtin_write_OSCCONL(OSCCON & 0xbf); // unlock PPS
 
-    // SPI1 (ADA2200)
+    // SPI1 (ADA2200/MRF24)
     RPOR5bits.RP11R = 0x0008; //RB11->SPI1:SCK1OUT
-    RPINR3bits.T3CKR = 0x000F; //RB15->TMR3:T3CK
     RPOR6bits.RP13R = 0x0007; //RB13->SPI1:SDO1
+    // MRF
+    RPINR20bits.SDI1R = 0x000A; // RB10->SPI1:SDI
+    MRF24_SS_SetDigitalOutputHigh(); // MRF24J40.c      
+    // ADA
+    RPINR3bits.T3CKR = 0x000F; //RB15->TMR3:T3CK (Synco/TMR3))
     ADA_SS_SetDigitalOutput(); // ADA2200.c
     ADA_SS_SetHigh();
 
     // UART2 OK
-    ANSBbits.ANSB0 = 0;
-    ANSBbits.ANSB1 = 0;
-    TRISBbits.TRISB0 = 0; // RB0 Out (4 DIP20)
-    TRISBbits.TRISB1 = 1; // RB1 In (5 DIP20)
-    LATBbits.LATB0 = 1; // Set TxPin high
+    UART2_RX_SetDigitalInput();
+    UART2_TX_SetDigitalOutputHigh();
     RPOR0bits.RP0R = 0x0005; //RB0->UART2:U2TX
     RPINR19bits.U2RXR = 0x0001; //RB1->UART2:U2RX
-    
-//    // UART2 INVERTED TX/RX
-//    ANSBbits.ANSB0 = 0;
-//    ANSBbits.ANSB1 = 0;
-//    TRISBbits.TRISB0 = 1; // RB0 IN (4 DIP20)
-//    TRISBbits.TRISB1 = 0; // RB1 OUT (5 DIP20)
-//    LATBbits.LATB1 = 1; // Set TxPin high
-//    RPOR0bits.RP1R = 0x0005; //RB1->UART2:U2TX
-//    RPINR19bits.U2RXR = 0x0000; //RB0->UART2:U2RX
-    
-     // I2C (ADG729)
+
+    // I2C (ADG729)
     LATBbits.LATB8 = 1; //Start with bus in idle mode - both lines high
     LATBbits.LATB9 = 1;
     TRISBbits.TRISB8 = 0; //SCL1 output
     TRISBbits.TRISB9 = 0; //SDA1 output
-    
-    RPOR4bits.RP8R = 0x0008; //RB8->SPI1:SCK1OUT
-    RPINR3bits.T3CKR = 0x000F; //RB15->TMR3:T3CK
-    RPOR6bits.RP13R = 0x0007; //RB13->SPI1:SDO1
+
+    // WS TMR2:T2CK
+    RPINR3bits.T2CKR = 0x0002; //RB2->TMR2:T2CK (WindSpeed/TMR2))
+    WS_IN_SetDigitalInputLow(); // Input RB2 (6) 
+
+
+    //    RPOR4bits.RP8R = 0x0008; //RB8->SPI1:SCK1OUT
+    //    RPINR3bits.T3CKR = 0x000F; //RB15->TMR3:T3CK
+    //    RPOR6bits.RP13R = 0x0007; //RB13->SPI1:SDO1
 
     // Pin change / INT0 ( USb Wake-Up))
-    
-    __builtin_write_OSCCONL(OSCCON | 0x40); // lock PPS
-    
-    AV_SYN_SetDigital();    // Input T3CK/RB15 (SYNCO)
-    AV_SYN_SetDigitalInput();
 
-//    AV_INP_SetAnalog();     // RA0 AN0 (2 DIP20) VRef+
-//    AV_INP_SetAnalogInput();
-//    AV_INN_SetAnalog();     //  RA1 AN1 (3 DIP20) VRef-
-//    AV_INN_SetAnalogInput();
+
+    __builtin_write_OSCCONL(OSCCON | 0x40); // lock PPS
+
+    AV_SYN_SetDigital(); // Input T3CK/RB15 (SYNCO)
+    AV_SYN_SetDigitalInput();
     AV_IN_SetAnalogInput();
-    
-//    ET_IN_SetAnalog();      
-    ET_IN_SetAnalogInput(); // ADC ( Pin 7 AN5/RP3 )
-    
-//    WS_IN_SetDigital();
-    WS_IN_SetDigitalInput();
-  
+
+
+    //    AV_INP_SetAnalog();     // RA0 AN0 (2 DIP20) VRef+
+    //    AV_INP_SetAnalogInput();
+    //    AV_INN_SetAnalog();     //  RA1 AN1 (3 DIP20) VRef-
+    //    AV_INN_SetAnalogInput();
+
+
+    //    //    ET_IN_SetAnalog();      
+    //    ET_IN_SetAnalogInput(); // ADC ( Pin 7 AN5/RP3 )
+    //
+    //    //    WS_IN_SetDigital();
+    //    WS_IN_SetDigitalInputLow();
+
 #endif
 
 
@@ -181,33 +167,31 @@ void Device_SwitchPins() {
 
 #ifdef __USB // _______________________________________________
     USB_WK_SetDigitalInput(); // (16) INT0/RB7 
-    // set INT0 wake_up
+
 #endif
 
 #ifdef __UART2 // _______________________________________________
 
-    
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))  
-
     ANSBbits.ANSB0 = 0; // Digital USB_TX
     TRISBbits.TRISB0 = 0; // RB0 Output (4 DIP20)
     ANSBbits.ANSB1 = 0; // Digital USB_RX
     TRISBbits.TRISB1 = 1; // RB1 Input (5 DIP20)
     LATBbits.LATB0 = 1; // Set TxPin HIGH
-
-#elif defined(__PIC24FJ256GA702__)
-
-
 #endif
+
 #endif //  __UART2
 
 #ifdef __MRF24  // ___________________________________________
-    MRF24_SS_SetDigital();
-    MRF24_SS_SetDigitalOutput();
-    MRF24_SS_SetHigh();
+    //    MRF24_SS_SetDigital();
+    //    MRF24_SS_SetDigitalOutput();
+    //    MRF24_SS_SetHigh();
+    MRF24_SS_SetDigitalOutputHigh();
 #endif
 
+
 #ifdef __I2C1
+
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))   
     //ANSBbits.ANSB8 = 0; // Digital SCL1/C3OUT/CTED10/CN22/RB8
     //ANSBbits.ANSB9 = 0; // Digital SDA1/T1CK/IC2/CTED4/CN21/RB9
@@ -223,26 +207,19 @@ void Device_SwitchPins() {
     ODCBbits.ODB9 = 1;
     TRISBbits.TRISB8 = 0; //SCL1 output
     TRISBbits.TRISB9 = 0; //SDA1 output
-
-#elif defined(__PIC24FJ256GA702__)
-
 #endif
+
 #endif  // __MRF24
 
 
 #ifdef __SPI1
 
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))  
-
     TRISBbits.TRISB14 = 1; // SDI1 (MISO) In
     TRISBbits.TRISB13 = 0; // SDO1 (MOSI) Out
-    TRISBbits.TRISB12 = 0; // SCK1 Digital Out
+    TRISBbits.TRISB12 = 0; // SCK1 Digital Out   
+#endif 
 
-#elif defined( __PIC24FJ256GA702__ )
-    //SPI1 Data Input SDI1 RPINR20<5:0> SDI1R<5:0>
-    //SPI1 Clock Input SCK1IN RPINR20<13:8> SCK1R<5:0>
-    //SPI1 Slave Select Input SS1IN RPINR21<5:0> SS1R<5:0>
-#endif   
 #endif  // __SPI1 
 
 
@@ -262,18 +239,9 @@ void Device_SwitchPins() {
     ET_IN_SetAnalog();
     WS_IN_SetDigital();
     WS_IN_SetDigitalInput();
-
-#elif defined( __PIC24FJ256GA702__)
-
 #endif
+
 #endif  // SENSOR_BOARD
-
-
-#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))   
-
-#elif defined( __PIC24FJ256GA702__)
-
-#endif
 
 
 } // Device_SwitchPins
@@ -407,11 +375,8 @@ void Device_SwitchClock(sysclock_t ck) {
     // Wait for Clock switch to occur
     while (OSCCONbits.OSWEN != 0);
     while (OSCCONbits.LOCK != 1);
-
 #endif
-
     __builtin_enable_interrupts();
-
 }
 
 uint8_t Device_SwitchADG(uint8_t reg) { // ADG729_Switch(uint8_t reg)
@@ -442,7 +407,6 @@ uint8_t Device_SwitchADG(uint8_t reg) { // ADG729_Switch(uint8_t reg)
     //    __delay(2);
 
 #elif defined( __PIC24FJ256GA702__ )
-
     I2C1CONL = 0x8000;
     I2C1BRG = 0x4E; // 100Khz @ FCY = 16Mhz
     IFS1bits.MI2C1IF = 0; //Clear I2C master Int flag
@@ -463,76 +427,11 @@ uint8_t Device_SwitchADG(uint8_t reg) { // ADG729_Switch(uint8_t reg)
     }
     I2C1CONLbits.I2CEN = 0; // Disable module
     //    __delay(2);
-
 #endif
 
 #endif // HWDEVICE
     return (reg);
 }
-
-/*
-    When the device is released from Reset, code execution will resume at the device's Reset vector.
- * 
- * The device has a dedicated Deep Sleep Brown-out Reset (DSBOR) and Deep Sleep Watchdog
-Timer Reset (DSWDT) for monitoring voltage and time-out events in Deep Sleep mode.
- *
-The DSBOR and DSWDT are independent of the standard BOR and WDT used with other
-power-managed modes (Run, Idle and Sleep).
-Entering Deep Sleep mode clears the DSWAKE register.
- *
-If enabled, the Real-Time Clock and Calendar (RTCC) continues to operate uninterrupted.
-When a wake-up event occurs in Deep Sleep mode (by Reset, RTCC alarm, external interrupt
-(INT0) or DSWDT), the device will exit Deep Sleep mode and rearm a Power-on Reset (POR).
- *
- */
-void Device_Hybernate() { // Go into Deep Sleep Mode
-    /*
-        If entering Deep Sleep mode,  the SFRs, RAM and program counter will be lost.
-        Be sure to store any relevant device state information in the DSGPRn registers.
-        The stored data can be used to restore the state of the device...
-         1.Switch off all modules except RTCC
-         2.Verify wake-up enabled Int
-         3.Save state ( mode ) information in the DSGPRn
-         4.Check VBAT
-     */
-}
-
-void Device_Resume() { // Called from wake-up event
-    // Check resume from:
-    // 1: Idle
-    // 2: Sleep
-    // 3: Deep Sleep
-    //  Device_SwitchClock(CK_SLOW);
-    //  Device_SwitchPower(PW_DEFAULT);
-    //  Device_SwitchPins(); // Switch Pin & Modules
-    //  Device_ReadConfig(void); // Set new power_mode....
-}
-
-/*
-DSCON: DEEP SLEEP CONTROL REGISTER
-bit 15 DSEN: Deep Sleep Enable bit
-1 = Enters Deep Sleep on execution of PWRSAV #0
-0 = Enters normal Sleep on execution of PWRSAV #0
-bit 14-9 Unimplemented: Read as ?0?
-bit 8 RTCCWDIS: RTCC Wake-up Disable bit
-1 = Wake-up from Deep Sleep with RTCC disabled
-0 = Wake-up from Deep Sleep with RTCC enabled
-bit 7-3 Unimplemented: Read as ?0?
-bit 2 ULPWUDIS: ULPWU Wake-up Disable bit
-1 = Wake-up from Deep Sleep with ULPWU disabled
-0 = Wake-up from Deep Sleep with ULPWU enabled
-bit 1 DSBOR: Deep Sleep BOR Event bit(2)
-1 = The DSBOR was active and a BOR event was detected during Deep Sleep
-0 = The DSBOR was not active or was active but did not detect a BOR event during Deep Sleep
-bit 0 RELEASE: I/O Pin State Release bit
-1 = Upon waking from Deep Sleep, I/O pins maintain their previous states to Deep Sleep entry
-0 = Release I/O pins from their state previous to Deep Sleep entry, and allow their respective TRISx and
-LATx bits to control their states
-
-You can poll the IF bits for each enabled interrupt source to determine the source of
-wake-up. When waking up from Deep Sleep mode, poll the bits in the DSWAKE and RCON
-registers to determine the wake-up source.
- */
 
 /*******************************************************************************
  D E V I C E   S W I T C H S Y S - R U N L E V E L 
@@ -543,14 +442,13 @@ bool Device_SwitchSys(runlevel_t rlv) {
 
     switch (rlv) {
             //
-        case SYS_BOOT:
+        case SYS_BOOT: // Set DOZE MODE !!!
 
-            Device_SwitchClock(CK_FAST); // 32Mhz
+            Device_SwitchClock(CK_FAST); // Default clock 32Mhz
             Nop();
             Nop();
-            Nop();
-
-            Device_SwitchPins();
+            Device_Initialize();
+            Device_SwitchADG(PW_OFF); // All off
 
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
 
@@ -583,25 +481,16 @@ bool Device_SwitchSys(runlevel_t rlv) {
             // SPI2MD enabled; SPI1MD enabled; I2C1MD enabled; 
             // All Enabled
             PMD1 = 0x00;
-            // IC3MD enabled; OC1MD enabled; IC2MD enabled; OC2MD enabled; IC1MD enabled; OC3MD enabled; 
-            PMD2 = 0xFF;
-            // PMPMD enabled; RTCCMD enabled; CMPMD enabled; CRCMD enabled; I2C2MD enabled; 
-            PMD3 = 0x00;
-            // CTMUMD enabled; REFOMD enabled; LVDMD enabled; 
-            PMD4 = 0xFF;
-            // CCP2MD enabled; CCP1MD enabled; CCP4MD enabled; CCP3MD enabled; CCP5MD enabled; 
-            PMD5 = 0xFF;
-            // SPI3MD enabled; 
-            PMD6 = 0xFF;
-            // DMA1MD enabled; DMA0MD enabled; 
-            PMD7 = 0x00;
-            // CLC1MD enabled; CLC2MD enabled; 
-            PMD8 = 0xFF;
+            PMD2 = 0xFF; // IC3MD enabled; OC1MD enabled; IC2MD enabled; OC2MD enabled; IC1MD enabled; OC3MD enabled; 
+            PMD3 = 0x00; // PMPMD enabled; RTCCMD enabled; CMPMD enabled; CRCMD enabled; I2C2MD enabled; 
+            PMD4 = 0xFF; // CTMUMD enabled; REFOMD enabled; LVDMD enabled; 
+            PMD5 = 0xFF; // CCP2MD enabled; CCP1MD enabled; CCP4MD enabled; CCP3MD enabled; CCP5MD enabled; 
+            PMD6 = 0xFF; // SPI3MD enabled; 
+            PMD7 = 0xFF; // DMA1MD enabled; DMA0MD disabled; 
+            PMD8 = 0xFF; // CLC1MD enabled; CLC2MD enabled; 
 #endif
-
-            //RTCC_Init();
-            Device_SwitchADG(0xFF);
-
+            RTCC_Init();
+            UART2_Initialize(); // Configure UART 
             break;
 
         case SYS_IDLE:
@@ -612,11 +501,56 @@ bool Device_SwitchSys(runlevel_t rlv) {
             break;
 
         case SYS_SLEEP:
+            Device_SwitchADG(PW_OFF); // All off
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
             //  RETEN/LVREN bit to control the regulator?s operation
             asm(";Put the device into Sleep mode \
                  PWRSAV#SLEEP_MODE; ");
+            //            Low-Voltage Sleep Mode
+            //            Uses a low-voltage regulator to power the core. 
+            //            This mode uses less power than the Sleep mode but takes longer to wake up from sleep due to the voltage regulator.
+            //            The low-voltage regulator is controlled by the LPCFG/LVRCFG configuration bit (also designated as LVRCFG in some 
+            //            devices) and the Low-Voltage Enable bit (RETEN/LVREN), and Reset and System Control register (RCON). 
+            //            The LPCFG/LVRCF configuration bit makes the low-voltage regulator available to be controlled by RCON.
+            //            RCONbits.LVREN = 1;
+#elif defined(__PIC24FJ256GA702__)
+
+            // All Disabled except RTCC
+            PMD1 = 0x00;
+            PMD2 = 0xFF;
+            PMD3 = 0xFF;
+            PMD4 = 0xFF;
+            PMD5 = 0xFF;
+            PMD6 = 0xFF;
+            PMD7 = 0xFF;
+            PMD8 = 0xFF;
+
+            //#define Sleep()  __builtin_pwrsav(0)
+            //#define Idle()   __builtin_pwrsav(1)
+           
+            IEC0bits.INT0IE = 1; // enables INT0 (for change detection)
+//            RCON 
+            
+//            DSWAKE = 0;       
+//CLKDIV 
+//PMDx
+//DSCON
+//DSWAKE
+//DSGPR0 
+//DSGPR1
+//            //RCONbits.RETEN
+//            DSWAKEbits
+            // Enable USB Wake-Up
+            // Enable RTC Alarm Wake-Up
+            
+            // set INT0 wake_up
+            Sleep(); // enter in sleep mode
+            IFS0bits.INT0IF = 0;
+            
+
 #endif
+
+
             break;
 
         case SYS_DSLEEP:
@@ -625,9 +559,15 @@ bool Device_SwitchSys(runlevel_t rlv) {
                  BSET DSCON DSEN;  \
                  BSET DSCON DSEN;  \
                  PWRSAV#SLEEP_MODE; ");
+#elif defined(__PIC24FJ256GA702__)            
+//                        LPCFG must be programmed
+//(= 0) and the RETEN bit must be set (= 1) for
+//the regulator to be enabled.
 #endif
+           
             break;
         case SYS_OFF: // RTCC ( LTC shut-down and wake-up on Resume() ! )
+            Device_SwitchADG(PW_OFF); // All off
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
             //ADG729_Switch(0x0); // External Circuits all Off
             PMD1 = 0xFF; // All modules OFF
@@ -645,13 +585,24 @@ bool Device_SwitchSys(runlevel_t rlv) {
             PMD1bits.I2C1MD = 0;
             PMD1bits.T1MD = 0;
             PMD1bits.ADC1MD = 0;
+#elif defined(__PIC24FJ256GA702__)
+
 #endif
             break;
 
         case SYS_ON_EXCHANGE: // I2C1,TMR1,SPI1,UART2
+            Device_SwitchADG(PW_MRF); // RF Module switch-on
+
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))      
             //ADG729_Switch(_bs8(PW_MRF)); // RF Circuits On
             PMD3bits.RTCCMD = 0; // RTCC
+            PMD1bits.I2C1MD = 0;
+            PMD1bits.T1MD = 0;
+            PMD1bits.SPI1MD = 0; // Spi1 On
+            PMD1bits.U2MD = 0; // Uart2 On
+
+#elif defined(__PIC24FJ256GA702__)
+            //PMD3bits.RTCCMD = 0; // RTCC
             PMD1bits.I2C1MD = 0;
             PMD1bits.T1MD = 0;
             PMD1bits.SPI1MD = 0; // Spi1 On
@@ -660,18 +611,22 @@ bool Device_SwitchSys(runlevel_t rlv) {
             break;
 
         case SYS_ON_SAMP_WST: // I2C1,TMR1, TMR4, ADC
+            Device_SwitchADG(PW_WST); // Wind & Temp Sensors Circuits On
+
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))      
-            //ADG729_Switch(_bs8(PW_WST)); // Wind & Temp Sensors Circuits On
             PMD3bits.RTCCMD = 0; // RTCC
             PMD1bits.I2C1MD = 0;
             PMD1bits.T1MD = 0;
             PMD1bits.T4MD = 0;
             PMD1bits.ADC1MD = 0;
+#elif defined(__PIC24FJ256GA702__)
+
 #endif
             break;
 
         case SYS_ON_SAMP_ADA: // I2C1,TMR1, TMR3, SPI1, ADC
-            //ADG729_Switch(_bs8(PW_ADA)); // LVDT conditioning Circuits On
+            Device_SwitchADG(PW_ADA); // LVDT conditioning Circuits On
+
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))      
             PMD3bits.RTCCMD = 0; // RTCC
             PMD1bits.I2C1MD = 0;
@@ -679,16 +634,19 @@ bool Device_SwitchSys(runlevel_t rlv) {
             PMD1bits.T3MD = 0;
             PMD1bits.SPI1MD = 0;
             PMD1bits.ADC1MD = 0;
+#elif defined(__PIC24FJ256GA702__)
+
 #endif
             //Device_SwitchClock(); // 32Mhz
             break;
 
         case SYS_ON_SAMP_SS: // ND !!!!
             break;
+
+
         case SYS_DEFAULT: // RTCC,I2C1,TMR1
         default:
-
-            //ADG729_Switch(0x0); // External Circuits all Off
+            Device_SwitchADG(PW_OFF); // External Circuits all Off
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))      
             PMD3bits.RTCCMD = 0; // RTCC
             PMD1bits.I2C1MD = 0;
@@ -697,15 +655,14 @@ bool Device_SwitchSys(runlevel_t rlv) {
             //  RETEN/LVREN bit to control the regulator?s operation
             //asm(";Put the device into Sleep mode
             // PWRSAV#SLEEP_MODE; ");
-#endif     
+#elif defined(__PIC24FJ256GA702__)
+
+#endif
+
             break;
 
     }
     return (true);
-}
-
-void Device_Boot(void) { // call each sys boot
-
 }
 
 /*******************************************************************************
@@ -727,11 +684,11 @@ Min acceptable ADC Reading = (1.2*0.95)* 1024 / (3.3*1.05) = (Approximately)337
 
 uint16_t Device_GetBatteryLevel() {
 
-    
-    
+
+
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
     // ____________________________________ADC Input Pin
-    
+
     // ____________________________________ADC setup
     IEC0bits.AD1IE = 0; // Disable A/D conversion interrupt
     AD1CON1 = 0x2200; // Configure clock and trigger mode.
@@ -768,11 +725,11 @@ uint16_t Device_GetBatteryLevel() {
 #endif   
 
 #ifdef __PIC24FJ256GA702__
-   
-     // Enable ADG port 
-    BAT_LVL_SetAnalogInput();  // 10  OSCO/AN14/CLKO/CN29/RA3     (S) Batt Level
 
-        // ____________________________________A/D Converter Setup
+    // Enable ADG port 
+    BAT_LVL_SetAnalogInput(); // 10  OSCO/AN14/CLKO/CN29/RA3     (S) Batt Level
+
+    // ____________________________________A/D Converter Setup
     AD1CON1 = 0; // No operation in Idle mode, Converter off
     AD1CON1bits.MODE12 = 0; // Resolution 10 bit (1=12)
     AD1CON1bits.ASAM = 1; // Auto-Convert ON (end sampling and start conversion)
@@ -783,14 +740,14 @@ uint16_t Device_GetBatteryLevel() {
     AD1CON5 = 0; // No CTMU, No Band Gap Req. ( VBG=1.2V, Vdd = 3.3 Volt +/-5%)
     AD1CHS = 0; // No channels
     // AD1CHSbits.CH0SA = 0b00101; // S/H+ Input A (AN5)  
-        // AD1CHSbits.CH0SA = 0b00101; // S/H+ Input A (AN5)  ???????
+    // AD1CHSbits.CH0SA = 0b00101; // S/H+ Input A (AN5)  ???????
     AD1CSSL = 0; // No Scan, ADC1MD bit in the PMD1
-    
+
     // ____________________________________Acquire
     AD1CON1bits.ADON = 1; // Turn on A/D
     //while (0) {
     AD1CON1bits.SAMP = 1; // Start sampling the input
-   //  __delay(1); // Ensure the correct sampling time has elapsed
+    //  __delay(1); // Ensure the correct sampling time has elapsed
     AD1CON1bits.SAMP = 0; // End sampling and start conversion
     while (!AD1CON1bits.DONE) {
         Nop();
@@ -798,7 +755,7 @@ uint16_t Device_GetBatteryLevel() {
     }
     AD1CON1bits.ADON = 0; // ADC Off
     //*dbuf =  (1024 - ADC1BUF0);
-    
+
     return 0;
 #endif
 }
@@ -1171,3 +1128,71 @@ bool _Device_WriteConfig(uint8_t * config) {
     return true;
 }
  */
+
+/*
+//    When the device is released from Reset, code execution will resume at the device's Reset vector.
+// * 
+// * The device has a dedicated Deep Sleep Brown-out Reset (DSBOR) and Deep Sleep Watchdog
+//Timer Reset (DSWDT) for monitoring voltage and time-out events in Deep Sleep mode.
+// *
+//The DSBOR and DSWDT are independent of the standard BOR and WDT used with other
+//power-managed modes (Run, Idle and Sleep).
+//Entering Deep Sleep mode clears the DSWAKE register.
+// *
+//If enabled, the Real-Time Clock and Calendar (RTCC) continues to operate uninterrupted.
+//When a wake-up event occurs in Deep Sleep mode (by Reset, RTCC alarm, external interrupt
+//(INT0) or DSWDT), the device will exit Deep Sleep mode and rearm a Power-on Reset (POR).
+// *
+// */
+//void Device_Hybernate() { // Go into Deep Sleep Mode
+//    /*
+//        If entering Deep Sleep mode,  the SFRs, RAM and program counter will be lost.
+//        Be sure to store any relevant device state information in the DSGPRn registers.
+//        The stored data can be used to restore the state of the device...
+//         1.Switch off all modules except RTCC
+//         2.Verify wake-up enabled Int
+//         3.Save state ( mode ) information in the DSGPRn
+//         4.Check VBAT
+//     */
+//}
+//
+//void Device_Resume() { // Called from wake-up event
+//    // Check resume from:
+//    // 1: Idle
+//    // 2: Sleep
+//    // 3: Deep Sleep
+//    //  Device_SwitchClock(CK_SLOW);
+//    //  Device_SwitchPower(PW_DEFAULT);
+//    //  Device_SwitchPins(); // Switch Pin & Modules
+//    //  Device_ReadConfig(void); // Set new power_mode....
+//}
+//
+///*
+//DSCON: DEEP SLEEP CONTROL REGISTER
+//bit 15 DSEN: Deep Sleep Enable bit
+//1 = Enters Deep Sleep on execution of PWRSAV #0
+//0 = Enters normal Sleep on execution of PWRSAV #0
+//bit 14-9 Unimplemented: Read as ?0?
+//bit 8 RTCCWDIS: RTCC Wake-up Disable bit
+//1 = Wake-up from Deep Sleep with RTCC disabled
+//0 = Wake-up from Deep Sleep with RTCC enabled
+//bit 7-3 Unimplemented: Read as ?0?
+//bit 2 ULPWUDIS: ULPWU Wake-up Disable bit
+//1 = Wake-up from Deep Sleep with ULPWU disabled
+//0 = Wake-up from Deep Sleep with ULPWU enabled
+//bit 1 DSBOR: Deep Sleep BOR Event bit(2)
+//1 = The DSBOR was active and a BOR event was detected during Deep Sleep
+//0 = The DSBOR was not active or was active but did not detect a BOR event during Deep Sleep
+//bit 0 RELEASE: I/O Pin State Release bit
+//1 = Upon waking from Deep Sleep, I/O pins maintain their previous states to Deep Sleep entry
+//0 = Release I/O pins from their state previous to Deep Sleep entry, and allow their respective TRISx and
+//LATx bits to control their states
+//
+//You can poll the IF bits for each enabled interrupt source to determine the source of
+//wake-up. When waking up from Deep Sleep mode, poll the bits in the DSWAKE and RCON
+//registers to determine the wake-up source.
+// */
+//
+//void Device_Boot(void) { // call each sys boot
+//}
+//

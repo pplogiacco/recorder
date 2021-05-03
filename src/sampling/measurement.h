@@ -42,22 +42,14 @@ typedef enum e_dimension { // physical phenomenon
     DIM_DD = 0xF // Demo
 } dimension_t;
 
-/* ---------------------------------------------------------------------------- 
-(0x02) Test signal  { <sig_fq>, <sig_maxa>, <adc_fq>, <res_scale>, [<dT>,<a>],[...] }
-(0x0A) Aeolian Vibration, raw { <ET>,<WS>,<adc_fq> <res_scale,[<dT>,<s>],...}
-(0x0B) Aeolian Sub-span,
-(0x0D) Aeolian Vibration, peak-peak { <ET>,<WS>,<adc_fq> <res_scale,[<dT>,<sp>],...}
-(0x0C) Aeolian Vibration, FFT Real { <ET>,<WS>,<adc_fq>,<log2_n>,[<rH1>],...,[<rH((2^log2_n)/2)>]}
-(0x0E) Aeolian Vibration, FFT Complex { <ET>,<WS>,<adc_fq>,<log2_n>,<fft_db>,<fft_nh>,[<nH>,<rH>,<iH>],...}
-
- ---------------------------------------------------------------------------- */
 typedef enum e_typeset {
-    _SIG0 = 0x02, // Test Signal 
-    _AV00 = 0x0A, // (10) Aeolean Vibration, raw
+    _SIG0 = 0x02, //  Test signal  { <sig_fq>, <sig_maxa>, <adc_fq>, <res_scale>, [<dT>,<a>],[...] }
+    _AV00 = 0x0A, // (10) Aeolian Vibration, RAW { <ET>,<WS>,<adc_fq> <res_scale,[<dT>,<s>],...}
     _SS00 = 0x0B, // Sub-Span, raw
-    _AV01 = 0x0D, // (13) Aeolean Vibration, peak-peak
-    _AV02 = 0x0C, // (12) Aeolean Vibration, vibration ( Real FFT )
-    _AV03 = 0x0E  // Aeolean Vibration, vibration ( Complex FFT/ valid Harm )
+    _AV01 = 0x0D, // (13) Aeolian Vibration, P-P { <ET>,<WS>,<adc_fq> <res_scale,[<dT>,<sp>],...}
+    _AV02 = 0x0C, // (12) Aeolian Vibration, FFT Real { <ET>,<WS>,<adc_fq>,<log2_n>,[<rH1>],...,[<rH((2^log2_n)/2)>]}
+    _AV03 = 0x0E,  // FFT Real { <ET>,<WS>,<adc_fq>,<log2_n>,[<rH1>],...,[<rH((2^log2_n)/2)>]}
+    _AV04 = 0x04  // Aeolean Vibration, samples without dT !
 } typeset_t;
 
 typedef struct {

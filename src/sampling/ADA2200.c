@@ -232,9 +232,8 @@ void ADA2200_Disable() {
     // Power Sensor Board LINE1
     // Disable & Power-off: SPI1, ADC0 
 #elif defined( __PIC24FJ256GA702__ )
-
     SPI1CON1Lbits.SPIEN = 0; // Disable SPI1
 #endif
-
+    ADA_SS_SetLow();  // CS Low !
 }
 
