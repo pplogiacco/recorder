@@ -70,7 +70,7 @@ void tmr2_wscapture(void) {
 int main(void) {
 
     uint16_t rtDataSize = 0;
-    uint8_t *rtDataBuffer = Exchange_ptrSendData();
+    uint8_t *rtDataBuffer = ptrSendData();
     RealTimeCommandType rtCommand;
 
     devicestate_t state, lstate; // Main cycle controls

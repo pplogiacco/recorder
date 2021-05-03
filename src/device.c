@@ -433,6 +433,7 @@ uint8_t Device_SwitchADG(uint8_t reg) { // ADG729_Switch(uint8_t reg)
     return (reg);
 }
 
+
 /*******************************************************************************
  D E V I C E   S W I T C H S Y S - R U N L E V E L 
  
@@ -592,7 +593,8 @@ bool Device_SwitchSys(runlevel_t rlv) {
 
         case SYS_ON_EXCHANGE: // I2C1,TMR1,SPI1,UART2
             Device_SwitchADG(PW_MRF); // RF Module switch-on
-
+            ADA_SS_SetHigh();
+            
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))      
             //ADG729_Switch(_bs8(PW_MRF)); // RF Circuits On
             PMD3bits.RTCCMD = 0; // RTCC
@@ -607,6 +609,7 @@ bool Device_SwitchSys(runlevel_t rlv) {
             PMD1bits.T1MD = 0;
             PMD1bits.SPI1MD = 0; // Spi1 On
             PMD1bits.U2MD = 0; // Uart2 On
+
 #endif
             break;
 

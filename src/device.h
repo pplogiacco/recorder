@@ -151,7 +151,7 @@ uint16_t Device_GetBatteryLevel();
 
 // bool Device_IsUsbConnected(void);
 #define Device_IsUsbConnected() USB_Status
-//#define Device_IsUsbConnected() true
+//#define Device_IsUsbConnected() false
 
 
 #endif

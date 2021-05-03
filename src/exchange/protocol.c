@@ -7,12 +7,13 @@
 #include "protocol.h"
 // #include "exchange.h"
 
-#include "../modules/RTCC.h"
-#include "../sampling/measurement.h"
+//#include "../modules/RTCC.h"
+//#include "../sampling/measurement.h"
 
+#include "../device.h"   // Compiler defines
 #include "uart2.h"
-
 #include "MRF24J40.h"
+#include "../modules/RTCC.h"    // Timeout 
 
 #ifndef __DONGLE_PASSTHRU
 
@@ -31,9 +32,12 @@ static uint8_t txrx_buffer[PROT_BUF_SIZE];
 
 #define __ACK_RETRY 5
 #define __ACK_TIMEOUT_DEFAULT 3000
-#define __APP_TIMEOUT_DEFAULT 10000
+//#define __APP_TIMEOUT_DEFAULT 10000
 #define __INCHAR_TIMEOUT_DEFAULT 1000
-#define __HANDSHAKE_TIMEOUT_DEFAULT 3000
+//#define __HANDSHAKE_TIMEOUT_DEFAULT 3000
+
+// Send: DIN,timestamp,version
+// Ret: ?
 
 enum {
     STX = 0x02,
@@ -60,17 +64,16 @@ void setLong(uint32_t val, uint8_t *buff) {
 }
 
 /* -------------------------------------------------------------------------- */
-bool Exchange_openChannel(bool usbReady) {
+bool openChannel() {
 
     if (Device_IsUsbConnected()) {
-        
         UART2_Enable();
         channelType = CNL_USBD;
 
-    } else {    // Try by RF
+    } else { // Try by RF
 
         MRF24J40_Enable(); // Enable ??
-        
+
         MRF24J40_setAddress(MRF24J40_DEVICE_ADDRESS);
         rfDestinationAddr = MRF24J40_DONGLE_ADDRESS;
         channelType = CNL_RF;
@@ -80,11 +83,11 @@ bool Exchange_openChannel(bool usbReady) {
 }
 
 /* -------------------------------------------------------------------------- */
-void Exchange_closeChannel() {
+void closeChannel() {
     if (channelType == CNL_USBD) {
         UART2_Disable();
     } else if (channelType == CNL_RF) {
-        MRF24J40_Disable();   // Disable ??
+        MRF24J40_Disable(); // Disable ??
     }
     channelType = CNL_NONE;
 };
@@ -240,7 +243,7 @@ bool waitAck(uint16_t timeOut) {
 }
 
 /* -------------------------------------------------------------------------- */
-uint8_t *Exchange_ptrSendData() {
+uint8_t *ptrSendData() {
     memset(txrx_buffer, 0, PROT_BUF_SIZE);
     return &txrx_buffer[DATA_OFFSET];
 }
@@ -286,7 +289,7 @@ bool protocolSend(uint8_t command, uint16_t dataSize, uint16_t timeOut) {
             ret = true;
             break;
         }
-        if (command == CMD_HANDSHAKE) {
+        if (command == CMD_HANDSHAKE_0x01) {
             break;
         }
     }
@@ -437,267 +440,10 @@ bool protocolReceive(uint8_t *command, uint16_t timeOut) {
     return result;
 }
 
-/* -------------------------------------------------------------------------- */
-bool Exchange_sendHandshake(void) {
-    uint8_t command;
-    uint8_t offset = 0;
-    uint8_t *buffer = Exchange_ptrSendData();
-    uint32_t timestamp;
-    uint16_t timeout;
 
-    timestamp = RTCC_GetTimeL();
-    timeout = g_dev.cnf.exchange.handshake_timeout < __HANDSHAKE_TIMEOUT_DEFAULT ?
-            __HANDSHAKE_TIMEOUT_DEFAULT : g_dev.cnf.exchange.handshake_timeout;
-
-    memcpy(&buffer[offset], &g_dev.st.DIN, 4);
-    offset += 4;
-    memcpy(&buffer[offset], &timestamp, 4);
-    offset += 4;
-    memcpy(&buffer[offset], &g_dev.st.version, 2);
-    offset += 2;
-    //g_dev.cnf.CRC16 = 331; // Test
-    memcpy(&buffer[offset], &g_dev.cnf.CRC16, 2);
-    offset += 2;
-    buffer[offset++] = Device_IsUsbConnected();
-
-    if (protocolSend(CMD_HANDSHAKE, offset, timeout)) {
-        if (protocolReceive(&command, timeout)) {
-            //uint8_t *rxData = ptrReceiveData();
-            //(void) rxData;
-            return true;
-        }
-    }
-    return false;
-}
-
-/* -------------------------------------------------------------------------- */
-bool sendAvailableMeasurement(uint16_t counter) {
-    uint8_t *buffer = Exchange_ptrSendData();
-    memcpy(buffer, &counter, 2);
-    return protocolSend(CMD_MEASUREMENT_AVAILABLE, 2, __ACK_TIMEOUT_DEFAULT);
-}
-
-/* -------------------------------------------------------------------------- */
-bool sendMeasurement(uint16_t index) {
-    bool result = false;
-    measurement_t ms;
-
-    uint16_t x = 0;
-    uint8_t offset = 0;
-    uint8_t *buffer = Exchange_ptrSendData();
-
-    uint16_t totSamplesBlocks = 0;
-    uint16_t spareSamples = 0;
-    uint8_t blockSize = 0;
-
-#if 0 //only debug
-    uint16_t xSS = 0;
-    ms = &g_measurement;
-    ms->dtime = RTCC_GetTimeL();
-    ms->ss = SSBUF;
-    ms->typeset = _SIG0;
-    // Single samples
-    ms->ns = 2;
-    ms->nss = 512;
-
-    xSS = 0;
-    ms->ss[xSS++] = 888; // Temperature
-    ms->ss[xSS++] = 555; // WindSpeed
-    for (xSS = 0; xSS < ms->nss; xSS++) {
-        ms->ss[xSS + 2] = 1000 + (xSS + 1);
-    }
-    if (1) {
-#else
-    if (measurementLoad(index, &ms) > 0) {
 #endif
-        totSamplesBlocks = (uint16_t) ((uint16_t) (ms.nss + ms.ns) / BLOCK_MAXSAMPLES);
-        spareSamples = (uint16_t) ((uint16_t) (ms.nss + ms.ns) % BLOCK_MAXSAMPLES);
 
-        if (spareSamples > 0) {
-            totSamplesBlocks++;
-        }
 
-        offset = 0;
-        memcpy(&buffer[offset], &totSamplesBlocks, 2);
-        offset += 2;
-        memcpy(&buffer[offset], &ms.dtime, 4);
-        offset += 4;
-        buffer[offset++] = ms.typeset;
-        memcpy(&buffer[offset], &ms.ns, 2);
-        offset += 2;
-        memcpy(&buffer[offset], &ms.nss, 2);
-        offset += 2;
-
-        if (protocolSend(CMD_MEASUREMENT_HEADER, offset, __ACK_TIMEOUT_DEFAULT)) {
-            result = true;
-            for (x = 0; x < totSamplesBlocks; x++) {
-                blockSize = BLOCK_MAXSAMPLES;
-                if ((spareSamples > 0) && (x == (totSamplesBlocks - 1))) {
-                    blockSize = spareSamples;
-                }
-
-                offset = 0;
-                buffer[offset++] = (uint8_t) (x + 1);
-                
-                //memcpy(&buffer[offset], &ms.ss[x * BLOCK_MAXSAMPLES], (blockSize * 2));
-                getMeasurementBlock(&buffer[offset], x * BLOCK_MAXSAMPLES,  blockSize * 2  ); // blocksize multiplo di 3 in bytes 
-                             
-                offset += (blockSize * 2);
-                if (!protocolSend(CMD_MEASUREMENT_BLOCK, offset, __ACK_TIMEOUT_DEFAULT)) {
-                    result = false;
-                    break;
-                }
-            }
-        }
-    } else { //send error
-        result = true;
-        offset = 2 + 4 + 1 + 2 + 2;
-        totSamplesBlocks = 0;
-        memset(buffer, 0, offset);
-        protocolSend(CMD_MEASUREMENT_HEADER, offset, __ACK_TIMEOUT_DEFAULT);
-    }
-    return result;
-}
-
-/* -------------------------------------------------------------------------- */
-bool sendDeviceConfig() {
-    uint8_t offset = 0;
-    uint8_t *buffer = Exchange_ptrSendData();
-
-    setShort(sizeof (config_t), &buffer[offset]); //2 byte
-    offset += 2;
-    memcpy(&buffer[offset], &g_dev.cnf, sizeof (config_t));
-    offset += sizeof (config_t);
-
-    return protocolSend(CMD_GET_DEVICE_CONFIG, offset, __ACK_TIMEOUT_DEFAULT);
-}
-
-/* -------------------------------------------------------------------------- */
-bool setDeviceConfig(uint8_t *rxData) {
-    return Device_ConfigWrite(rxData);
-}
-
-/* -------------------------------------------------------------------------- */
-void setDateTime(uint8_t *rxData) {
-    uint8_t offset = 0;
-    timestamp_t ts;
-    unsigned char weekday;
-
-    ts.year = rxData[offset++];
-    ts.month = rxData[offset++];
-    ts.day = rxData[offset++];
-    ts.hour = rxData[offset++];
-    ts.min = rxData[offset++];
-    ts.sec = rxData[offset++];
-    weekday = rxData[offset++];
-
-    RTCC_SetTime(&ts, weekday);
-}
-
-/* -------------------------------------------------------------------------- */
-bool sendDeviceState() {
-    uint8_t offset = 0;
-    uint8_t *buffer = Exchange_ptrSendData();
-    //status_t status;
-
-    //Device_GetStatus(&status);
-    setShort(sizeof (status_t), &buffer[offset]); //2 byte
-    offset += 2;
-    //memcpy(&buffer[offset], &status, sizeof (status_t));
-    memcpy(&buffer[offset], &g_dev.st, sizeof (status_t));
-    offset += sizeof (status_t);
-
-    return protocolSend(CMD_GET_HW_STATE, offset, __ACK_TIMEOUT_DEFAULT);
-}
-
-/* -------------------------------------------------------------------------- */
-bool sendKeepAlive() {
-    return protocolSend(CMD_KEEP_ALIVE, 10, __ACK_TIMEOUT_DEFAULT);
-}
-
-/* -------------------------------------------------------------------------- */
-bool Exchange_commandSendResponse(uint16_t dataSize){
-    return protocolSend(CMD_REALTIME_COMMAND, dataSize, __ACK_TIMEOUT_DEFAULT);
-}
-
-/* -------------------------------------------------------------------------- */
-void Exchange_commandsHandler(RealTimeCommandType *rtCommand) {
-    bool exit = false;
-    uint8_t command;
-    uint16_t indexMeasurement = 0;
-    uint16_t timeout = g_dev.cnf.exchange.app_timeout < __APP_TIMEOUT_DEFAULT ?
-            __APP_TIMEOUT_DEFAULT : g_dev.cnf.exchange.app_timeout;
-
-    uint8_t *rxData;
-
-    do {
-        command = CMD_NONE;
-        *rtCommand = RTCMD_NONE;
-        if (protocolReceive(&command, timeout)) {
-            rxData = ptrReceiveData();
-            switch (command) {
-                    //----------------------------------------------------------
-                case CMD_INIT_DEVICE:
-                    break;
-                    //----------------------------------------------------------
-                case CMD_SWITCH_MODE:
-                    if (rxData[0] == MODE_REALTIME) {
-                        // realtime
-                    } else if (rxData[0] == MODE_SLEEP) {
-                        exit = true;
-                    } else if (rxData[0] == MODE_RESET) {
-                        //ToDo jmp 0
-                    }
-                    break;
-                    //----------------------------------------------------------
-                case CMD_SET_DATE_TIME:
-                    setDateTime(rxData);
-                    break;
-                    //----------------------------------------------------------
-                case CMD_SET_DEVICE_CONFIG:
-                    setDeviceConfig(rxData);
-                    break;
-                    //----------------------------------------------------------
-                case CMD_GET_DEVICE_CONFIG:
-                    sendDeviceConfig();
-                    break;
-                    //----------------------------------------------------------
-                case CMD_GET_HW_STATE:
-                    sendDeviceState();
-                    break;
-                    //----------------------------------------------------------
-                case CMD_MEASUREMENT_AVAILABLE:
-                    indexMeasurement = 1;
-                    sendAvailableMeasurement(measurementCounter());
-                    break;
-                    //----------------------------------------------------------
-                case CMD_MEASUREMENT_RETRIEVE_NEXT:
-                    if (sendMeasurement(indexMeasurement)) {
-                        measurementDelete(indexMeasurement);
-                        indexMeasurement++;
-                    }
-                    break;
-                    //----------------------------------------------------------
-                case CMD_KEEP_ALIVE:
-                    sendKeepAlive();
-                    break;
-                    //----------------------------------------------------------
-                case CMD_REALTIME_COMMAND:
-                    *rtCommand = (RealTimeCommandType)rxData[0];
-                    exit = true;
-                    break;
-                    //----------------------------------------------------------
-                default:
-                    exit = true;
-                    break;
-            }
-        } else {
-            exit = true;
-        }
-        __clearWDT();
-    } while (!exit);
-}
-#endif
 
 #ifdef __DONGLE_PASSTHRU
 
@@ -746,6 +492,14 @@ int USBD_RxBuffer(uint8_t *buff, uint16_t maxSize) {
     return rxSize;
 }
 
+
+
+#endif
+
+
+
+#ifdef __DONGLE_PASSTHRU
+
 #define USBD_IsRxReady UART2_IsRxReady
 
 #define INACTIVITY_TIME 3000
@@ -757,7 +511,7 @@ void passthruMainLoop(void) {
 
     UART2_Initialize();
 
-    SPI1_Initialize();
+    //SPI1_Initialize();
 
     MRF24J40_Enable();
 
@@ -769,7 +523,7 @@ void passthruMainLoop(void) {
         //RF_TxBuffer("\x31\x32\x33\x34", 4);
         //__delay_ms(1000);
         //
-        
+
         if (MRF24J40_receivePacket()) {
             IO_LED1_On();
             lTimeOut = INACTIVITY_TIME;
