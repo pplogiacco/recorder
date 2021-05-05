@@ -26,8 +26,9 @@ void SPI1_Initialize(void) {
     SPI1CON1 = 0x132;
 
     // 100110010
-    //        10 = Primary prescale 4:1
+    //        10 = Primary prescale 4:1     ( 32Mhz/2Mhz)
     //     100 = Secondary prescale 4:1
+    //                                              
     //    1 = Master mode
     //   0 = Idle state is a low level; active state is a high level  
     //  0 = SSx pin is not used by the module;
@@ -106,7 +107,7 @@ void SPI1_Initialize(void) {
     SPI1STATL = 0x00;
     // SPI1BRGL 79; 
     // SPI1BRGL = 0x4F; // Baud Rate 100Khz (32Mhz)
-      SPI1BRGL = 0x13; // Baud Rate 100Khz (32Mhz)
+      SPI1BRGL = 0x03; // Baud Rate 2Mhz (32Mhz)
 
     // SPITBFEN disabled; SPITUREN disabled; FRMERREN disabled; SRMTEN disabled; SPIRBEN disabled; BUSYEN disabled; SPITBEN disabled; SPIROVEN disabled; SPIRBFEN disabled; 
     SPI1IMSKL = 0x00;

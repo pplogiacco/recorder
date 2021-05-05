@@ -40,16 +40,16 @@ Module  PIN Signal                      BUS Function
   
 PROG 	1 	MCLR Reset  
         2 	AN0                         (S) ADA2200 IN-P 
-        3	AN1                         (S) ADA2200 IN-N 
+        3	AN1                         (S) Batt Level   ( EX.ADA2200 IN-N) 
 USART2	4	U2RX/RB0/PGD1/RP0               MCP2221
         5	U2TX/RB1/PGC1/RP1               MCP2221
         6	AN4/T5CK/T4CK/RB2           (S) Wind speed sensor
         7	AN5/RB3                     (S) Temperature sensor
 POWER	8	Vss
         9	OSCI/AN13/CLKI/CN30/RA2     (S) MRF Chip Select
-    XXXXXXX      10  OSCO/AN14/CLKO/CN29/RA3     (S) Batt Level
+XX!     10  OSCO/RA3                    (S) FORZARE INPUT ( il 702 ha 9 ingrenni AN9 !! )
         11  SOSCI/AN15/U2RTS/CN1/RB4    (A) ??
-        12  SOSCO/SCLKI/U2CTS/CN0/RA4   (S)  
+        12  SOSCO/SCLKI/U2CTS/CN0/RA4   (S)  CS Flash ( SST26VF064B )
 POWER   13  Vdd
         14  RB5 Programming
         15  RB6 Programming
@@ -98,7 +98,11 @@ POWER   27  Vss
 #define __SENSOR_BOARD
 // Battery Level
 // 10  OSCO/AN14/CLKO/CN29/RA3     (S) Batt Level
-#define BAT_LVL_SetAnalogInput()   { _TRISA3=1;  _ANSA3=1; }   // AN0 
+#define BAT_LVL_SetAnalogInput()   { _TRISA1=1;  _ANSA1=1; }   // AN1 
+
+#define SST26_SS_SetDigitalOutputHigh()  {_TRISA4 = 0; _LATA4 = 1; }
+#define SST26_SS_SetHigh()   (_LATA4 = 1)
+#define SST26_SS_SetLow()    (_LATA4 = 0)
 #endif  
 
 
@@ -207,6 +211,7 @@ POWER   27  Vss
 #define MRF24_SS_SetLow()    (_LATA2 = 0)
 //#define MRF24_SS_SetDigital()  (_ANSA2 = 0)
 #define MRF24_SS_SetDigitalOutputHigh()  {_TRISA2 = 0; _ANSA2 = 0; _LATA2 = 1; } 
+
 
 #elif defined(__HWDONGLE)
 #define MRF24_SS    _RB15   // Chip select

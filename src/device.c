@@ -15,8 +15,6 @@
 
 extern device_t g_dev;
 
-
-
 uint16_t Device_CheckHwReset(void) {
 
     uint16_t rreason = (RCON & 0b1010010); // SWR (6), WDTO (4), BOR (1) 
@@ -110,6 +108,8 @@ void Device_Initialize() {
     RPINR3bits.T3CKR = 0x000F; //RB15->TMR3:T3CK (Synco/TMR3))
     ADA_SS_SetDigitalOutput(); // ADA2200.c
     ADA_SS_SetHigh();
+    // SST26  ( Flash )
+    SST26_SS_SetDigitalOutputHigh();
 
     // UART2 OK
     UART2_RX_SetDigitalInput();
@@ -126,7 +126,6 @@ void Device_Initialize() {
     // WS TMR2:T2CK
     RPINR3bits.T2CKR = 0x0002; //RB2->TMR2:T2CK (WindSpeed/TMR2))
     WS_IN_SetDigitalInputLow(); // Input RB2 (6) 
-
 
     //    RPOR4bits.RP8R = 0x0008; //RB8->SPI1:SCK1OUT
     //    RPINR3bits.T3CKR = 0x000F; //RB15->TMR3:T3CK
@@ -433,7 +432,6 @@ uint8_t Device_SwitchADG(uint8_t reg) { // ADG729_Switch(uint8_t reg)
     return (reg);
 }
 
-
 /*******************************************************************************
  D E V I C E   S W I T C H S Y S - R U N L E V E L 
  
@@ -528,26 +526,26 @@ bool Device_SwitchSys(runlevel_t rlv) {
 
             //#define Sleep()  __builtin_pwrsav(0)
             //#define Idle()   __builtin_pwrsav(1)
-           
+
             IEC0bits.INT0IE = 1; // enables INT0 (for change detection)
-//            RCON 
-            
-//            DSWAKE = 0;       
-//CLKDIV 
-//PMDx
-//DSCON
-//DSWAKE
-//DSGPR0 
-//DSGPR1
-//            //RCONbits.RETEN
-//            DSWAKEbits
+            //            RCON 
+
+            //            DSWAKE = 0;       
+            //CLKDIV 
+            //PMDx
+            //DSCON
+            //DSWAKE
+            //DSGPR0 
+            //DSGPR1
+            //            //RCONbits.RETEN
+            //            DSWAKEbits
             // Enable USB Wake-Up
             // Enable RTC Alarm Wake-Up
-            
+
             // set INT0 wake_up
             Sleep(); // enter in sleep mode
             IFS0bits.INT0IF = 0;
-            
+
 
 #endif
 
@@ -561,11 +559,11 @@ bool Device_SwitchSys(runlevel_t rlv) {
                  BSET DSCON DSEN;  \
                  PWRSAV#SLEEP_MODE; ");
 #elif defined(__PIC24FJ256GA702__)            
-//                        LPCFG must be programmed
-//(= 0) and the RETEN bit must be set (= 1) for
-//the regulator to be enabled.
+            //                        LPCFG must be programmed
+            //(= 0) and the RETEN bit must be set (= 1) for
+            //the regulator to be enabled.
 #endif
-           
+
             break;
         case SYS_OFF: // RTCC ( LTC shut-down and wake-up on Resume() ! )
             Device_SwitchADG(PW_OFF); // All off
@@ -587,6 +585,9 @@ bool Device_SwitchSys(runlevel_t rlv) {
             PMD1bits.T1MD = 0;
             PMD1bits.ADC1MD = 0;
 #elif defined(__PIC24FJ256GA702__)
+            PMD3bits.RTCCMD = 0; // RTCC
+            PMD1bits.I2C1MD = 0;
+            PMD1bits.T1MD = 0;
 
 #endif
             break;
@@ -594,7 +595,8 @@ bool Device_SwitchSys(runlevel_t rlv) {
         case SYS_ON_EXCHANGE: // I2C1,TMR1,SPI1,UART2
             Device_SwitchADG(PW_MRF); // RF Module switch-on
             ADA_SS_SetHigh();
-            
+            SST26_SS_SetHigh();
+
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))      
             //ADG729_Switch(_bs8(PW_MRF)); // RF Circuits On
             PMD3bits.RTCCMD = 0; // RTCC
@@ -604,7 +606,7 @@ bool Device_SwitchSys(runlevel_t rlv) {
             PMD1bits.U2MD = 0; // Uart2 On
 
 #elif defined(__PIC24FJ256GA702__)
-            //PMD3bits.RTCCMD = 0; // RTCC
+            PMD3bits.RTCCMD = 0; // RTCC
             PMD1bits.I2C1MD = 0;
             PMD1bits.T1MD = 0;
             PMD1bits.SPI1MD = 0; // Spi1 On
@@ -730,7 +732,10 @@ uint16_t Device_GetBatteryLevel() {
 #ifdef __PIC24FJ256GA702__
 
     // Enable ADG port 
-    BAT_LVL_SetAnalogInput(); // 10  OSCO/AN14/CLKO/CN29/RA3     (S) Batt Level
+    BAT_LVL_SetAnalogInput(); // (S) Batt Level ( AN1 )
+    uint8_t ad1md = PMD1bits.AD1MD;
+    PMD1bits.AD1MD = 0;
+
 
     // ____________________________________A/D Converter Setup
     AD1CON1 = 0; // No operation in Idle mode, Converter off
@@ -738,28 +743,30 @@ uint16_t Device_GetBatteryLevel() {
     AD1CON1bits.ASAM = 1; // Auto-Convert ON (end sampling and start conversion)
     AD1CON2 = 0; // Inputs are not scanned
     AD1CON3 = 0;
-    AD1CON3bits.SAMC = 14; // 16 Auto-Sample Time TAD
+    AD1CON1bits.SSRC = 0b0111; // Auto-Convert mode
+    AD1CON3bits.SAMC = 22; // 12 Auto-Sample Time TAD
+    AD1CON3bits.EXTSAM = 1; // Exyend sampling time
     AD1CON3bits.ADCS = 0x7; // ADC Clock ( 1TAD = 4 TCY -> 250 nS)
     AD1CON5 = 0; // No CTMU, No Band Gap Req. ( VBG=1.2V, Vdd = 3.3 Volt +/-5%)
     AD1CHS = 0; // No channels
-    // AD1CHSbits.CH0SA = 0b00101; // S/H+ Input A (AN5)  
-    // AD1CHSbits.CH0SA = 0b00101; // S/H+ Input A (AN5)  ???????
+    AD1CHSbits.CH0SA = 1; // S/H+ Input A (AN1)
     AD1CSSL = 0; // No Scan, ADC1MD bit in the PMD1
 
     // ____________________________________Acquire
     AD1CON1bits.ADON = 1; // Turn on A/D
     //while (0) {
     AD1CON1bits.SAMP = 1; // Start sampling the input
-    //  __delay(1); // Ensure the correct sampling time has elapsed
-    AD1CON1bits.SAMP = 0; // End sampling and start conversion
+    // __delay(1); // Ensure the correct sampling time has elapsed
+    //AD1CON1bits.SAMP = 0; // End sampling and start conversion
     while (!AD1CON1bits.DONE) {
         Nop();
-        Nop(); //printf("adc=%d \n", ADC1BUF0);
     }
     AD1CON1bits.ADON = 0; // ADC Off
     //*dbuf =  (1024 - ADC1BUF0);
+    //printf("adc=%d \n", ADC1BUF0);
+    PMD1bits.AD1MD = ad1md;
 
-    return 0;
+    return (ADC1BUF0);
 #endif
 }
 

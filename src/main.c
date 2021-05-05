@@ -244,7 +244,7 @@ int main(void) {
                     //                        __delay(5000);
                     //                    }
                     //state = SAMPLING;
-                    __delay(20000);
+                    __delay(10000);
                 }
 
                 break;
@@ -263,12 +263,26 @@ int main(void) {
     _TRISB2 = 0; // Out
 
     int i;
+    timestamp_t stime;
     //UART2_Initialize();
     UART2_Enable();
     Device_SwitchADG(0xFF); //_bs8(PW_WST) | _bs8(PW_ADA));
-
+    
     RTCC_GetTime(&stime);
     printf("[%u:%u:%u]\n#:", stime.hour, stime.min, stime.sec);
+
+
+#ifdef __VAMP1K_TEST_BATTERY
+
+    Device_SwitchSys(SYS_DEFAULT);
+    
+    while (1) {
+        printf("Read battery level... \n");
+        printf("level=%d  \n", Device_GetBatteryLevel());
+        __delay(1000);
+        // RTCC_GetTimeL();
+    }
+#endif
 
 #ifdef __VAMP1K_TEST_SLEEP
 

@@ -135,12 +135,12 @@ uint16_t measurementAcquire(measurement_t * ms) {
             //ms->ss = SSBUF; // Return 1..N/2+1 
             //
 
-            int i;
-            ms->nss = (nsamples >> 1); // send 512 Coefficients
-            ptrSS = (ms->ss + ms->ns);
-            for (i = 0; i < ms->nss; i++) {
-                *(ptrSS + i) = *(ptrSS + i + 1);
-            }
+            ms->nss = (nsamples >> 1); // 512 Coefficients ( only positive - half spectrum )
+                       // int i;
+//            ptrSS = (ms->ss + ms->ns);
+//            for (i = 0; i < ms->nss; i++) {
+//                *(ptrSS + i) = *(ptrSS + i + 1);
+//            }
 
             break;
 

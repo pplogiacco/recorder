@@ -44,6 +44,8 @@ static short N_WAVE = 0; // Signal & FFT points
 #define max(a,b) (a>b)?a:b
 #define min(a,b) (a<b)?a:b
 #define log_min 0x10   
+#define _Pi  3.14159265359
+#define _2Pi 6.28318530718
 
 #if defined(__FFT_TABLED) 
 static fix14_t Sinewave[MAX_N_WAVE]; // a table of sines for the FFT
@@ -64,10 +66,10 @@ void fft_init(short log2_n) { // populate one cycle sine table required for FFT,
 #if defined(__FFT_TABLED)     
         short i;
         for (i = 0; i < N_WAVE; i++) {
-            Sinewave[i] = float2fix14(sin(6.283 * ((float) i) / N_WAVE)*0.5);
+            Sinewave[i] = float2fix14(sinf(_2Pi * ((float) i) / N_WAVE)*0.5);
             //printf("[%d] = %d", ii, Sinewave[ii]);
-            window[i] = float2fix14(1.0 * (1.0 - cos(6.283 * ((float) i) / (N_WAVE - 1))));
-            //window[i] = float2fix(1.0) ;
+            //window[i] = float2fix14(1.0 * (1.0 - cosf(_2Pi * ((float) i) / (N_WAVE - 1))));
+            window[i] = float2fix14(1.0) ;
         }
 #endif
     }

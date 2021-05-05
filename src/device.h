@@ -43,6 +43,9 @@
 //#define __VAMP1K_TEST_CONFIG 
 //#define __VAMP1K_TEST_ADG
 //#define __VAMP1K_TEST_USB
+#define __VAMP1K_TEST_BATTERY
+//#define __VAMP1K_TEST_SLEEP
+
 
 //#define __VAMP1K_TEST_AV_printf    // Test Acquire/ADC HW
 
