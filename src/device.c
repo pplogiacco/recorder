@@ -4,7 +4,7 @@
 #include "modules/RTCC.h"
 #include "exchange/uart2.h"
 #include "device.h"
-
+#include "utils.h"
 //#include "modules/RTCC.h"
 //#if defined(__PIC24FJ256GA702__)   
 //#include "memory/flash702.h"
@@ -733,6 +733,7 @@ uint16_t Device_GetBatteryLevel() {
 
     // Enable ADG port 
     BAT_LVL_SetAnalogInput(); // (S) Batt Level ( AN1 )
+    BAT_LVL_OLD2LOW();
     uint8_t ad1md = PMD1bits.AD1MD;
     PMD1bits.AD1MD = 0;
 
@@ -743,9 +744,10 @@ uint16_t Device_GetBatteryLevel() {
     AD1CON1bits.ASAM = 1; // Auto-Convert ON (end sampling and start conversion)
     AD1CON2 = 0; // Inputs are not scanned
     AD1CON3 = 0;
-    AD1CON1bits.SSRC = 0b0111; // Auto-Convert mode
-    AD1CON3bits.SAMC = 22; // 12 Auto-Sample Time TAD
-    AD1CON3bits.EXTSAM = 1; // Exyend sampling time
+    //AD1CON1bits.SSRC = 0b0111; // Auto-Convert mode
+    AD1CON1bits.SSRC = 00; // SAMP is cleared by softwar
+    AD1CON3bits.SAMC = 14; // 12 Auto-Sample Time TAD
+    AD1CON3bits.EXTSAM = 1; // Extend sampling time
     AD1CON3bits.ADCS = 0x7; // ADC Clock ( 1TAD = 4 TCY -> 250 nS)
     AD1CON5 = 0; // No CTMU, No Band Gap Req. ( VBG=1.2V, Vdd = 3.3 Volt +/-5%)
     AD1CHS = 0; // No channels
@@ -756,8 +758,8 @@ uint16_t Device_GetBatteryLevel() {
     AD1CON1bits.ADON = 1; // Turn on A/D
     //while (0) {
     AD1CON1bits.SAMP = 1; // Start sampling the input
-    // __delay(1); // Ensure the correct sampling time has elapsed
-    //AD1CON1bits.SAMP = 0; // End sampling and start conversion
+     __delay(1); // Ensure the correct sampling time has elapsed
+    AD1CON1bits.SAMP = 0; // End sampling and start conversion
     while (!AD1CON1bits.DONE) {
         Nop();
     }
