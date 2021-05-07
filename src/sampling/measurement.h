@@ -49,7 +49,7 @@ typedef enum e_typeset {
     _AV01 = 0x0D, // (13) Aeolian Vibration, P-P { <ET>,<WS>,<adc_fq> <res_scale,[<dT>,<sp>],...}
     _AV02 = 0x0C, // (12) Aeolian Vibration, FFT Real { <ET>,<WS>,<adc_fq>,<log2_n>,[<rH1>],...,[<rH((2^log2_n)/2)>]}
     _AV03 = 0x0E,  // FFT Real { <ET>,<WS>,<adc_fq>,<log2_n>,[<rH1>],...,[<rH((2^log2_n)/2)>]}
-    _AV04 = 0x04  // Aeolean Vibration, samples without dT !
+    _AV04 = 0x04   // Aeolean Vibration, samples without dT !
 } typeset_t;
 
 typedef struct {

@@ -51,11 +51,11 @@ extern "C" {
     void Timestamp2Time(timestamp_t *t);
     //void Time2Timestamp(timestamp_t *t);
     
-    // Timeout utils
-    void Timeout_SetCallBack(void (* NewCallBack)(void));
-    void Timeout_Set(uint16_t nsec, uint16_t nms);
-    void Timeout_Unset(void);
-    bool isTimeout(void);
+//    // Timeout utils
+//    void Timeout_SetCallBack(void (* NewCallBack)(void));
+//    void Timeout_Set(uint16_t nsec, uint16_t nms);
+//    void Timeout_Unset(void);
+//    bool isTimeout(void);
 
 
 #ifdef __cplusplus  // Provide C++ Compatibility

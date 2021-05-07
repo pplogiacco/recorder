@@ -35,7 +35,7 @@ uint16_t measurementAcquire(measurement_t * ms) {
     //g_dev.cnf.general.typeset = _AV00;
 #endif
 
-    if ((g_dev.cnf.general.typeset == _AV00) || (g_dev.cnf.general.typeset == _AV01)) {
+    if ((g_dev.cnf.general.typeset == _AV00) || (g_dev.cnf.general.typeset == _AV01) || (g_dev.cnf.general.typeset == _AV04)) {
         ms->ss = ptrSS;
         ms->dtime = RTCC_GetTimeL(); // get RTC datetime
         /* ----------------- TMR3/ADC Frequency    
@@ -136,17 +136,25 @@ uint16_t measurementAcquire(measurement_t * ms) {
             //
 
             ms->nss = (nsamples >> 1); // 512 Coefficients ( only positive - half spectrum )
-                       // int i;
-//            ptrSS = (ms->ss + ms->ns);
-//            for (i = 0; i < ms->nss; i++) {
-//                *(ptrSS + i) = *(ptrSS + i + 1);
-//            }
+            // int i;
+            //            ptrSS = (ms->ss + ms->ns);
+            //            for (i = 0; i < ms->nss; i++) {
+            //                *(ptrSS + i) = *(ptrSS + i + 1);
+            //            }
 
+            break;
+
+        case _AV04: // Aeolian Vibration, No DTime
+            ms->typeset = _AV01;
+            nsamples = acquireAV(ptrSS, g_dev.cnf.general.cycletime, (SS_BUF_SIZE - ms->ns), adc_fq, \
+                    (g_dev.cnf.calibration.av_filter < 1) ? 1 : g_dev.cnf.calibration.av_filter);
+            ms->nss = nsamples;
+            Device_SwitchSys(SYS_DEFAULT); // Device_SwitchPower(lastPwrState);
             break;
 
         case _SS00: // Vamp1K encoder Sub-span oscillation: // Raw sample signal
             break;
-            
+
         case _SIG0: // Demo signal
             ms->ss = ptrSS;
             ms->typeset = _SIG0;

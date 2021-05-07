@@ -9,7 +9,7 @@
 //
 #include "utils.h"
 #include "modules/RTCC.h"
-#include "exchange/uart2.h"
+#include "modules/UART2.h"
 //
 #include "exchange/exchange.h"
 #include "sampling/measurement.h"
@@ -30,12 +30,13 @@ long attempt_last_time;
 
 int waittime = 0;
 
-void __attribute__((weak)) EX_INT0_CallBack(void) {
-}
+//void __attribute__((weak)) EX_INT0_CallBack(void) {
+//}
 
 void __attribute__((interrupt, no_auto_psv, weak)) _INT0Interrupt(void) {
     IFS0bits.INT0IF = 0;
 }
+
 
 /*
 volatile int tmr3trig = 0;
@@ -66,7 +67,6 @@ void tmr2_wscapture(void) {
 }
  */
 
-
 int main(void) {
 
     uint16_t rtDataSize = 0;
@@ -82,8 +82,6 @@ int main(void) {
 
     //    attempt_last_time = 0;
     //    _TRISB2 = 0; // Out
-
-
 #ifdef __DONGLE_PASSTHRU
     passthruMainLoop();
 #endif

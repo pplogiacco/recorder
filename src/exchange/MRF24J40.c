@@ -1,7 +1,8 @@
 #include <string.h>
 #include "../device.h"
-#include "MRF_spi1.h"
 #include "../utils.h"
+
+#include "../modules/SPI1.h"    // Driver
 #include "MRF24J40.h"
 
 #define MRF_RXMCR    0x00
@@ -318,7 +319,7 @@ void MRF24J40_Disable() {
 }
 
 void MRF24J40_Enable() {
-    SPI1_Initialize();
+    SPI1_Enable();
     MRF24J40_reset(); // Perform software reset
     MRF24J40_init(); // Reinitialize all registers
 }

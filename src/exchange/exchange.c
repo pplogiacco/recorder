@@ -7,14 +7,15 @@
 #include "../utils.h"   // <stdio.h> printf
 #include "../device.h" // isUsbConnected()
 
-#include "uart2.h"
+//#include "../modules/UART2.h"
 //#include "MRF_spi1.h"
-#include "MRF24J40.h"
-#include "exchange.h"
+//#include "MRF24J40.h"
 
 #include "../modules/RTCC.h"
 #include "../sampling/measurement.h"
 #include "protocol.h"
+#include "exchange.h"
+
 
 #ifndef __DONGLE_PASSTHRU
 

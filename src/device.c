@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdio.h>  // printf
 #include "modules/RTCC.h"
-#include "exchange/uart2.h"
+#include "modules/UART2.h"
 #include "device.h"
 #include "utils.h"
 //#include "modules/RTCC.h"

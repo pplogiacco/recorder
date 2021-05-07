@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "xc.h"
-#include "uart2.h"
+#include "UART2.h"
 
 
 /** UART Driver Queue Status
@@ -447,7 +447,10 @@ void __attribute__((deprecated)) UART2_Disable(void) {
 #endif // __PIC24FJ256GA702__
 
 /* -------------------------------------------------------------------------- */
+
 int __attribute__((__section__(".libc.write"))) write(int handle, void *buffer, unsigned int len) {
+    
+#if (1)    
     unsigned int i;
     uint8_t *data = buffer;
 
@@ -456,5 +459,7 @@ int __attribute__((__section__(".libc.write"))) write(int handle, void *buffer, 
         }
         UART2_Write(*data++);
     }
+#endif
+    
     return (len);
 }

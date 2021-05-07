@@ -377,7 +377,7 @@ uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc
  * wind_speed = pulses * wsFactor = m/s                                       *
  *----------------------------------------------------------------------------*/
 
-void acquire_INIT(uint16_t freq) {
+void acquireAV_INITFFT(uint16_t freq) {
 
 #if defined( __PIC24FJ256GA702__ ) // New sensor board & PIC 702
 
@@ -457,7 +457,7 @@ uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uin
     uint16_t iP = 0;
 
     fft_init(log2_npoints); // Initialize tables 
-    acquire_INIT(adc_fq); // ADC sampling frequency
+    acquireAV_INITFFT(adc_fq); // ADC sampling frequency
     ADA2200_Enable(); // Power-on: SPI1, Sensor Board LINE1
     acquireAV_START(0); // No timeout, full filled buffer
     while (iP < npoints) {
@@ -472,6 +472,39 @@ uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uin
     fft_spectrum(dbuf);
 
     return (iP);
+}
+
+uint16_t acquireAV_NODT(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc_pr3, uint16_t pp_filter) {
+#ifdef __VAMP1K_TEST
+    printf("AV_NODT\n");
+#endif  
+
+    ptrDB = dbuf;
+    acquireAV_INIT(adc_pr3, true); // Use ADA2200 Synco 
+    acquireAV_START(nsec);
+
+#if defined( __VAMP1K_TEST ) && defined( __VAMP1K_TEST_AV_printf )
+    while (!isTimeout()) { // Loop until cycle-time or full filled buffer
+        if (_adcReady) { // New data available
+            _adcReady--;
+            printf("%d \n", ADC1BUF0);
+        }// _adcReady
+    }
+#else        
+
+    while ((nSamples < db_size) && _cycletime) { // Loop until cycle-time or full filled buffer
+        if (_adcReady) { // New data available
+            _adcReady--;
+            *ptrDB = ADC1BUF0; //(SCALE_TOUNSIGNED - ADC1BUF0); // Positive point
+            //        _LATB2 ^= 1; // IO_LED2_Toggle() 
+            ptrDB++;
+            nSamples++;
+        }// _adcReady
+    }
+    
+#endif
+    acquireAV_STOP();
+    return (nSamples);
 }
 
 /* -------------------------------------------------------------------------- *
@@ -545,7 +578,7 @@ uint16_t acquireET(sample_t* dbuf) { // RealTime ?
  *----------------------------------------------------------------------------*/
 
 #define __nWSS 3    // Everage 2 samples
-static const uint16_t _nWSS=__nWSS;
+static const uint16_t _nWSS = __nWSS;
 volatile int _icycle;
 volatile int _wsready;
 volatile int _wsptime[__nWSS];
@@ -630,12 +663,12 @@ uint16_t acquireWS(sample_t* dbuf) {
     TMR2 = 0x00; // TMR2 Counter Register
     PR2 = 0xFFFF; // TMR4 Single event
 
-    
-//    for (_icycle = 0; _icycle < _nWSS; _icycle++) {
-//        _wsptime[_icycle] = 0;
-//    }
-    _icycle = 0;   // Cycle index 
-    _wsready = 0;  // Start/Stop flag
+
+    //    for (_icycle = 0; _icycle < _nWSS; _icycle++) {
+    //        _wsptime[_icycle] = 0;
+    //    }
+    _icycle = 0; // Cycle index 
+    _wsready = 0; // Start/Stop flag
 
     Timeout_SetCallBack(everySecond);
     T2CONbits.TON = 1;
@@ -645,8 +678,8 @@ uint16_t acquireWS(sample_t* dbuf) {
     }
     Timeout_Unset();
     T2CONbits.TON = 0;
-    
-//    _wsptime[0] = 0;
+
+    //    _wsptime[0] = 0;
     for (_icycle = 2; _icycle < _nWSS; _icycle++) { // Compute average
         _wsptime[1] += _wsptime[_icycle];
     }

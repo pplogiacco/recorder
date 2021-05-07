@@ -1,39 +1,4 @@
 /*******************************************************************************
- * PIC24FV32KA301/302 (28 Pins)                                                *
- *******************************************************************************
-Module  PIN Signal                      BUS Function
-  
-PROG 	1 	MCLR Reset  
-        2 	AN0                         (S) ADA2200 IN-P 
-        3	AN1                         (S) ADA2200 IN-N 
-USART2	4	U2RX/RB0/PGD1/RP0               MCP2221
-        5	U2TX/RB1/PGC1/RP1               MCP2221
-        6	AN4/T5CK/T4CK/RB2           (S) Wind speed sensor
-        7	AN5/RB3                     (S) Temperature sensor
-POWER	8	Vss
-        9	OSCI/AN13/CLKI/CN30/RA2     (S) MRF Chip Select
-        10  OSCO/AN14/CLKO/CN29/RA3     (S) Batt Level
-        11  SOSCI/AN15/U2RTS/CN1/RB4    (A) ??
-        12  SOSCO/SCLKI/U2CTS/CN0/RA4   (S)  
-POWER   13  Vdd
-        14  RB5 Programming
-        15  RB6 Programming
-        16  INT0/CN23/RB7/OC1           (S)  Wake-up USB / (diode) MRF Int
-I2C1    17  SCL1/C3OUT/CTED10/CN22/RB8
-        18  SDA1/T1CK/IC2/CN21/RB9
-        19  SDI2/IC1/CTED3/CN9/RA7           POWER ENA 3127 ( verif. Hi/VCAP )*
-        20  VCAP
-        23  RB12                        (S)  ADA2200 Chip Select
-SPI1    21  SDI (S) 
-        22  SCLK (S)
-        24  SDO
-        25  AN10/INT1/RB14              (S) Encoder B
-        26  AN9/C3INA/T3CK/T2CK/SS1     (S) ADA2200 Synco / Encoder A
-POWER   27  Vss
-        28  Vdd
- *******************************************************************************/
-
-/*******************************************************************************
  * PIC24FJ256GA702 (28 Pins) ( 705 Family )                                    *
  *******************************************************************************
 Module  PIN Signal                      BUS Function
@@ -47,7 +12,7 @@ USART2	4	U2RX/RB0/PGD1/RP0               MCP2221
         7	AN5/RB3                     (S) Temperature sensor
 POWER	8	Vss
         9	OSCI/AN13/CLKI/CN30/RA2     (S) MRF Chip Select
-XX!     10  OSCO/RA3                    (S) FORZARE INPUT ( il 702 ha 9 ingrenni AN9 !! )
+XX!     10  OSCO/RA3                    (S) FORZARE INPUT (il 702 ha 9 AN!!)
         11  SOSCI/AN15/U2RTS/CN1/RB4    (A) ??
         12  SOSCO/SCLKI/U2CTS/CN0/RA4   (S)  CS Flash ( SST26VF064B )
 POWER   13  Vdd
@@ -261,3 +226,37 @@ POWER   27  Vss
 #endif // HARDWARE_H
 
 
+/*******************************************************************************
+ * PIC24FV32KA301/302 (28 Pins)                                                *
+ *******************************************************************************
+Module  PIN Signal                      BUS Function
+  
+PROG 	1 	MCLR Reset  
+        2 	AN0                         (S) ADA2200 IN-P 
+        3	AN1                         (S) ADA2200 IN-N 
+USART2	4	U2RX/RB0/PGD1/RP0               MCP2221
+        5	U2TX/RB1/PGC1/RP1               MCP2221
+        6	AN4/T5CK/T4CK/RB2           (S) Wind speed sensor
+        7	AN5/RB3                     (S) Temperature sensor
+POWER	8	Vss
+        9	OSCI/AN13/CLKI/CN30/RA2     (S) MRF Chip Select
+        10  OSCO/AN14/CLKO/CN29/RA3     (S) Batt Level
+        11  SOSCI/AN15/U2RTS/CN1/RB4    (A) ??
+        12  SOSCO/SCLKI/U2CTS/CN0/RA4   (S)  
+POWER   13  Vdd
+        14  RB5 Programming
+        15  RB6 Programming
+        16  INT0/CN23/RB7/OC1           (S)  Wake-up USB / (diode) MRF Int
+I2C1    17  SCL1/C3OUT/CTED10/CN22/RB8
+        18  SDA1/T1CK/IC2/CN21/RB9
+        19  SDI2/IC1/CTED3/CN9/RA7           POWER ENA 3127 ( verif. Hi/VCAP )*
+        20  VCAP
+        23  RB12                        (S)  ADA2200 Chip Select
+SPI1    21  SDI (S) 
+        22  SCLK (S)
+        24  SDO
+        25  AN10/INT1/RB14              (S) Encoder B
+        26  AN9/C3INA/T3CK/T2CK/SS1     (S) ADA2200 Synco / Encoder A
+POWER   27  Vss
+        28  Vdd
+ *******************************************************************************/

@@ -3,17 +3,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../utils.h"
-#include "protocol.h"
-// #include "exchange.h"
-
-//#include "../modules/RTCC.h"
-//#include "../sampling/measurement.h"
-
+#include "../utils.h"   // Timeout 
 #include "../device.h"   // Compiler defines
-#include "uart2.h"
+
+#include "../modules/UART2.h" // Channel's drivers
 #include "MRF24J40.h"
-#include "../modules/RTCC.h"    // Timeout 
+
+//#include "../modules/RTCC.h"  // Datetime resources
+
+#include "protocol.h"
+
+
 
 #ifndef __DONGLE_PASSTHRU
 

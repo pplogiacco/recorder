@@ -1,20 +1,14 @@
+#include "xc.h"
+#include "..\device.h"  // Pins definitions ( Hardware )
+#include "SPI1.h"
 
-#include "MRF_spi1.h"
-#include "..\device.h"
-/**
- Section: File specific functions
- */
 
 inline __attribute__((__always_inline__)) SPI1_TRANSFER_MODE SPI1_TransferModeGet(void);
 void SPI1_Exchange(uint8_t *pTransmitData, uint8_t *pReceiveData);
 uint16_t SPI1_ExchangeBuffer(uint8_t *pTransmitData, uint16_t byteCount, uint8_t *pReceiveData);
 
-/**
- Section: Driver Interface Function Definitions
- */
 
-void SPI1_Initialize(void) {
-
+void SPI1_Enable(void) {
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
     TRISB = 0x4197; //for TX
     ANSB = 0x0014; //for RX
@@ -143,8 +137,6 @@ void SPI1_Initialize(void) {
     SPI1STATLbits.SPIROV = 0; // Receive Overflow Flag (0=NO Overflow).
 
 #endif
-
-
 }
 
 void SPI1_Exchange(uint8_t *pTransmitData, uint8_t *pReceiveData) {
@@ -376,11 +368,5 @@ void SPI1_Disable() {
 
 #endif
 
-
-
 }
 
-
-/**
- End of File
- */

@@ -33,6 +33,13 @@
 
 #define __delay(x) __delay_ms(x)
 #define __noop(x) __delay32(x) // delay of the requested number of cycles (min 12)
-        
+
+
+// Timeout utils
+void Timeout_SetCallBack(void (* NewCallBack)(void));
+void Timeout_Set(uint16_t nsec, uint16_t nms);
+void Timeout_Unset(void);
+bool isTimeout(void);
+
 #endif	/* UTILS_H */
 

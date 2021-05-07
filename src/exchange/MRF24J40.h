@@ -69,9 +69,9 @@ extern "C" {
         MRF24J40MA, MRF24J40MB, MRF24J40MC, MRF24J40MD, MRF24J40ME
     };
 
-    void MRF24J40_init();
-
     void MRF24J40_Enable();
+
+    void MRF24J40_init();
 
     void MRF24J40_Disable();
 
