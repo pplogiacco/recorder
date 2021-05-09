@@ -35,7 +35,7 @@ void Timeout_Set(uint16_t nsec, uint16_t nms) {
         TMR1 = 0; // Clear timer register 
         if (nsec > 0) { // Scount sec and ignore ms
             T1CONbits.TCKPS = 0b01; // Select 1:8 Prescaler   
-            PR1 = ( nsec * 0xF22); // Tick = 1s
+            PR1 = ( nsec * 0xF22)>>1; // Tick = 1s
         } else { // count ms
             T1CONbits.TCKPS = 0b00; // Select 1:1 (LPRC 1/31Khz * 0x1E = )
             PR1 = (nms * 0x1E); // ( 0x1E = 125 = 1ms period )

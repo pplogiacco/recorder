@@ -26,29 +26,30 @@
 //#define __DONGLE_VAMP1K_AUTOSEND // Simulate Device ( Demo Signal only !!)
 //#define __DONGLE_TEST_FILE
 
-// Recorder:
-//#define __VAMP1K_TEST
-#define __VAMP1K
+#define __VAMP1K_TEST
+
 //#define __NOFLASH    // Use RAM to store config
 //#define __NOUSB      // Force to use RF ( USB not connect )
 //------------------------------------------------------------------------------
 
 
+#define __VAMP1K
 #ifdef __VAMP1K_TEST
 #undef __VAMP1K
-// Testing
+
+// Test HW
 //#define __VAMP1K_TEST_HW                      // Perform hardware test
 //#define __VAMP1K_TEST_RESET
 //#define __VAMP1K_TEST_TIMER
 //#define __VAMP1K_TEST_CONFIG 
 //#define __VAMP1K_TEST_ADG
 //#define __VAMP1K_TEST_USB
-#define __VAMP1K_TEST_BATTERY
-//#define __VAMP1K_TEST_SLEEP
+//#define __VAMP1K_TEST_BATTERY
+//#define __VAMP1K_TEST_SST26
+#define __VAMP1K_TEST_SLEEP
 
-
+// Test Sampling
 //#define __VAMP1K_TEST_AV_printf    // Test Acquire/ADC HW
-
 //#define __VAMP1K_TEST_measurement_printf  // Test Measurement format 
 //#define __VAMP1K_TEST_measurement_DATAVIS    // send ADC to serial mc datavis
 
@@ -66,7 +67,6 @@
 #define SYS_CLK_FrequencySystemGet()        _FOSC_
 #define SYS_CLK_FrequencyPeripheralGet()    _FOSC_
 #define SYS_CLK_FrequencyInstructionGet()   _FCY_
-
 
 typedef enum { // 
     STARTUP, // Switch-on state
@@ -129,10 +129,8 @@ uint16_t Device_CheckHwReset(void);
 #define PW_RS2     (0b000000)
 #define PW_ENC     (0b000000)
 
-uint8_t Device_SwitchADG(uint8_t reg);
+void Device_SwitchADG(uint8_t reg);
 uint16_t Device_GetBatteryLevel();
-
-
 
 #define __clearWDT()  ClrWdt()
 

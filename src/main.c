@@ -14,6 +14,7 @@
 #include "exchange/exchange.h"
 #include "sampling/measurement.h"
 #include "memory/storage.h"
+#include "memory/SST26VF064B.h"
 
 //------------------------------------------------------------------------------
 // Global Device 
@@ -33,25 +34,23 @@ int waittime = 0;
 //void __attribute__((weak)) EX_INT0_CallBack(void) {
 //}
 
-void __attribute__((interrupt, no_auto_psv, weak)) _INT0Interrupt(void) {
-    IFS0bits.INT0IF = 0;
-}
-
-
 /*
+
+// TEST TMR3
 volatile int tmr3trig = 0;
 void __attribute__((__interrupt__, no_auto_psv)) _T3Interrupt(void) {
     tmr3trig = 1;
     IFS0bits.T3IF = 0; // ClearInt Flag
 }
 
+// TEST TMR2
 volatile int tmr2trig = 0;
-
 void __attribute__((__interrupt__, no_auto_psv)) _T2Interrupt(void) {
     tmr2trig = 1;
     IFS0bits.T2IF = 0; // ClearInt Flag
 }
 
+// WINDSPEED on TMR2
 volatile int tmr2_wsready = 0;
 volatile int tmr2_icycle = 0;
 volatile int tmr2_wsptime[5];
@@ -65,6 +64,7 @@ void tmr2_wscapture(void) {
         TMR2 = 0;
     }
 }
+ 
  */
 
 int main(void) {
@@ -219,14 +219,14 @@ int main(void) {
                 //lstate = EXCHANGE_RT;
                 lstate = state;
                 state = SAMPLING;
-
+                //state = EXCHANGE;
                 // Enable USB Wake-Up
                 // Enable RTC Alarm Wake-Up
+                
                 if (!Device_IsUsbConnected()) {
-                    //Device_SwitchSys(SYS_SLEEP);
+                    Device_SwitchSys(SYS_SLEEP);
                     //  until wake-up event
-                    //state = EXCHANGE;
-
+                    
                     Device_SwitchSys(SYS_DEFAULT);
 
 
@@ -262,43 +262,8 @@ int main(void) {
 
     int i;
     timestamp_t stime;
-    //UART2_Initialize();
+    // UART2_Initialize();
     UART2_Enable();
-    Device_SwitchADG(0xFF); //_bs8(PW_WST) | _bs8(PW_ADA));
-    
-    RTCC_GetTime(&stime);
-    printf("[%u:%u:%u]\n#:", stime.hour, stime.min, stime.sec);
-
-
-#ifdef __VAMP1K_TEST_BATTERY
-
-    Device_SwitchSys(SYS_DEFAULT);
-    
-    while (1) {
-        printf("Read battery level... \n");
-        printf("level=%d  \n", Device_GetBatteryLevel());
-        __delay(1000);
-        // RTCC_GetTimeL();
-    }
-#endif
-
-#ifdef __VAMP1K_TEST_SLEEP
-
-    // Enable USB Wake-Up
-    // Device_IsUsbConnected()
-    // Enable RTC Alarm Wake-Up
-
-
-    while (1) {
-        printf("Put into sleep mode... \n");
-        Device_SwitchSys(SYS_SLEEP);
-        //  until wake-up event
-        Device_SwitchSys(SYS_DEFAULT);
-        printf("Hello, wake-up ! \n");
-    }
-    printf("USB Ready ! \n");
-#endif
-
 
 #ifdef __VAMP1K_TEST_USB
     while (!Device_IsUsbConnected()) {
@@ -307,19 +272,6 @@ int main(void) {
     }
     printf("USB Ready ! \n");
 #endif
-
-
-#ifdef __VAMP1K_TEST_CONFIG
-    while (1) {
-        Device_ConfigRead(&g_dev.cnf); // Read from EEprom/Flash
-        __delay(5000);
-    }
-#else    
-    Device_ConfigRead(&g_dev.cnf); // Read from EEprom/Flash
-    //    Device_ConfigDefaultSet(&g_dev.cnf);
-    //    Device_ConfigWrite((uint8_t*) & g_dev.cnf); // Write EEprom/Flash
-#endif
-
 
 #ifdef __VAMP1K_TEST_ADG
     while (1) {
@@ -333,6 +285,111 @@ int main(void) {
 #else
     Device_SwitchADG(0xFF); //_bs8(PW_WST) | _bs8(PW_ADA));
 #endif      
+
+    RTCC_GetTime(&stime);
+    printf("[%u:%u:%u]\n#:", stime.hour, stime.min, stime.sec);
+
+
+
+
+
+#ifdef __VAMP1K_TEST_SST26
+
+    Device_SwitchSys(SYS_ON_EXCHANGE); // SPI
+
+    unsigned long sst_addr = 0;
+    uint8_t datas[32];
+
+    SST26_Enable();
+    SST26_Switch_Power();
+    //    SST26_ResetEn();
+    //    SST26_Reset();
+    SST26_Global_Block_Protection_Unlock();
+    SST26_WREN();
+    SST26_Block_Erase(sst_addr); // Set 4K in 0xFF state
+    //SST26_Chip_Erase();
+
+    int man, typ, id;
+
+    while (1) {
+        printf("______SST26VF064B  Test: \n");
+        SST26_Jedec_ID_Read(&man, &typ, &id);
+        printf("manufacturer=%u  \n", man);
+        printf("device_type=%u  \n", typ);
+        printf("identifier=%u  \n", id);
+        printf("config_reg=%u  \n", SST26_Read_Configuration());
+        printf("status_reg=%u  \n", SST26_Read_Status());
+
+        SST26_WREN();
+        sst_addr = 0;
+
+        SST26_Wait_Busy();
+        for (i = 0; i < 16; i++) {
+            datas[i] = i;
+        }
+        //SST26_Page_Program(sst_addr, &datas[0]);
+        SST26_WREN();
+        SST26_Write_Bytes(sst_addr, datas, 16);
+        printf("status=%u  \n", SST26_Read_Status());
+        SST26_Wait_Busy();
+        printf("Write page ok !\n");
+        SST26_WRDI();
+
+        printf("status=%u  \n", SST26_Read_Status());
+
+        // RTCC_GetTimeL();
+        //SST26_Read_Cont(sst_addr, 16, (unsigned int*) datas);
+        SST26_Read_Bytes(sst_addr, 16, datas);
+        for (i = 0; i < 16; i++) {
+            //            printf("Read[%u]=%u \n", i, SST26_Read(sst_addr++));
+            printf("Read[%u]=%u \n", i, datas[i]);
+        }
+        __delay(5000);
+    }
+    SST26_Disable();
+    Device_SwitchSys(SYS_DEFAULT); // SPI
+#endif    
+
+
+#ifdef __VAMP1K_TEST_CONFIG
+    while (1) {
+        Device_ConfigRead(&g_dev.cnf); // Read from EEprom/Flash
+        __delay(5000);
+    }
+#else    
+    Device_ConfigRead(&g_dev.cnf); // Read from EEprom/Flash
+    //    Device_ConfigDefaultSet(&g_dev.cnf);
+    //    Device_ConfigWrite((uint8_t*) & g_dev.cnf); // Write EEprom/Flash
+#endif
+
+#ifdef __VAMP1K_TEST_BATTERY
+    Device_SwitchSys(SYS_DEFAULT);
+    while (1) {
+        printf("Read battery level... \n");
+        printf("level=%d  \n", Device_GetBatteryLevel());
+        __delay(1000);
+        // RTCC_GetTimeL();
+    }
+#endif
+
+#ifdef __VAMP1K_TEST_SLEEP
+    // Enable USB Wake-Up
+    // Device_IsUsbConnected()
+    // Enable RTC Alarm Wake-Up
+    
+    
+    while (1) {
+        printf("Put into sleep mode. (RTTC/INT0 Wake)... \n");
+        // Enable USB Wake-up
+        Nop();
+        Device_SwitchSys(SYS_SLEEP);
+        //  wait wake-up event...        
+        // Reset USB Wake-up flag
+        // 
+        Device_SwitchSys(SYS_DEFAULT);
+        printf("Hello, wake-up ! \n");
+    }
+#endif
 
 
 #ifdef  __VAMP1K_TEST_RESET    

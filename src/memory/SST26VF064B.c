@@ -1,4 +1,3 @@
-
 #include "SST26VF064B.h"
 
 #include "../modules/SPI1.h"
@@ -6,25 +5,36 @@
 //#define   {_TRISA4 = 0; _LATA4 = 1; }
 //#define SST26_SS_SetHigh()   (_LATA4 = 1)
 //#define SST26_SS_SetLow()    (_LATA4 = 0)
-	
 
 void SST26_Enable() {
     SST26_SS_SetDigitalOutputHigh();
-    SPI1_Enable();
+    SPI1_Enable(MODE0, SPI_2MHZ);
 }
-
 
 void SST26_Disable() {
     SST26_SS_SetHigh();
     SPI1_Disable();
 }
 
-/************************************************************************/
-/* PROCEDURE: Read_Status_Register					*/
-/*									*/
-/* This procedure reads the status register and returns the byte.	*/
-/************************************************************************/
+#define SPIFLASH_SLEEP            0xB9        // deep power down
+#define SPIFLASH_WAKE             0xAB        // deep power wake up
+/***********************************************************************
+ * PROCEDURE: Read_Configuration_Register				
+ *                                                                      
+ * This procedure reads the configuration register and returns the byte.
+ ************************************************************************/
+void SST26_Switch_Power() {
+    SST26_SS_SetLow(); /* enable device */
+    SPI1_Exchange8bit(0xAB); // send RDSR command 
+    //byte = SPI1_Exchange8bit(0xFF); /* receive byte */
+    SST26_SS_SetHigh(); /* disable device */
+}
 
+/************************************************************************
+* PROCEDURE: Read_Status_Register					
+*									
+* This procedure reads the status register and returns the byte.	
+*************************************************************************/
 unsigned char SST26_Read_Status() {
     unsigned char byte = 0;
     SST26_SS_SetLow(); /* enable device */
@@ -34,12 +44,14 @@ unsigned char SST26_Read_Status() {
     return byte;
 }
 
-/************************************************************************/
-/* PROCEDURE: Read_Configuration_Register				*/
-/*									*/
-/* This procedure reads the configuration register and returns the byte.*/
 
-/************************************************************************/
+#define SPIFLASH_SLEEP            0xB9        // deep power down
+#define SPIFLASH_WAKE             0xAB        // deep power wake up
+/***********************************************************************
+ * PROCEDURE: Read_Configuration_Register				
+ *                                                                      
+ * This procedure reads the configuration register and returns the byte.
+ ************************************************************************/
 unsigned char SST26_Read_Configuration() {
     unsigned char byte = 0;
     SST26_SS_SetLow(); /* enable device */
@@ -51,27 +63,23 @@ unsigned char SST26_Read_Configuration() {
 
 
 
-/************************************************************************/
-/* PROCEDURE: WREN							*/
-/*									*/
-/* This procedure enables the Write Enable Latch.               	*/
-
-/************************************************************************/
-
-
+/************************************************************************
+* PROCEDURE: WREN							
+*									
+* This procedure enables the Write Enable Latch.               	
+************************************************************************/
 void SST26_WREN() {
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(0x06); /* send WREN command */
     SST26_SS_SetHigh(); /* disable device */
 }
 
-/************************************************************************/
-/* PROCEDURE: WRDI							*/
-/*									*/
-/* This procedure disables the Write Enable Latch.			*/
 
-/************************************************************************/
-
+/************************************************************************
+* PROCEDURE: WRDI							
+*									
+* This procedure disables the Write Enable Latch.			
+*************************************************************************/
 void SST26_WRDI() {
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(0x04); /* send WRDI command */
@@ -87,11 +95,9 @@ void SST26_WRDI() {
 /* Returns:								*/
 /*	ID1(Manufacture's ID = BFh, Device Type =26h , Device ID = 02h)	*/
 /*									*/
-
 /************************************************************************/
 
-void SST26_Jedec_ID_Read(int *Manufacturer_Id, int *Device_Type, int *Device_Id)
- {
+void SST26_Jedec_ID_Read(int *Manufacturer_Id, int *Device_Type, int *Device_Id) {
 
 
     SST26_SS_SetLow(); /* enable device */
@@ -119,9 +125,11 @@ unsigned char SST26_Read(unsigned long Dst) {
 
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(0x03); /* read command */
+
     SPI1_Exchange8bit(((Dst & 0xFFFFFF) >> 16)); /* send 3 address bytes */
     SPI1_Exchange8bit(((Dst & 0xFFFF) >> 8));
     SPI1_Exchange8bit(Dst & 0xFF);
+
     byte = SPI1_Exchange8bit(0xFF);
     SST26_SS_SetHigh(); /* disable device */
     return byte; /* return one byte read */
@@ -152,6 +160,35 @@ void SST26_Read_Cont(unsigned long Dst, unsigned long no_bytes, unsigned int *re
     }
     SST26_SS_SetHigh(); /* disable device */
 
+}
+
+/************************************************************************/
+/* PROCEDURE:	Read_Cont						*/
+/*									*/
+/* This procedure reads multiple addresses of the device and stores	*/
+/* data into 256 byte buffer. Maximum number of bytes read is limited 256 bytes*/
+/*									*/
+/* Input:								*/
+/*		Dst:		Destination Address 000000H - 7FFFFFH	*/
+/*      	no_bytes	Number of bytes to read	(max = 256)	*/
+
+/************************************************************************/
+uint16_t SST26_Read_Bytes(uint32_t addr, uint16_t nbytes, uint8_t *dbuf) {
+    uint16_t i = 0;
+    SST26_SS_SetLow();
+    
+    SPI1_Exchange8bit(0x03); // read command 
+    SPI1_Exchange8bit(addr >> 16); /* send 3 address bytes */
+    SPI1_Exchange8bit(addr >> 8);
+    SPI1_Exchange8bit(addr);
+    
+    for (i = 0; i < nbytes; i++) /* read until no_bytes is reached */ {
+        *(dbuf + i) = SPI1_Exchange8bit(0xFF); // receive byte 
+//        SST26_SS_SetHigh(); // disable device 
+//        SST26_SS_SetLow();
+    }
+    SST26_SS_SetHigh(); // disable device 
+    return (i);
 }
 
 /************************************************************************/
@@ -212,8 +249,8 @@ void SST26_HighSpeed_Read_Cont(unsigned long Dst, unsigned long no_bytes, unsign
 /* This procedure does page programming.  The destination               */
 /* address should be provided.                                  	*/
 /* The data array of 256 bytes contains the data to be programmed.      */
-/* Since the size of the data array is 256 bytes rather than 256 bytes, this page program*/
-/* procedure programs only 256 bytes                                    */
+/* Since the size of the data array is more than 256 bytes, only 256 bytes are written*/
+/*                                 */
 /* Assumption:  Address being programmed is already erased and is NOT	*/
 /*		block protected.					*/
 /* Input:								*/
@@ -222,7 +259,7 @@ void SST26_HighSpeed_Read_Cont(unsigned long Dst, unsigned long no_bytes, unsign
 
 /************************************************************************/
 
-void SST26_Page_Program(unsigned long Dst, unsigned int *Prog_data) {
+void SST26_Page_Program(unsigned long Dst, unsigned char *Prog_data) {
     unsigned int i;
     i = 0;
 
@@ -238,6 +275,25 @@ void SST26_Page_Program(unsigned long Dst, unsigned int *Prog_data) {
     SST26_SS_SetHigh(); /* disable device */
 }
 
+uint16_t SST26_Write_Bytes(uint32_t addr, uint8_t *dbuf, uint16_t dlen) {
+    uint16_t i = 0;
+
+    SST26_SS_SetLow(); // Select device
+
+    SPI1_Exchange8bit(0x02); // send command "Page Program"  
+    SPI1_Exchange8bit(addr >> 16); // send address (3 bytes)
+    SPI1_Exchange8bit(addr >> 8);
+    SPI1_Exchange8bit(addr);
+
+    for (i = 0; i < dlen; i++) {
+        SPI1_Exchange8bit(*(dbuf + i)); // send bytes to be programmed 
+    }
+    SST26_SS_SetHigh(); // unselect device 
+    return (i);
+}
+
+
+
 
 /************************************************************************/
 /* PROCEDURE: Chip_Erase						*/
@@ -252,19 +308,14 @@ void SST26_Chip_Erase() {
     SST26_SS_SetHigh(); /* disable device */
 }
 
-/************************************************************************/
-/* PROCEDURE: Sector_Erase						*/
-/*									*/
-/* This procedure Sector Erases the Chip.				*/
-/* Input:								*/
-/*		Dst:		Destination Address 000000H - 7FFFFFH	*/
-
-/************************************************************************/
-
-
+/*************************************************************************
+* PROCEDURE: Sector_Erase						
+*									
+* This procedure Sector Erases the Chip.			Erase 4 KBytes	
+* Input:								
+*		Dst:		Destination Address 000000H - 7FFFFFH	
+**************************************************************************/
 void SST26_Sector_Erase(unsigned long Dst) {
-
-
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(0x20); /* send Sector Erase command */
     SPI1_Exchange8bit(((Dst & 0xFFFFFF) >> 16)); /* send 3 address bytes */
@@ -273,16 +324,12 @@ void SST26_Sector_Erase(unsigned long Dst) {
     SST26_SS_SetHigh(); /* disable device */
 }
 
-/************************************************************************/
-/* PROCEDURE: Block_Erase						*/
-/*									*/
-/* This procedure Block Erases 8Kbyte, 32 KByte or 64 KByte of the Chip.*/
-/*									*/
-/* Input:								*/
-/*		Dst:		Destination Address 000000H - 7FFFFFH	*/
-
-/************************************************************************/
-
+/*************************************************************************
+ * PROCEDURE: Block_Erase						
+ * 
+ * This procedure Block Erases 8Kbyte, 32 KByte or 64 KByte of the Chip.									
+ * Destination Address 000000H - 7FFFFFH	
+ **************************************************************************/
 void SST26_Block_Erase(unsigned long Dst) {
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(0xD8); /* send Block Erase command */
@@ -329,7 +376,6 @@ void SST26_ResetEn() {
 /*									*/
 /* This procedure resets the device in to normal operating Ready mode.	*/
 /*									*/
-
 /************************************************************************/
 
 
@@ -345,7 +391,6 @@ void SST26_Reset() {
 /* PROCEDURE: Write_Suspend						*/
 /*									*/
 /* This procedure suspends Program/Erase operation.			*/
-
 /************************************************************************/
 
 void SST26_Write_Suspend() {
@@ -354,15 +399,11 @@ void SST26_Write_Suspend() {
     SST26_SS_SetHigh(); /* disable device */
 }
 
-
-
 /************************************************************************/
 /* PROCEDURE: Write_Resume						*/
 /*									*/
 /* This procedure resumes Program/Erase operation.			*/
-
 /************************************************************************/
-
 void SST26_Write_Resume() {
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(0x30);
@@ -378,12 +419,13 @@ void SST26_Write_Resume() {
 
 /************************************************************************/
 
-void SST26_Write_Status_Register(unsigned int data1, unsigned char datalen) { //For data1 - top 8 bits are status reg bits , lower 8 bits are configuration reg bits
+void SST26_Write_Status_Register(unsigned int data1, unsigned char datalen) { 
+    //For data1 - top 8 bits are status reg bits , lower 8 bits are configuration reg bits
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(0x01);
-    SPI1_Exchange8bit((data1 >> 8)&0xff);
+    SPI1_Exchange8bit((data1 >> 8) & 0xFF);
     if (datalen == 2) {
-        SPI1_Exchange8bit((data1)&0xff);
+        SPI1_Exchange8bit((data1) & 0xFF);
     }
 
     SST26_SS_SetHigh(); /* disable device */
@@ -578,19 +620,14 @@ void SST26_NonVolWriteLockProtection(unsigned int *block_protection_data) {
     SST26_SS_SetHigh(); /* disable device */
 }
 
-
-/************************************************************************/
-/* PROCEDURE: Wait_Busy							*/
-/*									*/
-/* This procedure waits until device is no longer busy (can be used by	*/
-/* Byte-Program, Page-Program, Sector-Erase, Block-Erase and Chip-Erase).*/
-
-/************************************************************************/
-
-
-
+/************************************************************************
+ * PROCEDURE: Wait_Busy							
+ * This procedure waits until device is no longer busy (can be used by	
+ * Byte-Program, Page-Program, Sector-Erase, Block-Erase and Chip-Erase).
+ * 0x80 -> bit 7 "BUSY Write operation status ( 1=in progress)"
+ ************************************************************************/
 void SST26_Wait_Busy() {
-    while ((SST26_Read_Status()& 0x80) == 0x80) // waste time until not busy
+    while ((SST26_Read_Status() & 0x80) == 0x80) // waste time until not busy
         SST26_Read_Status();
 }
 

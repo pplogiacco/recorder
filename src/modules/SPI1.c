@@ -2,13 +2,90 @@
 #include "..\device.h"  // Pins definitions ( Hardware )
 #include "SPI1.h"
 
-
 inline __attribute__((__always_inline__)) SPI1_TRANSFER_MODE SPI1_TransferModeGet(void);
 void SPI1_Exchange(uint8_t *pTransmitData, uint8_t *pReceiveData);
 uint16_t SPI1_ExchangeBuffer(uint8_t *pTransmitData, uint16_t byteCount, uint8_t *pReceiveData);
 
+void SPI1_Enable(SPI_MODE mode, SPI_BRATE speed) {
 
-void SPI1_Enable(void) {
+    // ____________________________________SPI Clock & Mode 
+
+    SPI1CON1H = 0x00; // AUDEN disabled; FRMEN disabled; AUDMOD I2S; FRMSYPW One clock wide;
+    // AUDMONO stereo; FRMCNT 0; MSSEN disabled; FRMPOL disabled; 
+    // IGNROV disabled; SPISGNEXT not sign-extended; FRMSYNC disabled; 
+    // URDTEN disabled; IGNTUR disabled; 
+    SPI1CON2L = 0x00;
+    SPI1STATL = 0x00; // SPIROV disabled; FRMERR disabled; 
+
+    //SPI1BRGL = speed;
+    //SPI1BRGL = 0x03; // Baud Rate 2Mhz (32Mhz)
+    SPI1BRGL = 0x4F; // Baud Rate 100Khz (32Mhz)
+
+    // SPITBFEN disabled; SPITUREN disabled; FRMERREN disabled; SRMTEN disabled; 
+    // SPIRBEN disabled; BUSYEN disabled; SPITBEN disabled; SPIROVEN disabled; SPIRBFEN disabled; 
+    SPI1IMSKL = 0x00;
+    // RXMSK 0; TXWIEN disabled; TXMSK 0; RXWIEN disabled; 
+    SPI1IMSKH = 0x00;
+    // SPI1URDTL 0; 
+    SPI1URDTL = 0x00;
+    // SPI1URDTH 0; 
+    SPI1URDTH = 0x00;
+    // SPIEN enabled; DISSDO disabled; MCLKEN FOSC/2; CKP Idle:Low, Active:High; 
+    // SSEN disabled; MSTEN Master; MODE16 disabled; SMP Middle; DISSCK disabled; 
+    // SPIFE Frame Sync pulse precedes; CKE Idle to Active; MODE32 disabled; 
+    // SPISIDL disabled; ENHBUF enabled; DISSDI enabled; 
+    // SPI1CON1L = 0x8031;
+
+    // SPI1 Master, 8Bits
+    SPI1CON1Lbits.MSTEN = 1; // Master Mode
+    SPI1CON1Lbits.MODE = 0; // Communication is byte-wide  
+    SPI1CON2L = 0x0007; // 8 Bits word lenght 
+
+    //  SPI Mode     CKP  CKE
+    //  0,0 (0)       0    1
+    //  0,1 (1)       0    0
+    //  1,0 (2)       1    1
+    //  1,1 (3)       1    0
+
+    //SPI_MODE mode = MODE0;
+
+    switch (mode) {
+        case MODE0:
+            SPI1CON1Lbits.CKE = 1;
+            SPI1CON1Lbits.CKP = 0;
+            break;
+        case MODE1:
+            SPI1CON1Lbits.CKE = 0;
+            SPI1CON1Lbits.CKP = 0;
+            break;
+        case MODE2:
+            SPI1CON1Lbits.CKE = 1;
+            SPI1CON1Lbits.CKP = 1;
+            break;
+        case MODE3:
+            SPI1CON1Lbits.CKE = 0;
+            SPI1CON1Lbits.CKP = 1;
+            break;
+    }
+
+    //    SPI1CON1Lbits.CKP = 0; // MODE?: Clock Polarity (active is a high level)
+    //    SPI1CON1Lbits.CKE = 1; // MODE?: Clock Edge (from active to Idle )
+    SPI1CON1Lbits.SMP = 0; // Input data is sampled at (0-middle,1-end) of data output
+
+    SPI1CON1Lbits.ENHBUF = 0; // Enhanced buffer disabled (0=Legacy No Buffering)
+    // 2Wire:SCK+SDIO,softSS
+    SPI1CON1Lbits.DISSCK = 0; // Internal serial clock is enabled
+    SPI1CON1Lbits.DISSDO = 0; // SDOx pin is controlled by the module
+    SPI1CON1Lbits.DISSDI = 0; // SDIx pin is controlled by the module
+    SPI1CON1Hbits.MSSEN = 0; // SPIx slave select is disabled (no SSx)
+    //SPIxSTATL: SPIx STATUS REGISTER LOW ( ex SPI1STAT)
+    SPI1STATL = 0;
+    SPI1CON1Lbits.SPIEN = 1; // Enable SPI 
+    SPI1STATLbits.SPIROV = 0; // Receive Overflow Flag (0=NO Overflow).
+
+#if (0)
+
+
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
     TRISB = 0x4197; //for TX
     ANSB = 0x0014; //for RX
@@ -101,7 +178,7 @@ void SPI1_Enable(void) {
     SPI1STATL = 0x00;
     // SPI1BRGL 79; 
     // SPI1BRGL = 0x4F; // Baud Rate 100Khz (32Mhz)
-      SPI1BRGL = 0x03; // Baud Rate 2Mhz (32Mhz)
+    SPI1BRGL = 0x03; // Baud Rate 2Mhz (32Mhz)
 
     // SPITBFEN disabled; SPITUREN disabled; FRMERREN disabled; SRMTEN disabled; SPIRBEN disabled; BUSYEN disabled; SPITBEN disabled; SPIROVEN disabled; SPIRBFEN disabled; 
     SPI1IMSKL = 0x00;
@@ -128,15 +205,27 @@ void SPI1_Enable(void) {
     SPI1CON1Lbits.SMP = 1; // Input data is sampled at (0-middle,1-end) of data output
     SPI1CON1Lbits.ENHBUF = 0; // Enhanced buffer disabled (0=Legacy No Buffering)
     // 2Wire:SCK+SDIO,softSS
-        SPI1CON1Lbits.DISSCK = 0; // Internal serial clock is enabled
-        SPI1CON1Lbits.DISSDO = 0; // SDOx pin is controlled by the module
-        SPI1CON1Lbits.DISSDI = 0; // SDIx pin is controlled by the module
-        SPI1CON1Hbits.MSSEN = 0; // SPIx slave select support is disabled (no SSx)
+    SPI1CON1Lbits.DISSCK = 0; // Internal serial clock is enabled
+    SPI1CON1Lbits.DISSDO = 0; // SDOx pin is controlled by the module
+    SPI1CON1Lbits.DISSDI = 0; // SDIx pin is controlled by the module
+    SPI1CON1Hbits.MSSEN = 0; // SPIx slave select support is disabled (no SSx)
     //SPIxSTATL: SPIx STATUS REGISTER LOW ( ex SPI1STAT)
     SPI1CON1Lbits.SPIEN = 1; // Enable SPI 
     SPI1STATLbits.SPIROV = 0; // Receive Overflow Flag (0=NO Overflow).
+#endif
 
 #endif
+}
+
+void SPI1_Disable() {
+#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
+    SPI1STATbits.SPIEN = 0;
+#endif   
+
+#ifdef __PIC24FJ256GA702__
+    SPI1CON1Lbits.SPIEN = 0; // Enable SPI 
+#endif
+
 }
 
 void SPI1_Exchange(uint8_t *pTransmitData, uint8_t *pReceiveData) {
@@ -144,26 +233,18 @@ void SPI1_Exchange(uint8_t *pTransmitData, uint8_t *pReceiveData) {
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
     while (SPI1STATbits.SPITBF == true) {
     }
-
     SPI1BUF = *((uint8_t*) pTransmitData);
-
     while (SPI1STATbits.SRXMPT == true);
-
     *((uint8_t*) pReceiveData) = SPI1BUF;
 #endif   
 
 #ifdef __PIC24FJ256GA702__
-
     while (SPI1STATLbits.SPITBF == true) {
     }
-
     SPI1BUFL = *((uint8_t*) pTransmitData);
-
     while (SPI1STATLbits.SPIRBE == true) {
     };
-
     *((uint8_t*) pReceiveData) = SPI1BUFL;
-
 #endif
 }
 
@@ -304,9 +385,7 @@ uint16_t SPI1_ExchangeBuffer(uint8_t *pTransmitData, uint16_t byteCount, uint8_t
 
 uint8_t SPI1_Exchange8bit(uint8_t data) {
     uint8_t receiveData;
-
     SPI1_Exchange(&data, &receiveData);
-
     return (receiveData);
 }
 
@@ -315,7 +394,6 @@ uint16_t SPI1_Exchange8bitBuffer(uint8_t *dataTransmitted, uint16_t byteCount, u
 }
 
 /**
-
     The module's transfer mode affects the operation
     of the exchange functions. The table below shows
     the effect on data sent or received:
@@ -340,7 +418,9 @@ uint16_t SPI1_Exchange8bitBuffer(uint8_t *dataTransmitted, uint16_t byteCount, u
     |                |----------------------------|  OK                     |
     |                | SPIx_Exchange16bit()       |                         |
     |----------------|----------------------------|-------------------------|
- */
+ 
+ **/
+
 inline __attribute__((__always_inline__)) SPI1_TRANSFER_MODE SPI1_TransferModeGet(void) {
     if (SPI1CON1bits.MODE16 == 0)
         return SPI1_DRIVER_TRANSFER_MODE_8BIT;
@@ -356,17 +436,7 @@ SPI1_STATUS SPI1_StatusGet() {
 #ifdef __PIC24FJ256GA702__
     return (SPI1STATL);
 #endif
-
 }
 
-void SPI1_Disable() {
-#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
-    SPI1STATbits.SPIEN = 0;
-#endif   
 
-#ifdef __PIC24FJ256GA702__
-
-#endif
-
-}
 

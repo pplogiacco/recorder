@@ -7,6 +7,27 @@
 #include <stddef.h>
 #include "../device.h"
 
+//  SPI Mode     CKP  CKE
+//  0,0 (0)       0    1
+//  0,1 (1)       0    0
+//  1,0 (2)       1    1
+//  1,1 (3)       1    0
+
+typedef enum {
+    MODE0,
+    MODE1,
+    MODE2,
+    MODE3
+} SPI_MODE;
+
+typedef enum {
+    SPI_100KHZ = 0x4F, // Bit rate 100Khz (Fosc 32Mhz)  
+    SPI_2MHZ = 0x03 // Bit rate 2Mhz (Fosc 32Mhz)
+} SPI_BRATE;
+
+//#define SPI_100KHZ  0x4F 
+//#define SPI_2MHZ    0x03 
+
 #define SPI1_DUMMY_DATA 0x0
 #define SPI1_FIFO_FILL_LIMIT 0x8
 
@@ -29,7 +50,7 @@ typedef enum {
     SPI1_DRIVER_TRANSFER_MODE_32BIT = 2,
 } SPI1_TRANSFER_MODE;
 
-void SPI1_Enable(void);
+void SPI1_Enable(SPI_MODE mode, SPI_BRATE speed);
 
 uint8_t SPI1_Exchange8bit(uint8_t data);
 

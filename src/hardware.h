@@ -148,7 +148,7 @@ POWER   27  Vss
 #ifdef __USB  // ___________________________________________________________USB
 
 //#define USB_WK_SetDigital()  
-#define USB_WK_SetDigitalInput()  _TRISB7 = 1
+#define USB_WK_SetDigitalInputLow() {  _TRISB7 = 1; _LATB7 = 0; IOCPDBbits.CNPDB7 = 1; } 
 
 #define __UART2
 

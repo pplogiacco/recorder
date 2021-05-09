@@ -319,7 +319,7 @@ void MRF24J40_Disable() {
 }
 
 void MRF24J40_Enable() {
-    SPI1_Enable();
+    SPI1_Enable(MODE0,SPI_2MHZ);
     MRF24J40_reset(); // Perform software reset
     MRF24J40_init(); // Reinitialize all registers
 }
