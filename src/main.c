@@ -282,13 +282,11 @@ int main(void) {
         __delay(3000);
     }
 #else
-//    Device_SwitchADG(0xFF); //_bs8(PW_WST) | _bs8(PW_ADA));
+    Device_SwitchADG(0xFF); //_bs8(PW_WST) | _bs8(PW_ADA));
 #endif      
 
     RTCC_GetTime(&stime);
     printf("[%u:%u:%u]\n#:", stime.hour, stime.min, stime.sec);
-
-
 
 
 
@@ -319,10 +317,10 @@ int main(void) {
         printf("config_reg=%u  \n", SST26_Read_Configuration());
         printf("status_reg=%u  \n", SST26_Read_Status());
 
-        SST26_WREN();
+//        SST26_WREN();
         sst_addr = 0;
-
-        SST26_Wait_Busy();
+//
+//        SST26_Wait_Busy();
         for (i = 0; i < 16; i++) {
             datas[i] = i;
         }
