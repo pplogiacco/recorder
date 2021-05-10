@@ -222,14 +222,11 @@ int main(void) {
                 //state = EXCHANGE;
                 // Enable USB Wake-Up
                 // Enable RTC Alarm Wake-Up
-                
-                if (!Device_IsUsbConnected()) {
+
+                if (0) { // if (!Device_IsUsbConnected()) {
                     Device_SwitchSys(SYS_SLEEP);
                     //  until wake-up event
-                    
                     Device_SwitchSys(SYS_DEFAULT);
-
-
                 } else {
 
                     //                    if (g_dev.cnf.general.delaytime > 60) {
@@ -274,6 +271,8 @@ int main(void) {
 #endif
 
 #ifdef __VAMP1K_TEST_ADG
+    Device_SwitchSys(SYS_DEFAULT);
+
     while (1) {
         printf("ADG all on \n");
         Device_SwitchADG(0xFF); //_bs8(PW_WST) | _bs8(PW_ADA));
@@ -283,7 +282,7 @@ int main(void) {
         __delay(3000);
     }
 #else
-    Device_SwitchADG(0xFF); //_bs8(PW_WST) | _bs8(PW_ADA));
+//    Device_SwitchADG(0xFF); //_bs8(PW_WST) | _bs8(PW_ADA));
 #endif      
 
     RTCC_GetTime(&stime);
@@ -364,20 +363,22 @@ int main(void) {
 
 #ifdef __VAMP1K_TEST_BATTERY
     Device_SwitchSys(SYS_DEFAULT);
+    
     while (1) {
         printf("Read battery level... \n");
         printf("level=%d  \n", Device_GetBatteryLevel());
         __delay(1000);
         // RTCC_GetTimeL();
     }
+    
 #endif
 
 #ifdef __VAMP1K_TEST_SLEEP
     // Enable USB Wake-Up
     // Device_IsUsbConnected()
     // Enable RTC Alarm Wake-Up
-    
-    
+
+
     while (1) {
         printf("Put into sleep mode. (RTTC/INT0 Wake)... \n");
         // Enable USB Wake-up

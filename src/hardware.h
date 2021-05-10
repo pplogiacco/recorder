@@ -63,9 +63,11 @@ POWER   27  Vss
 #define __SENSOR_BOARD
 // Battery Level
 // 10  OSCO/AN14/CLKO/CN29/RA3     (S) Batt Level
-#define BAT_LVL_OLD2LOW()   { _TRISA3=0;  _ANSA3=0; _LATA3 = 0; }   // AN1 
+//#define BAT_LVL_OLD2LOW()   { _TRISA3=0;  _ANSA3=0; _LATA3 = 0; }   // AN1 
 #define BAT_LVL_SetAnalogInput()   { _TRISA1=1;  _ANSA1=1; }   // AN1 
 
+
+// Flash memory ( SPI )
 #define SST26_SS_SetDigitalOutputHigh()  {_TRISA4 = 0; _LATA4 = 1; }
 #define SST26_SS_SetHigh()   (_LATA4 = 1)
 #define SST26_SS_SetLow()    (_LATA4 = 0)

@@ -468,10 +468,11 @@ bool Device_SwitchSys(runlevel_t rlv) {
 
             // All device disabled
 #ifdef __VAMP1K_TEST            
-            PMD1 = 0b1111111110111111; // Uart2 enabled
+            PMD1 = 00; // 0b1111111110111111; // Uart2 enabled
 #else
             PMD1 = 0xFF;
 #endif
+PMD1 = 00; 
 
             PMD2 = 0xFF; // IC3MD enabled; OC1MD enabled; IC2MD enabled; OC2MD enabled; IC1MD enabled; OC3MD enabled; 
             PMD3 = 0b1111110111111111; // RTCC
@@ -639,11 +640,11 @@ bool Device_SwitchSys(runlevel_t rlv) {
 #elif defined(__PIC24FJ256GA702__)
             // All Disabled except RTCC
 #ifdef __VAMP1K_TEST            
-            PMD1 = 0b1111111110111111; // Uart2 enabled
+            PMD1 = 00; // 0b1111111110111111; // Uart2 enabled
 #else
             PMD1 = 0xFF; // ADC, I2C, SPI, USART, TMR1, TMR2,TMR3
 #endif
-
+PMD1 = 00; 
             PMD2 = 0xFF;
             PMD3 = 0b1111110111111111; // RTCC
             PMD4 = 0xFF;
@@ -721,8 +722,17 @@ uint16_t Device_GetBatteryLevel() {
 #ifdef __PIC24FJ256GA702__
 
     // Enable ADG port 
+    Device_SwitchADG(PW_RS1); // RF Module switch-on
+//#include "modules/SPI1.h"
+
+    // SPI1_Enable(MODE0,0);
+//    { _TRISB11 = 0; _LATB11 = 0; }
+//    { _TRISB13 = 0; _LATB13 = 0; }    
+    
+    
     BAT_LVL_SetAnalogInput(); // (S) Batt Level ( AN1 )
-    BAT_LVL_OLD2LOW();
+//    BAT_LVL_OLD2LOW();
+    
     uint8_t ad1md = PMD1bits.AD1MD;
     PMD1bits.AD1MD = 0;
 
@@ -755,7 +765,7 @@ uint16_t Device_GetBatteryLevel() {
     AD1CON1bits.ADON = 0; // ADC Off
     //*dbuf =  (1024 - ADC1BUF0);
     //printf("adc=%d \n", ADC1BUF0);
-    PMD1bits.AD1MD = ad1md;
+    //PMD1bits.AD1MD = ad1md;
 
     return (ADC1BUF0);
 #endif

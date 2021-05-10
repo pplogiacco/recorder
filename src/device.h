@@ -26,7 +26,7 @@
 //#define __DONGLE_VAMP1K_AUTOSEND // Simulate Device ( Demo Signal only !!)
 //#define __DONGLE_TEST_FILE
 
-#define __VAMP1K_TEST
+//#define __VAMP1K_TEST
 
 //#define __NOFLASH    // Use RAM to store config
 //#define __NOUSB      // Force to use RF ( USB not connect )
@@ -42,11 +42,11 @@
 //#define __VAMP1K_TEST_RESET
 //#define __VAMP1K_TEST_TIMER
 //#define __VAMP1K_TEST_CONFIG 
-//#define __VAMP1K_TEST_ADG
+#define __VAMP1K_TEST_ADG
 //#define __VAMP1K_TEST_USB
 //#define __VAMP1K_TEST_BATTERY
 //#define __VAMP1K_TEST_SST26
-#define __VAMP1K_TEST_SLEEP
+//#define __VAMP1K_TEST_SLEEP
 
 // Test Sampling
 //#define __VAMP1K_TEST_AV_printf    // Test Acquire/ADC HW
@@ -125,7 +125,7 @@ uint16_t Device_CheckHwReset(void);
 #define PW_MRF     (0b000001)  // OK 
 #define PW_WST     (0b000010)  // OK 
 #define PW_ADA     (0b000100)  // OK ( ADA assorbe lo stesso !!)
-#define PW_RS1     (0b000000)
+#define PW_RS1     (0b001000)
 #define PW_RS2     (0b000000)
 #define PW_ENC     (0b000000)
 
