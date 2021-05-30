@@ -207,7 +207,7 @@ void MRF24J40_init() {
     rxSize = 0;
     rxCount = 0;
     seqNumber = 0;
-    MRF24_SS_SetDigitalOutputHigh();        
+    MRF_SS_SetDigitalOutputHigh();        
     //MRF24_SS_SetHigh();
 
     // -----------------------------------------

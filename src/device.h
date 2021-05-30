@@ -45,8 +45,9 @@
 //#define __VAMP1K_TEST_ADG
 //#define __VAMP1K_TEST_USB
 //#define __VAMP1K_TEST_BATTERY
-#define __VAMP1K_TEST_SST26
+//#define __VAMP1K_TEST_SST26
 //#define __VAMP1K_TEST_SLEEP
+#define __VAMP1K_TEST_RTC
 
 // Test Sampling
 //#define __VAMP1K_TEST_AV_printf    // Test Acquire/ADC HW
@@ -78,6 +79,7 @@ typedef enum { //
 
 //----------------------------------------------------------------------------//
 
+
 typedef enum {
     SYS_OFF, // LTC shut-down
     SYS_BOOT,
@@ -96,7 +98,6 @@ bool Device_SwitchSys(runlevel_t rlv); // clock, power, powered modules, pins...
 
 // ------------------------------------------------------
 // Testing - CALLED BY "switchSys()" / "getStatus()"
-
 typedef enum {
     SM_RUN,
     SM_IDLE,

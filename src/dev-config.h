@@ -45,6 +45,18 @@ typedef struct { // General Settings
     uint16_t timezone; // Timezone to reference all date-time values
 } general_t; // 20 Bytes
 
+#define CNF_POWER_DEFAULT       0x00  // Try every sampling cycle
+
+#define CNF_SAMPLING_CYCLIC     0x00  // Does after "delaytime" seconds
+#define CNF_SAMPLING_CYCDATE    0x01  // Does after "delaytime" beteewn start-stop dates
+#define CNF_SAMPLING_ONDEMAND   0x02  // On request
+#define CNF_SAMPLING_SCHEDULED  0x03  // On scheduled datetime
+#define CNF_SAMPLING_CYCLIC     0x00  // Try every sampling cycle
+#define CNF_SAMPLING_CYCDATE    0x01  // Try every sampling cycle beteewn the dates
+#define CNF_SAMPLING_ONDEMAND   0x02  // On request
+#define CNF_SAMPLING_SCHEDULED  0x03  // On scheduled datetime
+#define CNF_SAMPLING_OFF        0x0A  // dosn't execute sampling cycles
+
 typedef struct { // Calibration/Sampling factors and parameters:
     uint32_t et_factor; // Coefficient to scale to Celsius
     uint32_t ws_factor; // Coefficient to scale to m/s
@@ -66,6 +78,15 @@ typedef struct { // Exchange Process:
 } exchange_t; // 16 Bytes
 
 #define CNF_ATTEMPTMODE_EVERYCYCLE  0x00  // Try every sampling cycle
+#define CNF_EXCHANGE_AFTER   0x00 // after sampling(Default)
+#define CNF_EXCHANGE_BEFORE  0x01 // before sampling 
+#define CNF_EXCHANGE_EVERY   0x02 // before and after 
+#define CNF_EXCHANGE_USB     0x03 // USB Only
+#define CNF_EXCHANGE_LOWMEM  0x04 // if low memory 
+#define CNF_EXCHANGE_DAILY   0x05 // daily 
+#define CNF_EXCHANGE_WEEKLY  0x05 // weekly, 
+#define CNF_EXCHANGE_SCHEDU  0x06 // scheduled
+
 
 typedef struct { // Device Configuration ( 94 Bytes )
     general_t general;
@@ -76,6 +97,7 @@ typedef struct { // Device Configuration ( 94 Bytes )
 
 //----------------------------------------------------------------------------//
 #define ST_SIZE 28  
+
 typedef struct { // Device status (Read Only)
     uint32_t DIN; // Device Identifier Number
     uint32_t locked; // locked VMS key (True/False))
@@ -95,7 +117,7 @@ typedef struct {
     status_t st; // RO status
 } device_t;
 
-extern device_t g_dev;  // Global Device Configuration/Status
+extern device_t g_dev; // Global Device Configuration/Status
 
 bool Device_ConfigRead(config_t * config);
 bool Device_ConfigWrite(uint8_t *config);

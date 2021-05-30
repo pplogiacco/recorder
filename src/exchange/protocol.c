@@ -67,6 +67,7 @@ void setLong(uint32_t val, uint8_t *buff) {
 bool openChannel() {
 
     if (Device_IsUsbConnected()) {
+        // UART2_Initialize();
         UART2_Enable();
         channelType = CNL_USBD;
 

@@ -8,6 +8,9 @@ uint16_t SPI1_ExchangeBuffer(uint8_t *pTransmitData, uint16_t byteCount, uint8_t
 
 void SPI1_Enable(SPI_MODE mode, SPI_BRATE speed) {
 
+    
+#if (1)  // Work for SST 
+    
     // ____________________________________SPI Clock & Mode 
 
     SPI1CON1H = 0x00; // AUDEN disabled; FRMEN disabled; AUDMOD I2S; FRMSYPW One clock wide;
@@ -70,7 +73,7 @@ void SPI1_Enable(SPI_MODE mode, SPI_BRATE speed) {
 
     //    SPI1CON1Lbits.CKP = 0; // MODE?: Clock Polarity (active is a high level)
     //    SPI1CON1Lbits.CKE = 1; // MODE?: Clock Edge (from active to Idle )
-    SPI1CON1Lbits.SMP = 0; // Input data is sampled at (0-middle,1-end) of data output
+    SPI1CON1Lbits.SMP = 1; // Input data is sampled at (0-middle,1-end) of data output
 
     SPI1CON1Lbits.ENHBUF = 0; // Enhanced buffer disabled (0=Legacy No Buffering)
     // 2Wire:SCK+SDIO,softSS
@@ -82,7 +85,9 @@ void SPI1_Enable(SPI_MODE mode, SPI_BRATE speed) {
     SPI1STATL = 0;
     SPI1CON1Lbits.SPIEN = 1; // Enable SPI 
     SPI1STATLbits.SPIROV = 0; // Receive Overflow Flag (0=NO Overflow).
-
+#endif 
+    
+    
 #if (0)
 
 
@@ -179,7 +184,6 @@ void SPI1_Enable(SPI_MODE mode, SPI_BRATE speed) {
     // SPI1BRGL 79; 
     // SPI1BRGL = 0x4F; // Baud Rate 100Khz (32Mhz)
     SPI1BRGL = 0x03; // Baud Rate 2Mhz (32Mhz)
-
     // SPITBFEN disabled; SPITUREN disabled; FRMERREN disabled; SRMTEN disabled; SPIRBEN disabled; BUSYEN disabled; SPITBEN disabled; SPIROVEN disabled; SPIRBFEN disabled; 
     SPI1IMSKL = 0x00;
     // RXMSK 0; TXWIEN disabled; TXMSK 0; RXWIEN disabled; 

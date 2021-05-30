@@ -178,7 +178,7 @@ POWER   27  Vss
 #define MRF24_SS_SetHigh()   (_LATA2 = 1)
 #define MRF24_SS_SetLow()    (_LATA2 = 0)
 //#define MRF24_SS_SetDigital()  (_ANSA2 = 0)
-#define MRF24_SS_SetDigitalOutputHigh()  {_TRISA2 = 0; _ANSA2 = 0; _LATA2 = 1; } 
+#define MRF_SS_SetDigitalOutputHigh()  {_TRISA2 = 0; _ANSA2 = 0; _LATA2 = 1; } 
 
 
 #elif defined(__HWDONGLE)

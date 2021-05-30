@@ -35,27 +35,33 @@ extern "C" {
         timestamp_t dtime;
     } ltime_t;
 
-    
-    void RTCC_Init(void);
 
-    bool RTCC_Grab();
-    bool RTCC_GetTime(timestamp_t *t);
+    void RTCC_Enable(void);
+
+    //bool RTCC_Grab();
+    void RTCC_GetTime(timestamp_t *t);
     void RTCC_SetTime(timestamp_t *t, unsigned char weekday);
-    
-    uint32_t RTCC_GetTimeL();
-    uint16_t RTCC_GetMinutes();
-    
+
+    void RTCC_AlarmSet(timestamp_t *t);
+    void RTCC_AlarmUnset();
     // Wake-up
     void RTCC_SetWakeup(uint16_t period);
-    
+
+
+    uint32_t RTCC_GetTimeL();
+    uint32_t RTCC_GetTimeL2();
+    uint16_t RTCC_GetMinutes();
+
+
+
     void Timestamp2Time(timestamp_t *t);
     //void Time2Timestamp(timestamp_t *t);
-    
-//    // Timeout utils
-//    void Timeout_SetCallBack(void (* NewCallBack)(void));
-//    void Timeout_Set(uint16_t nsec, uint16_t nms);
-//    void Timeout_Unset(void);
-//    bool isTimeout(void);
+
+    //    // Timeout utils
+    //    void Timeout_SetCallBack(void (* NewCallBack)(void));
+    //    void Timeout_Set(uint16_t nsec, uint16_t nms);
+    //    void Timeout_Unset(void);
+    //    bool isTimeout(void);
 
 
 #ifdef __cplusplus  // Provide C++ Compatibility

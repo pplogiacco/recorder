@@ -7,6 +7,15 @@
 
 #include "storage.h"
 #include "flash702.h"
+/*
+ Depot uses NVM memory to pack data and transfer datablocks to SST flash when 1 Page is filled
+ 
+ Allocation table is sored in NVM and use a PAT structure to organize single blocks 
+ *  
+ * 
+ 
+ */
+
 
 
 //#define FLASH_ERASE_PAGE_SIZE_IN_INSTRUCTIONS 1024U

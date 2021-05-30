@@ -98,45 +98,46 @@ void Device_Initialize() {
     ANSA = 0x0008;
     ANSB = 0x0000;
 
-
     //  Set the PPS
     __builtin_write_OSCCONL(OSCCON & 0xbf); // unlock PPS
 
-    // _____________SPI1 (ADA2200/MRF24/SST26)
+    
+    // _____________SPI1 
     RPOR5bits.RP11R = 0x0008; //RB11->SPI1:SCK1OUT
     RPOR6bits.RP13R = 0x0007; //RB13->SPI1:SDO1
-    // MRF
     RPINR20bits.SDI1R = 0x000A; // RB10->SPI1:SDI
-    MRF24_SS_SetDigitalOutputHigh(); // MRF24J40.c    
-    // ADA
-    RPINR3bits.T3CKR = 0x000F; //RB15->TMR3:T3CK (Synco/TMR3))
+    MRF_SS_SetDigitalOutputHigh(); // MRF24J40.c    
     ADA_SS_SetDigitalOutput(); // ADA2200.c
     ADA_SS_SetHigh();
+    
+    // _____________ADA Signals
+    RPINR3bits.T3CKR = 0x000F; //RB15->TMR3:T3CK (Synco/TMR3))
+
     AV_SYN_SetDigital(); // Input T3CK/RB15 (SYNCO)
     AV_SYN_SetDigitalInput();
     AV_IN_SetAnalogInput();
 
-    // SST26  ( Flash )
+    // _____________SST Memory Bank
     SST26_SS_SetDigitalOutputHigh();
 
-    // _____________UART2 OK
+    // _____________UART2
     UART2_RX_SetDigitalInput();
     UART2_TX_SetDigitalOutputHigh();
     RPOR0bits.RP0R = 0x0005; //RB0->UART2:U2TX
     RPINR19bits.U2RXR = 0x0001; //RB1->UART2:U2RX
-
-    //______________I2C (ADG729)
-    LATBbits.LATB8 = 1; //Start with bus in idle mode - both lines high
-    LATBbits.LATB9 = 1;
-    TRISBbits.TRISB8 = 0; //SCL1 output
-    TRISBbits.TRISB9 = 0; //SDA1 output
-
+    
     // _____________WS TMR2:T2CK
     RPINR3bits.T2CKR = 0x0002; //RB2->TMR2:T2CK (WindSpeed/TMR2))
     WS_IN_SetDigitalInputLow(); // Input RB2 (6) 
 
     __builtin_write_OSCCONL(OSCCON | 0x40); // lock PPS
 
+        //______________I2C (ADG729)
+    LATBbits.LATB8 = 1; //Start with bus in idle mode - both lines high
+    LATBbits.LATB9 = 1;
+    TRISBbits.TRISB8 = 0; //SCL1 output
+    TRISBbits.TRISB9 = 0; //SDA1 output
+    
     // _____________INT0 ( USb Wake-Up)
     USB_WK_SetDigitalInputLow(); // (16) INT0/RB7 
 
@@ -182,7 +183,7 @@ void Device_Initialize() {
     //    MRF24_SS_SetDigital();
     //    MRF24_SS_SetDigitalOutput();
     //    MRF24_SS_SetHigh();
-    MRF24_SS_SetDigitalOutputHigh();
+    MRF_SS_SetDigitalOutputHigh();
 #endif
 
 
@@ -380,6 +381,12 @@ void Device_SwitchADG(uint8_t reg) { // ADG729_Switch(uint8_t reg)
 #elif defined( __PIC24FJ256GA702__ )
     i2clpw = PMD1bits.I2C1MD;
     PMD1bits.I2C1MD = 0; // Enable I2C Module
+        //______________I2C (ADG729)
+//    LATBbits.LATB8 = 1; //Start with bus in idle mode - both lines high
+//    LATBbits.LATB9 = 1;
+//    TRISBbits.TRISB8 = 0; //SCL1 output
+//    TRISBbits.TRISB9 = 0; //SDA1 output
+    
     I2C1CONL = 0x8000;
     I2C1BRG = 0x4E; // 100Khz @ Fcy=16Mhz (Fosc=32Mhz)
     IFS1bits.MI2C1IF = 0; //Clear I2C master Int flag
@@ -415,9 +422,9 @@ bool Device_SwitchSys(runlevel_t rlv) {
 
             Device_SwitchClock(CK_FAST); // Default clock 32Mhz
 
-            RTCC_Init();
+            RTCC_Enable();
             Device_Initialize(); // Pins settings
-            UART2_Initialize(); // Configure UART 
+            //            UART2_Initialize(); // Configure UART 
 
             Device_SwitchADG(PW_OFF); // All off
 
@@ -543,10 +550,10 @@ bool Device_SwitchSys(runlevel_t rlv) {
              * E X C H A N G E                *
              **********************************/
         case SYS_ON_EXCHANGE: // I2C1,TMR1,SPI1,UART2
-            Device_SwitchADG(PW_MRF); // RF Module switch-on
+            // Unselect SPI's devices 
             ADA_SS_SetHigh();
             SST26_SS_SetHigh();
-
+            Device_SwitchADG(PW_MRF); // Switch-on module
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))      
             //ADG729_Switch(_bs8(PW_MRF)); // RF Circuits On
             PMD3bits.RTCCMD = 0; // RTCC
@@ -558,7 +565,6 @@ bool Device_SwitchSys(runlevel_t rlv) {
             PMD1bits.T1MD = 0; // Tmr1 On 
             PMD1bits.SPI1MD = 0; // Spi1 On
             PMD1bits.U2MD = 0; // Uart2 On
-            // Set pins
 #endif
             break;
 
@@ -744,7 +750,7 @@ uint16_t Device_GetBatteryLevel() {
     AD1CON1bits.ADON = 0; // ADC Off
     //*dbuf =  (1024 - ADC1BUF0);
     //printf("adc=%d \n", ADC1BUF0);
-    //PMD1bits.AD1MD = ad1md;
+    PMD1bits.AD1MD = ad1md;
 
     return (ADC1BUF0);
 #endif

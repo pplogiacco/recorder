@@ -257,7 +257,7 @@ void UART2_Disable(void) {
 
 #if defined(__PIC24FJ256GA702__)
 
-void UART2_Initialize(void) {
+void UART2_Enable(void) {
     IEC1bits.U2TXIE = 0;
     IEC1bits.U2RXIE = 0;
     
@@ -286,12 +286,7 @@ void UART2_Initialize(void) {
      IEC1bits.U2RXIE = 1;    //Make sure to set TxPin LAT bit High !!
      U2MODEbits.UARTEN = 1; // enabling UART ON bit
      U2STAbits.UTXEN = 1;
-
 }
-
-/**
-    Maintains the driver's transmitter state machine and implements its ISR
- */
 
 void UART2_SetTxInterruptHandler(void (* interruptHandler)(void)) {
     if (interruptHandler == NULL) {
@@ -432,11 +427,13 @@ bool UART2_IsTxDone(void) {
     return false;
 }
 
-void __attribute__((deprecated)) UART2_Enable(void) {
-  //  IEC1bits.U2RXIE = 1;    //Make sure to set TxPin LAT bit High !!
-    U2MODEbits.UARTEN = 1;
-    U2STAbits.UTXEN = 1;
-}
+//void __attribute__((deprecated)) UART2_Enable(void) {
+//
+//    
+//    
+//    U2MODEbits.UARTEN = 1;
+//    U2STAbits.UTXEN = 1;
+//}
 
 void __attribute__((deprecated)) UART2_Disable(void) {
    // IEC1bits.U2RXIE = 0;    //Make sure to set TxPin LAT bit High !!

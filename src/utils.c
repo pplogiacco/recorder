@@ -82,15 +82,7 @@ void Timeout_Unset(void) {
     Timeout_CallBack = NULL;
 }
 
-void RTCC_SetWakeup(uint16_t period) {
-    // Get current time
-    // if ( attemptmode>0 ) {   // Wake-up to exchange
-    // if ( samplingmode==0 ) {   // Wake-up to sampling
-    // Power is ok ?
 
-    // set alarm to current time + delaycycle   
-
-}
 
 /*
 

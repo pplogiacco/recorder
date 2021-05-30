@@ -125,6 +125,7 @@ int main(void) {
                 Device_StatusGet(&g_dev.st);
                 Device_SwitchSys(SYS_ON_EXCHANGE);
 
+
                 do {
                     switch (exchState) {
                         case EXCH_OPEN:
@@ -223,7 +224,7 @@ int main(void) {
                 // Enable USB Wake-Up
                 // Enable RTC Alarm Wake-Up
 
-                if (0) { // if (!Device_IsUsbConnected()) {
+                if (!Device_IsUsbConnected()) {
                     Device_SwitchSys(SYS_SLEEP);
                     //  until wake-up event
                     Device_SwitchSys(SYS_DEFAULT);
@@ -259,8 +260,7 @@ int main(void) {
 
     int i;
     timestamp_t stime;
-    // UART2_Initialize();
-    UART2_Enable();
+    UART2_Enable(); // printf()...)
 
 #ifdef __VAMP1K_TEST_USB
     while (!Device_IsUsbConnected()) {
@@ -302,8 +302,10 @@ int main(void) {
     //    SST26_ResetEn();
     //    SST26_Reset();
     SST26_Global_Block_Protection_Unlock();
+    //SST26_Wait_Busy();
     SST26_WREN();
     SST26_Block_Erase(sst_addr); // Set 4K in 0xFF state
+    SST26_Wait_Busy();
     //SST26_Chip_Erase();
 
     int man, typ, id;
@@ -317,10 +319,10 @@ int main(void) {
         printf("config_reg=%u  \n", SST26_Read_Configuration());
         printf("status_reg=%u  \n", SST26_Read_Status());
 
-//        SST26_WREN();
+        //        SST26_WREN();
         sst_addr = 0;
-//
-//        SST26_Wait_Busy();
+        //
+        //        SST26_Wait_Busy();
         for (i = 0; i < 16; i++) {
             datas[i] = i;
         }
@@ -361,14 +363,14 @@ int main(void) {
 
 #ifdef __VAMP1K_TEST_BATTERY
     Device_SwitchSys(SYS_DEFAULT);
-    
+
     while (1) {
         printf("Read battery level... \n");
         printf("level=%d  \n", Device_GetBatteryLevel());
         __delay(1000);
         // RTCC_GetTimeL();
     }
-    
+
 #endif
 
 #ifdef __VAMP1K_TEST_SLEEP
@@ -419,17 +421,32 @@ int main(void) {
 #endif 
 
 
-    /*
-        /// TEST RTCC
+#ifdef __VAMP1K_TEST_RTC
+    if (1) {
         stime.year = 21;
         stime.month = 02;
         stime.day = 06;
         stime.hour = 12;
         stime.min = 25;
         stime.sec = 1;
-        // RTCC_TimeSet(&stime, 1);
-     
-     */
+        RTCC_SetTime(&stime, 1);
+    }
+
+    printf("%u/%u/%u - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
+    __delay(1000);
+    stime.min++;
+    RTCC_AlarmSet(&stime);
+    printf("Alarm set: %u:%u:%u \n", stime.hour, stime.min, stime.sec);
+    
+    while (1) {
+        RTCC_GetTime(&stime);
+        printf("%u/%u/%u - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
+        //printf("L1=%d \n",RTCC_GetTimeL(&stime));
+        //printf("L2=%d \n",RTCC_GetTimeL2(&stime));
+       __delay(3000);
+    }
+#endif
+
 
     /*
     /// _______________TEST TMR1 TIMEOUT
@@ -567,10 +584,6 @@ int main(void) {
             case EXCHANGE:
                 lstate = state;
                 Device_StatusGet(&g_dev.st);
-                //Device_SwitchPower(PW_ON_EXCHANGE);
-                //mode = TOSLEEP;
-                //mode = exchangeHandler();
-
 
 #ifdef __VAMP1K_TEST_measurement_printf
                 printf("EXCHANGE...\n");
