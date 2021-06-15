@@ -223,8 +223,6 @@ POWER   27  Vss
 #define CARD_SDA    18   // I2C1.SDA
 #endif
 
-
-
 #endif // HARDWARE_H
 
 

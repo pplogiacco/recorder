@@ -48,29 +48,26 @@ typedef union tagRTCC {
 
 static rtcc_t _time;
 
-//static void RTCC_Lock(void);
-//static bool rtccTimeInitialized;
-//static bool RTCCTimeInitialized(void);
-//static uint8_t ConvertHexToBCD(uint8_t hexvalue);
-//static uint8_t ConvertBCDToHex(uint8_t bcdvalue);
-
 // macro plg
 #define bcd2i(v)  (((((v)& 0xF0)>>4)*10)+((v)& 0x0F))
 #define i2bcd(l)  ((((l)/10)<<4)|((l)% 10))
 
-void __attribute__((weak)) RTCC_CallBack(void) {
-    // Add your custom callback code here
+void (*RTCC_CallBack)(void) = NULL; // Interrupt Handler Default CallBack
+
+void RTCC_SetCallBack(void (* NewCallBack)(void)) { // Call after Enable
+    RTCC_CallBack = NewCallBack;
 }
-#include <stdio.h>      // printf
 
 void __attribute__((interrupt, no_auto_psv)) _ISR _RTCCInterrupt(void) {
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
     IFS3bits.RTCIF = 0;
+    RTCC_CallBack(); // RTCC callback function 
 #elif defined( __PIC24FJ256GA702__)
-
     IFS3bits.RTCIF = 0;
-    printf("Allarm!!/n"); // Test
-
+    // RTCSTALbits.ALMEVT 
+    if (RTCC_CallBack) { // Execute call-back 
+        RTCC_CallBack();
+    }
 #endif
 }
 
@@ -105,6 +102,7 @@ void RTCC_Enable(void) {
     RCFGCALbits.RTCWREN = 0; // Lock 
 
 #elif defined(  __PIC24FJ256GA702__ )
+    RTCCON1Lbits.RTCEN = 0;
     __builtin_write_RTCC_WRLOCK();
     //    if (!RTCCTimeInitialized()) {
     //        // set 2021-05-11 02-46-42
@@ -113,36 +111,49 @@ void RTCC_Enable(void) {
     //        TIMEH = 0x246; // hours/minutes
     //        TIMEL = 0x4200; // seconds
     //    }
-    RTCCON2L = 0xC011; // PWCPS 1:1; PS 1:16; CLKSEL LPRC; FDIV 24;
-    RTCCON2H = 0x3C7; // DIV 967; 
-    RTCCON3L = 0x00; // PWCSTAB 0; PWCSAMP 0; 
-    RTCCON1H = 0x0; // Alarm Control Register
 
-    IFS3bits.RTCIF = 0;
-    IEC3bits.RTCIE = 1;
-    RTCCON1L = 0x8000; // RTCEN enabled; TSAEN (Timestamp A) Enable bit;
-    //  RTCCON1Lbits.RTCEN = 1; // Enable RTCC, clear RTCWREN 
+    // AMASK Every Half Second; ALMRPT 0; CHIME disabled; ALRMEN enabled; 
+    RTCCON1H = 0x8000;
+    // PWCPS 1:1; PS 1:16; CLKSEL LPRC; FDIV 24; 
+    RTCCON2L = 0xC011;
+    // DIV 967; 
+    RTCCON2H = 0x3C7;
+    // PWCSTAB 0; PWCSAMP 0; 
+    RTCCON3L = 0x00;
+
+    // RTCEN enabled; OUTSEL Alarm Event; PWCPOE disabled; PWCEN disabled; WRLOCK disabled; PWCPOL disabled; TSAEN disabled; RTCOE disabled; 
+    RTCCON1L = 0x8000;
+
+    // Enable RTCC, clear RTCWREN 
+    RTCCON1Lbits.RTCEN = 1;
     RTCC_Lock();
+
+    IEC3bits.RTCIE = 0;
+
 #endif
 }
 
 /* -------------------------------------------------------------------------- */
 void RTCC_AlarmSet(timestamp_t *t) {
 #if  defined(__PIC24FJ256GA702__)
-    //To avoid a false alarm event, the timer and alarm values should only 
-    //be changed while the alarm is disabled (ALRMEN = 0).        
-    __builtin_write_RTCC_WRLOCK();
+    // To avoid a false alarm event, the timer and alarm values should only 
+    // be changed while the alarm is disabled (ALRMEN = 0).        
+    //__builtin_write_RTCC_WRLOCK();
     RTCCON1Hbits.ALRMEN = 0; // Disable to modify alarm settings
     RTCSTATLbits.ALMEVT = 0x0;
     while (RTCSTATLbits.ALMSYNC); // 0 = Alarm registers may be written/modified safely
+    
+    RTCCON1Hbits.AMASK = 0b0101; // Every hour mm:ss
+    
     ALMDATEH = (i2bcd(t->year) << 8) | i2bcd(t->month); // Year/Month
     ALMDATEL = (i2bcd(t->day) << 8); // | i2bcd(weekday); // Date/Wday
     ALMTIMEH = (i2bcd(t->hour) << 8) | i2bcd(t->min); // hours/minutes
-    ALMTIMEL = (i2bcd(t->sec) << 8); // seconds           
-    //    IFS3bits.RTCIF = 0;
-    //    IEC3bits.RTCIE = 1;
-    RTCCON1Hbits.ALRMEN = 1; // Enable alrm    
-    RTCC_Lock();
+    ALMTIMEL = (i2bcd(t->sec) << 8); // seconds             
+
+    RTCCON1Hbits.ALRMEN = 1; // Enable alarm    
+    //RTCC_Lock();
+    IFS3bits.RTCIF = 0;
+    IEC3bits.RTCIE = 1;
     // RTCCON1H = 0x8000; // AMASK Every Half Second; ALMRPT 0; CHIME disabled; ALRMEN enabled; 
 #endif
 }
@@ -405,132 +416,52 @@ void RTCC_SetWakeup(uint16_t period) {
 }
 
 
-
-
-///*******************************************************************************
-//T I M E O U T  
-//TMR1  
-// *******************************************************************************/
-//
-//volatile bool _timed = false;
-//
-//void (*Timeout_CallBack)(void) = NULL; // Interrupt Handler Default CallBack
-//
-//void Timeout_SetCallBack(void (* NewCallBack)(void)) { // Call after Enable
-//    Timeout_CallBack = NewCallBack;
-//}
-//
-//void __attribute__((__interrupt__, no_auto_psv)) _T1Interrupt(void) {
-//    IFS0bits.T1IF = 0; // Clear Tmr1 Int Flag
-//    if (Timeout_CallBack) { // Execute call-back 
-//        Timeout_CallBack();
-//    } else {
-//        _timed = true;
-//    }
-//}
-//
-//void Timeout_Set(uint16_t nsec, uint16_t nms) {
-//    if ((nsec + nms) > 0) { // set Timeout
-//        _timed = false;
-//
-//#if defined(__PIC24FJ256GA702__)
-//
-//        T1CON = 0;
-//        T1CONbits.TCS = 1; // clock source is selected by T1ECS
-//        T1CONbits.TECS = 0b10; // uses the LPRC (31.25 kHz) as the clock source
-//        TMR1 = 0; // Clear timer register 
-//        if (nsec > 0) { // Scount sec and ignore ms
-//            T1CONbits.TCKPS = 0b01; // Select 1:8 Prescaler   
-//            PR1 = ( nsec * 0xF22); // Tick = 1s
-//        } else { // count ms
-//            T1CONbits.TCKPS = 0b00; // Select 1:1 (LPRC 1/31Khz * 0x1E = )
-//            PR1 = (nms * 0x1E); // ( 0x1E = 125 = 1ms period )
-//        }
-//        IFS0bits.T1IF = 0; // Clear Tmr1 Int Flag
-//        IEC0bits.T1IE = 1; // Enable interrupt
-//        T1CONbits.TON = 1; // Enable Timer
-//
-//#else
-//        T1CON = 0;
-//        T1CONbits.TCS = 1; // clock source is selected by T1ECS
-//        T1CONbits.T1ECS = 0b10; // uses the LPRC (31.25 kHz) as the clock source
-//        TMR1 = 0; // Clear timer register 
-//        if (nsec > 0) { // Scount sec and ignore ms
-//            T1CONbits.TCKPS = 0b11; // Select 1:256 Prescaler (LPRC/256=125Hz)  
-//            PR1 = nsec * 125; // Tick = 8ms
-//        } else { // count ms
-//            T1CONbits.TCKPS = 0b10; // Select 1:64 Prescaler (LPRC/64=500Hz)  (00 = 1:1)
-//            PR1 = (nms >> 1); // tick = 2ms
-//        }
-//        IFS0bits.T1IF = 0; // Clear Tmr1 Int Flag
-//        IEC0bits.T1IE = 1; // Enable interrupt
-//        T1CONbits.TON = 1; // Enable Timer
-//#endif        
-//    } else {
-//        _timed = true;
-//    }
-//
-//}
-//// startTimeout()
-//
-//bool isTimeout(void) { // 2ms x unit
-//    if (_timed) {
-//        T1CONbits.TON = 0; // Disable Timer    
-//    }
-//    return (_timed);
-//}
-//
-//// stopTimeout()
-//
-//void Timeout_Unset(void) {
-//    IEC0bits.T1IE = 0; // Disable interrupt
-//    T1CON = 0; // Disable Timer   
-//    Timeout_CallBack = NULL;
-//}
-//
-//void RTCC_SetWakeup(uint16_t period) {
-//    // Get current time
-//    // if ( attemptmode>0 ) {   // Wake-up to exchange
-//    // if ( samplingmode==0 ) {   // Wake-up to sampling
-//    // Power is ok ?
-//
-//    // set alarm to current time + delaycycle   
-//
-//}
-//
-///*
-//
-// void RTCC_Initialize(void)
+/*********************************************************************
+ * Function: RTCCCalculateWeekDay
+ *
+ * Preconditions: 
+ * Valid values of day, month and year must be presented in 
+ * _time_chk structure.
+ *
+ * Overview: The function reads day, month and year from _time_chk and 
+ * calculates week day. Than It writes result into _time_chk. To write
+ * the structure into clock RTCCSet must be called.
+ *
+ * Input: _time_chk with valid values of day, month and year.
+ *
+ * Output: Zero based week day in _time_chk structure.
+ *
+ ********************************************************************/
+//void RTCCCalculateWeekDay()
 //{
-//    // Set the RTCWREN bit
-//    __builtin_write_RTCWEN();
+//	const char MonthOffset[] =
+//	//jan feb mar apr may jun jul aug sep oct nov dec
+//	{   0,  3,  3,  6,  1,  4,  6,  2,  5,  0,  3,  5 };
+//	unsigned Year;
+//	unsigned Month;
+//	unsigned Day;
+//	unsigned Offset;
+//    // calculate week day 
+//    Year  = mRTCCDec2Bin(_time_chk.yr);
+//    Month = mRTCCDec2Bin(_time_chk.mth);
+//    Day  = mRTCCDec2Bin(_time_chk.day);
+//    
+//    // 2000s century offset = 6 +
+//    // every year 365%7 = 1 day shift +
+//    // every leap year adds 1 day
+//    Offset = 6 + Year + Year/4;
+//    // Add month offset from table
+//    Offset += MonthOffset[Month-1];
+//    // Add day
+//    Offset += Day;
 //
-//    RCFGCALbits.RTCEN = 0;
+//    // If it's a leap year and before March there's no additional day yet
+//    if((Year%4) == 0)
+//        if(Month < 3)
+//            Offset -= 1;
+//    
+//    // Week day is
+//    Offset %= 7;
 //
-//    if(RCON2bits.VBAT & RCONbits.POR)
-//    {
-//        if(!RTCCTimeInitialized())
-//        {
-//            // set RTCC time 2016-12-08 09-22-03
-//            RCFGCALbits.RTCPTR = 3; // start the sequence
-//            RTCVAL = 0x16; // YEAR
-//            RTCVAL = 0x1208; // MONTH-1/DAY-1
-//            RTCVAL = 0x409; // WEEKDAY/HOURS
-//            RTCVAL = 0x2203; // MINUTES/SECONDS
-//        }
-//    }
-//
-//    RCON2bits.VBAT = 0;
-//    RCONbits.POR = 0;
-//
-//    // RTCOUT Alarm Pulse; PWSPRE disabled; RTCLK SOSC; PWCPRE disabled; PWCEN disabled; PWCPOL disabled;
-//    RTCPWC = 0x0000;
-//
-//    // Enable RTCC, clear RTCWREN
-//    RCFGCALbits.RTCEN = 1;
-//    RCFGCALbits.RTCWREN = 0;
-//
-//    return;
+//    _time_chk.wkd = Offset;
 //}
-//
-// */

@@ -178,6 +178,81 @@ uint16_t measurementSave(measurement_t * ms) {
     if ((ms->ns + ms->nss) > 0) {
         msCounter++;
     };
+  
+        // depotAddBegin(uint16_t id, uint16_t size);
+        // depotAdd(char* data, uint16_t len);
+        // index = depotAddEnd();
+    
+        // depotDelete(uint16_t id);
+        // uint16_t = depotFreeSpace();  // blocks
+        // uint16_t = depotSize();
+    
+        // +-------------------------------
+        // | id | Offset        
+        // +------------------------------
+        // |  0 | pointer to first free block  
+        // |  1 | pointer to first block of chain 1                
+        // | ...| ....
+        //
+        // block: {datablock, MARKER } , MARKER:NXB/EOF
+        //
+        // Datablock:
+        // pgsize = 512          // min 4K block of flash memory - erase cycle
+        // BLOCK_MAXSAMPLES 48   // tranfer 96 Byte each trasmit buffer ( buffer size 128 )
+        // 
+    
+/*
+    if ((ms->ns + ms->nss) > 0) { // Save measurement
+        msCounter++;
+        
+        totSamplesBlocks = (uint16_t) ((uint16_t) (ms.nss + ms.ns) / BLOCK_MAXSAMPLES);
+        spareSamples = (uint16_t) ((uint16_t) (ms.nss + ms.ns) % BLOCK_MAXSAMPLES);
+        if (spareSamples > 0) {
+            totSamplesBlocks++;
+        }
+
+        offset = 0;
+        memcpy(&buffer[offset], &totSamplesBlocks, 2);
+        offset += 2;
+        memcpy(&buffer[offset], &ms.dtime, 4);
+        offset += 4;
+        buffer[offset++] = ms.typeset;
+        memcpy(&buffer[offset], &ms.ns, 2);
+        offset += 2;
+        memcpy(&buffer[offset], &ms.nss, 2);
+        offset += 2;
+
+        
+        if (protocolSend(CMD_MEASUREMENT_HEADER, offset, __ACK_TIMEOUT_DEFAULT)) {
+            result = true;
+            for (x = 0; x < totSamplesBlocks; x++) {
+                blockSize = BLOCK_MAXSAMPLES;
+                if ((spareSamples > 0) && (x == (totSamplesBlocks - 1))) {
+                    blockSize = spareSamples;
+                }
+                offset = 0;
+                buffer[offset++] = (uint8_t) (x + 1);
+
+                //memcpy(&buffer[offset], &ms.ss[x * BLOCK_MAXSAMPLES], (blockSize * 2));
+                measurementGetBlock(&buffer[offset], x * BLOCK_MAXSAMPLES, blockSize * 2); // blocksize multiplo di 3 in bytes 
+
+                offset += (blockSize * 2);
+  
+                // ****************** SAVE IN FLASH 
+                // Add NXB/EOF
+                if (!protocolSend(CMD_MEASUREMENT_BLOCK, offset, __ACK_TIMEOUT_DEFAULT)) {
+                    result = false;
+                    break;
+                }
+                // ******************
+            }
+        }
+    };
+*/
+    
+
+
+
     return (msCounter);
 }
 
@@ -208,6 +283,30 @@ uint16_t measurementDelete(uint16_t index) { // ret: 0/Counter
     }
     return (msIndex);
 }
+
+/* -------------------------------------------------------------------------- */
+void measurementGetBlock(uint8_t *pbuf, uint16_t offset, uint16_t size) {
+#ifdef __AV0NVM    
+    uint32_t read_data;
+    uint32_t nvm_address;
+    uint16_t count;
+
+    size /= 3;
+    nvm_address = __builtin_tbladdress(nvmDepot); // Get address of flash
+
+    for (count = 0; count < size; count++) {
+        read_data = FLASH_ReadWord24(nvm_address + (offset * 2) + count * 2);
+        *(pbuf) = read_data >> 16;
+        *(pbuf + 1) = read_data >> 8;
+        *(pbuf + 2) = read_data;
+        pbuf += 3;
+    }
+#else
+    //memcpy(&buffer[offset], &ms.ss[x * BLOCK_MAXSAMPLES], (blockSize * 2));
+    memcpy(pbuf, &g_measurement.ss[offset], size);
+#endif    
+}
+
 
 // ============================================================================
 // ret n samples each measure
@@ -259,27 +358,3 @@ uint16_t getRTMeasure(measureCmd_t cmd, measure_t mtype, sample_t *nsamp) {
     }
     return 0;
 }
-
-void getMeasurementBlock(uint8_t *pbuf, uint16_t offset, uint16_t size) {
-#ifdef __AV0NVM    
-    uint32_t read_data;
-    uint32_t nvm_address;
-    uint16_t count;
-
-    size /= 3;
-    nvm_address = __builtin_tbladdress(nvmDepot); // Get address of flash
-
-    for (count = 0; count < size; count++) {
-        read_data = FLASH_ReadWord24(nvm_address + (offset * 2) + count * 2);
-        *(pbuf) = read_data >> 16;
-        *(pbuf + 1) = read_data >> 8;
-        *(pbuf + 2) = read_data;
-        pbuf += 3;
-    }
-#else
-    //memcpy(&buffer[offset], &ms.ss[x * BLOCK_MAXSAMPLES], (blockSize * 2));
-    memcpy(pbuf, &g_measurement.ss[offset], size);
-#endif    
-}
-
-

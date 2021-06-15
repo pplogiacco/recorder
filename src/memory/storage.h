@@ -11,6 +11,7 @@
 
 #include <xc.h> // include processor files 
 
+// Use "Data Allocation Table" in main Flash  
 
 /*
 #include <stdbool.h>

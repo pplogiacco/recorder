@@ -19,42 +19,18 @@
 #define __HWDEVICE
 //#define __HWDEVICE_V2_302
 
-// Dongle:
-//#define __DONGLE
-//#define __DONGLE_PASSTHRU
-//#define __DONGLE_VAMP1K    // Simulate Device ( Demo Signal only !!)
-//#define __DONGLE_VAMP1K_AUTOSEND // Simulate Device ( Demo Signal only !!)
-//#define __DONGLE_TEST_FILE
-
-#define __VAMP1K_TEST
+//#define __VAMP1K_TEST
 
 //#define __NOFLASH    // Use RAM to store config
 //#define __NOUSB      // Force to use RF ( USB not connect )
 //------------------------------------------------------------------------------
 
 
-#define __VAMP1K
+
 #ifdef __VAMP1K_TEST
 #undef __VAMP1K
-
-// Test HW
-//#define __VAMP1K_TEST_HW                      // Perform hardware test
-//#define __VAMP1K_TEST_RESET
-//#define __VAMP1K_TEST_TIMER
-//#define __VAMP1K_TEST_CONFIG 
-//#define __VAMP1K_TEST_ADG
-//#define __VAMP1K_TEST_USB
-//#define __VAMP1K_TEST_BATTERY
-//#define __VAMP1K_TEST_SST26
-//#define __VAMP1K_TEST_SLEEP
-#define __VAMP1K_TEST_RTC
-
-// Test Sampling
-//#define __VAMP1K_TEST_AV_printf    // Test Acquire/ADC HW
-//#define __VAMP1K_TEST_measurement_printf  // Test Measurement format 
-//#define __VAMP1K_TEST_measurement_DATAVIS    // send ADC to serial mc datavis
-
-//#define __AV0NVM     // Save samples in flash
+#else
+#define __VAMP1K
 #endif
 
 

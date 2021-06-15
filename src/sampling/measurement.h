@@ -43,13 +43,13 @@ typedef enum e_dimension { // physical phenomenon
 } dimension_t;
 
 typedef enum e_typeset {
-    _SIG0 = 0x02, //  Test signal  { <sig_fq>, <sig_maxa>, <adc_fq>, <res_scale>, [<dT>,<a>],[...] }
+    _SIG0 = 0x02, // (02) Test signal  { <sig_fq>, <sig_maxa>, <adc_fq>, <res_scale>, [<dT>,<a>],[...] }
+    _AV04 = 0x04, // (04) Aeolean Vibration, samples without dT !            
     _AV00 = 0x0A, // (10) Aeolian Vibration, RAW { <ET>,<WS>,<adc_fq> <res_scale,[<dT>,<s>],...}
-    _SS00 = 0x0B, // Sub-Span, raw
-    _AV01 = 0x0D, // (13) Aeolian Vibration, P-P { <ET>,<WS>,<adc_fq> <res_scale,[<dT>,<sp>],...}
+    _SS00 = 0x0B, // (11) Sub-Span, raw
     _AV02 = 0x0C, // (12) Aeolian Vibration, FFT Real { <ET>,<WS>,<adc_fq>,<log2_n>,[<rH1>],...,[<rH((2^log2_n)/2)>]}
-    _AV03 = 0x0E,  // FFT Real { <ET>,<WS>,<adc_fq>,<log2_n>,[<rH1>],...,[<rH((2^log2_n)/2)>]}
-    _AV04 = 0x04   // Aeolean Vibration, samples without dT !
+    _AV01 = 0x0D, // (13) Aeolian Vibration, P-P { <ET>,<WS>,<adc_fq> <res_scale,[<dT>,<sp>],...}
+    _AV03 = 0x0E // (14) FFT Real { <ET>,<WS>,<adc_fq>,<log2_n>,[<rH1>],...,[<rH((2^log2_n)/2)>]}
 } typeset_t;
 
 typedef struct {
@@ -109,8 +109,9 @@ uint16_t measurementCounter(); // ret: number of stored measurements
 uint16_t measurementLoad(uint16_t index, measurement_t *ms); // ret: -1 error or Index ( ONLY LAST ??? FIFO ???)
 uint16_t measurementDelete(uint16_t index); // ret: -1 error or Index
 
+void measurementGetBlock(uint8_t *pbuf, uint16_t offset, uint16_t size); // Exchange needs !!!
+
 uint16_t getRTMeasure(measureCmd_t cmd, measure_t mtype, sample_t *nsamp);
-void getMeasurementBlock(uint8_t *pbuf, uint16_t offset, uint16_t size); // Exchange needs !!!
 
 // Dimensions Acquiring Routines
 // -------------------------------------------------------------------------
@@ -123,9 +124,6 @@ void getMeasurementBlock(uint8_t *pbuf, uint16_t offset, uint16_t size); // Exch
 
 // Real Time Sampling
 // -------------------------------------------------------------------------
-
-
-
 
 
 #endif	/* MEASUREMENT_H */

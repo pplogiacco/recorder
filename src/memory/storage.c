@@ -10,7 +10,7 @@
 /*
  Depot uses NVM memory to pack data and transfer datablocks to SST flash when 1 Page is filled
  
- Allocation table is sored in NVM and use a PAT structure to organize single blocks 
+ Allocation table is sored in NVM and use a MAT structure to organize block's chains
  *  
  * 
  

@@ -5,6 +5,7 @@
 #include "modules/UART2.h"
 #include "device.h"
 #include "utils.h"
+
 //#include "modules/RTCC.h"
 //#if defined(__PIC24FJ256GA702__)   
 //#include "memory/flash702.h"
@@ -101,7 +102,6 @@ void Device_Initialize() {
     //  Set the PPS
     __builtin_write_OSCCONL(OSCCON & 0xbf); // unlock PPS
 
-    
     // _____________SPI1 
     RPOR5bits.RP11R = 0x0008; //RB11->SPI1:SCK1OUT
     RPOR6bits.RP13R = 0x0007; //RB13->SPI1:SDO1
@@ -415,19 +415,17 @@ void Device_SwitchADG(uint8_t reg) { // ADG729_Switch(uint8_t reg)
 bool Device_SwitchSys(runlevel_t rlv) {
 
     switch (rlv) {
-            /**********************************
-             * B O O T                        *
-             **********************************/
+        /**********************************
+        * B O O T                        *
+        **********************************/
         case SYS_BOOT: // Set DOZE MODE !!!
 
-            Device_SwitchClock(CK_FAST); // Default clock 32Mhz
-
-            RTCC_Enable();
+            Device_SwitchClock(CK_FAST); // Default clock 32Mhz            
             Device_Initialize(); // Pins settings
-            //            UART2_Initialize(); // Configure UART 
-
+            RTCC_Enable();
             Device_SwitchADG(PW_OFF); // All off
-
+            //UART2_Initialize(); // Configure UART 
+            
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
 
             if (RCONbits.SLEEP) { // Resume from Deep Sleep
@@ -460,7 +458,6 @@ bool Device_SwitchSys(runlevel_t rlv) {
 #else
             PMD1 = 0xFF;
 #endif
-            PMD1 = 00; // Test
             PMD2 = 0xFF; // IC3MD enabled; OC1MD enabled; IC2MD enabled; OC2MD enabled; IC1MD enabled; OC3MD enabled; 
             PMD3 = 0b1111110111111111; // RTCC
             PMD4 = 0xFF; // CTMUMD enabled; REFOMD enabled; LVDMD enabled; 
@@ -514,12 +511,21 @@ bool Device_SwitchSys(runlevel_t rlv) {
             //            DSWAKEbits
             // Enable USB Wake-Up
             // Enable RTC Alarm Wake-Up
-
+            
+            PMD1 = 0xFF;
+            PMD2 = 0xFF; // IC3MD enabled; OC1MD enabled; IC2MD enabled; OC2MD enabled; IC1MD enabled; OC3MD enabled; 
+            PMD3 = 0b1111110111111111; // RTCC
+            PMD4 = 0xFF; // CTMUMD enabled; REFOMD enabled; LVDMD enabled; 
+            PMD5 = 0xFF; // CCP2MD enabled; CCP1MD enabled; CCP4MD enabled; CCP3MD enabled; CCP5MD enabled; 
+            PMD6 = 0xFF; // SPI3MD enabled; 
+            PMD7 = 0xFF; // DMA1MD enabled; DMA0MD disabled; 
+            PMD8 = 0xFF; // CLC1MD enabled; CLC2MD enabled; 
             // set INT0 wake_up
             IFS0bits.INT0IF = 0;
             IEC0bits.INT0IE = 1; // enables INT0 (for change detection)
 
             Sleep(); // enter in sleep mode
+            
             //Idle();
             IEC0bits.INT0IE = 0; // Disable INT0 (No change detection)
 #endif
@@ -629,7 +635,7 @@ bool Device_SwitchSys(runlevel_t rlv) {
 
             // All Disabled except RTCC
 #ifdef __VAMP1K_TEST            
-            PMD1 = 00; // 0b1111111110111111; // Uart2 enabled
+            PMD1 = 00; // 0b1111111110111111; // Uart2 enabled            
 #else
             //PMD1 = 0xFF; // ADC, I2C, SPI, USART, TMR1, TMR2,TMR3
             PMD1 = 00; // Test

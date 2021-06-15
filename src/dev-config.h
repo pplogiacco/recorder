@@ -47,15 +47,12 @@ typedef struct { // General Settings
 
 #define CNF_POWER_DEFAULT       0x00  // Try every sampling cycle
 
-#define CNF_SAMPLING_CYCLIC     0x00  // Does after "delaytime" seconds
-#define CNF_SAMPLING_CYCDATE    0x01  // Does after "delaytime" beteewn start-stop dates
-#define CNF_SAMPLING_ONDEMAND   0x02  // On request
-#define CNF_SAMPLING_SCHEDULED  0x03  // On scheduled datetime
-#define CNF_SAMPLING_CYCLIC     0x00  // Try every sampling cycle
-#define CNF_SAMPLING_CYCDATE    0x01  // Try every sampling cycle beteewn the dates
-#define CNF_SAMPLING_ONDEMAND   0x02  // On request
-#define CNF_SAMPLING_SCHEDULED  0x03  // On scheduled datetime
-#define CNF_SAMPLING_OFF        0x0A  // dosn't execute sampling cycles
+#define CNF_SAMPLING_OFF        0x00  // dosn't execute sampling cycles
+#define CNF_SAMPLING_CYCLIC     0x01  // Does after "delaytime" seconds
+#define CNF_SAMPLING_CYCDATE    0x02  // Does after "delaytime" beteewn start-stop dates
+#define CNF_SAMPLING_ONDEMAND   0x03  // On request
+#define CNF_SAMPLING_SCHEDULED  0x04  // On scheduled datetime
+
 
 typedef struct { // Calibration/Sampling factors and parameters:
     uint32_t et_factor; // Coefficient to scale to Celsius

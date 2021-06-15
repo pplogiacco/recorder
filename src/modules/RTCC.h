@@ -37,7 +37,8 @@ extern "C" {
 
 
     void RTCC_Enable(void);
-
+    void RTCC_SetCallBack(void (* NewCallBack)(void));
+    
     //bool RTCC_Grab();
     void RTCC_GetTime(timestamp_t *t);
     void RTCC_SetTime(timestamp_t *t, unsigned char weekday);
@@ -52,8 +53,7 @@ extern "C" {
     uint32_t RTCC_GetTimeL2();
     uint16_t RTCC_GetMinutes();
 
-
-
+    
     void Timestamp2Time(timestamp_t *t);
     //void Time2Timestamp(timestamp_t *t);
 

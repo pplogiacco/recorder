@@ -99,7 +99,7 @@ void fft_window(fix14_t fr[], fix14_t fi[]) {
 }
 
 /******************************************************************************
- * In-place, real, forward transform FFT   
+ * In-place, real, forward only FFT   
  ******************************************************************************/
 void fft_fix(fix14_t fr[], fix14_t fi[], int m) {
     int mr, nn, i, j, L, k, istep, n;
@@ -132,8 +132,6 @@ void fft_fix(fix14_t fr[], fix14_t fi[], int m) {
 #if defined(__FFT_TABLED) 
             wr = Sinewave[j + N_WAVE / 4];
             wi = -Sinewave[j];
-            //wr >>= 1; // scale tabled values
-            //wi >>= 1;
 #else
             wr = SinTab(j + N_WAVE / 4, N_WAVE); 
             wi = -SinTab(j, N_WAVE); 
@@ -168,7 +166,7 @@ void fft_spectrum(fix14_t ptrPoints[]) {
 
     // The magnitude of the FFT is approximated as: 
     //   |amplitude| = max(|Re|,|Im|) + 0.4 * min(|Re|,|Im|)
-    // Accurancy about 4% rms.
+    // Accurancy is about 4% rms.
 
     for (i = 1; i < N2; i++) {
         // get the approx magnitude
@@ -213,3 +211,5 @@ void fft_spectrum(fix14_t ptrPoints[]) {
 #endif
     }
 }
+
+

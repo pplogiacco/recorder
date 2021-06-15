@@ -71,6 +71,7 @@ devicestate_t exchangeHandler() {
 
 
 #ifndef __DONGLE_PASSTHRU
+
 /* -------------------------------------------------------------------------- */
 bool Exchange_sendHandshake(void) {
     uint8_t command;
@@ -85,16 +86,16 @@ bool Exchange_sendHandshake(void) {
 
     memcpy(&buffer[offset], &g_dev.st.DIN, 4);
     offset += 4;
-    memcpy(&buffer[offset], &timestamp, 4);  // g_dev.st.timestamp
+    memcpy(&buffer[offset], &timestamp, 4); // g_dev.st.timestamp
     offset += 4;
     memcpy(&buffer[offset], &g_dev.st.version, 2);
     offset += 2;
     memcpy(&buffer[offset], &g_dev.cnf.CRC16, 2);
     offset += 2;
-    buffer[offset++] = Device_IsUsbConnected();  
+    buffer[offset++] = Device_IsUsbConnected();
     // g_dev.st.link_status USB 0 not connected, <1000 usb connected, RSSI: 100..200 RSSI
     // Is locked.... 
-    
+
     if (protocolSend(CMD_HANDSHAKE, offset, timeout)) {
         if (protocolReceive(&command, timeout)) {
             //uint8_t *rxData = ptrReceiveData();
@@ -173,10 +174,10 @@ bool sendMeasurement(uint16_t index) {
 
                 offset = 0;
                 buffer[offset++] = (uint8_t) (x + 1);
-                
+
                 //memcpy(&buffer[offset], &ms.ss[x * BLOCK_MAXSAMPLES], (blockSize * 2));
-                getMeasurementBlock(&buffer[offset], x * BLOCK_MAXSAMPLES,  blockSize * 2  ); // blocksize multiplo di 3 in bytes 
-                             
+                measurementGetBlock(&buffer[offset], x * BLOCK_MAXSAMPLES, blockSize * 2); // blocksize multiplo di 3 in bytes 
+
                 offset += (blockSize * 2);
                 if (!protocolSend(CMD_MEASUREMENT_BLOCK, offset, __ACK_TIMEOUT_DEFAULT)) {
                     result = false;
@@ -251,7 +252,7 @@ bool sendKeepAlive() {
 }
 
 /* -------------------------------------------------------------------------- */
-bool Exchange_commandSendResponse(uint16_t dataSize){
+bool Exchange_commandSendResponse(uint16_t dataSize) {
     return protocolSend(CMD_REALTIME_COMMAND, dataSize, __ACK_TIMEOUT_DEFAULT);
 }
 
@@ -318,7 +319,7 @@ void Exchange_commandsHandler(RealTimeCommandType *rtCommand) {
                     break;
                     //----------------------------------------------------------
                 case CMD_REALTIME_COMMAND:
-                    *rtCommand = (RealTimeCommandType)rxData[0];
+                    *rtCommand = (RealTimeCommandType) rxData[0];
                     exit = true;
                     break;
                     //----------------------------------------------------------
