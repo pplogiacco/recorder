@@ -19,7 +19,7 @@
 #define __HWDEVICE
 //#define __HWDEVICE_V2_302
 
-//#define __VAMP1K_TEST
+#define __VAMP1K_TEST
 
 //#define __NOFLASH    // Use RAM to store config
 //#define __NOUSB      // Force to use RF ( USB not connect )
@@ -29,6 +29,10 @@
 
 #ifdef __VAMP1K_TEST
 #undef __VAMP1K
+// Test Sampling
+//#define __VAMP1K_TEST_AV_printf    // Test Acquire/ADC HW
+//#define __VAMP1K_TEST_measurement_printf  // Test Measurement format 
+//#define __VAMP1K_TEST_measurement_DATAVIS    // send ADC to serial mc datavis
 #else
 #define __VAMP1K
 #endif

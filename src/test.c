@@ -3,23 +3,23 @@
  *  TEST !!!!!!!                                                              *              
  *----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST
+#include "utils.h"
+#include "modules/RTCC.h"
+
 
 // Test HW
 //#define __VAMP1K_TEST_HW                      // Perform hardware test
 //#define __VAMP1K_TEST_RESET
-//#define __VAMP1K_TEST_TIMER
+#define __VAMP1K_TEST_TIMERS
 //#define __VAMP1K_TEST_CONFIG 
-//#define __VAMP1K_TEST_ADG
-//#define __VAMP1K_TEST_USB
+// #define __VAMP1K_TEST_ADG
+// #define __VAMP1K_TEST_USB
 //#define __VAMP1K_TEST_BATTERY
 //#define __VAMP1K_TEST_SST26
-#define __VAMP1K_TEST_SLEEP
+// #define __VAMP1K_TEST_SLEEP
 // #define __VAMP1K_TEST_RTCC
 
-// Test Sampling
-//#define __VAMP1K_TEST_AV_printf    // Test Acquire/ADC HW
-//#define __VAMP1K_TEST_measurement_printf  // Test Measurement format 
-//#define __VAMP1K_TEST_measurement_DATAVIS    // send ADC to serial mc datavis
+#define __VAMP1K_TEST_measurement_printf
 
 //#define __AV0NVM     // Save samples in flash
 
@@ -31,15 +31,15 @@
 
 
 
-//// TEST TMR3
-//volatile int tmr3trig = 0;
+// TEST TMR3
+volatile int tmr3trig = 0;
 //void __attribute__((__interrupt__, no_auto_psv)) _T3Interrupt(void) {
 //    tmr3trig = 1;
 //    IFS0bits.T3IF = 0; // ClearInt Flag
 //}
 //
-//// TEST TMR2
-//volatile int tmr2trig = 0;
+// TEST TMR2
+volatile int tmr2trig = 0;
 //
 //void __attribute__((__interrupt__, no_auto_psv)) _T2Interrupt(void) {
 //    tmr2trig = 1;
@@ -93,14 +93,48 @@ int main(void) {
 
     UART2_Enable(); // printf()...)
 
+    RTCC_GetTime(&stime);
+    printf("[%u:%u:%u]\n#:", stime.hour, stime.min, stime.sec);
 
+    
+#ifdef  __VAMP1K_TEST_RESET    
+
+    if (RCONbits.WDTO) { // WDT Overflow Reset
+        printf("WDT\n");
+        RCONbits.WDTO = 0;
+        // Increment "alarm_counter"
+    } else if (RCONbits.BOR) { // Brown-out Reset
+        printf("Bor\n");
+        RCONbits.BOR = 0;
+        // Increment "alarm_counter"
+    } else if (RCONbits.DPSLP) { // Resume from Deep-sleep / DS Retention
+        printf("D-S\n");
+        RCONbits.DPSLP = 0;
+        if (RCONbits.RETEN) {
+            printf("RETEN\n");
+            // RCONbits.RETEN = 0;
+        }
+    } else if (RCONbits.POR) { // Power Reset
+        printf("POR\n");
+        RCONbits.POR = 0;
+    } else if (RCONbits.SWR) { // Power Reset
+        printf("SwR\n");
+        RCONbits.SWR = 0;
+    }
+    __delay(2000);
+#endif 
+    
 #ifdef __VAMP1K_TEST_USB
-    while (!Device_IsUsbConnected()) {
-        printf("Waiting USB... \n");
+    while (1) {
+        if (!Device_IsUsbConnected()) {
+            printf("USB Waiting (RB7=%d)... \n",Device_IsUsbConnected());
+        } else {
+            printf("USB Connected (RB7=%d) !  \n",Device_IsUsbConnected());
+        }
         __delay(1000);
     }
-    printf("USB Ready ! \n");
 #endif
+
 
 #ifdef __VAMP1K_TEST_ADG
     Device_SwitchSys(SYS_DEFAULT);
@@ -117,11 +151,126 @@ int main(void) {
     Device_SwitchADG(0xFF); //_bs8(PW_WST) | _bs8(PW_ADA));
 #endif      
 
-    RTCC_GetTime(&stime);
-    printf("[%u:%u:%u]\n#:", stime.hour, stime.min, stime.sec);
+
+#ifdef __VAMP1K_TEST_TIMERS
+
+    /// _______________TEST TMR1 TIMEOUT
+    Timeout_Set(2, 0);
+    printf("TMR1: Timeout = 2sec \n");
+    while (!isTimeout()) { // Loop until cycle-time or full filled buffer
+        __delay(10);
+        printf(".");
+    }
+    printf("Tmr1 ok\n");
 
 
+    /// _______________TEST TMR2 COUNTER  
+    printf("TMR2: Tsrc=T2CK pin \n");
+    WS_IN_SetDigitalInputLow();
+    IEC0bits.T2IE = 0; // Disable Int
+    T2CON = 0x00; // Reset TMR2, 16 Bit, No Prescaler
+    T2CONbits.TCS = 1; //  Extended Clock Source (TECS))
+    T2CONbits.TECS = 1; // T2CK pin 
+    TMR2 = 0x00; // TMR2 Counter Register
+    PR2 = 0x10; // TMR2 Counter
+    IFS0bits.T2IF = 0; // Reset iflag
+    IEC0bits.T2IE = 1; // Enable Int
+    T2CONbits.TON = 1;
+    
+    tmr2trig = false;
+    while (!tmr2trig) {
+        if (tmr2trig) {
+            printf("Tmr2 ok\n");
+          //  tmr2trig = 0;
+        }
+        // printf("°");
+    }
 
+
+    /// _______________TEST TMR3 COUNTER
+    AV_SYN_SetDigital();
+    AV_SYN_SetDigitalInput(); // Input T3CK/RB15 (SYNCO)
+
+    T3CONbits.TON = 1;
+    //T3CON = 0x00; // Timer 3 Control Register
+    T2CONbits.T32 = 0; // Configure TMR3 16Bit Operation
+    T3CONbits.TCS = 1; // Clock Source 
+    //1 = External clock from pin, TyCK (on the rising edge)
+    //0 = Internal clock (FOSC/2)
+    T3CONbits.TECS = 0b01; // bit 9-8: Timery Extended Clock Source (when TCS = 1)
+    //11 = Generic timer (TxCK) external input
+    //10 = LPRC Oscillator
+    //01 = T3CK external clock input
+    //00 = SOSC
+    T3CONbits.TCKPS = 0b00; // Input Clock Prescale (00 = 1:1)
+    TMR3 = 0x00; //TMR3 Timer3 Counter Register  
+    PR3 = 10; // Count 
+    IFS0bits.T3IF = 0; // Reset Int vector
+    IEC0bits.T3IE = 1; // Int call-back 
+    //T3CONbits.TON = 1;
+
+    tmr3trig= false;
+    while (1) {
+        if (tmr3trig) {
+            printf("!");
+            tmr3trig = 0;
+        }
+        // printf("°");
+    }
+
+    /*
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+
+    WS_IN_SetDigitalInputLow(); // Input RB2 (6) 
+
+    IEC0bits.T2IE = 0; // Disable Int
+    T2CON = 0x00; // Reset TMR2, 16 Bit, No Prescaler
+    T2CONbits.TCS = 1; //  Extended Clock Source (TECS))
+    T2CONbits.TECS = 1; // T2CK pin 
+    TMR2 = 0x00; // TMR2 Counter Register
+    PR2 = 0xFFFF; // TMR4 Single Event
+
+    Timeout_SetCallBack(tmr2_wscapture);
+
+    memset(&tmr2_wsptime, 0, sizeof (tmr2_wsptime));
+    tmr2_icycle = 0;
+    tmr2_wsready = 0;
+    T2CONbits.TON = 1;
+
+    while (1) {
+
+        Timeout_SetCallBack(tmr2_wscapture);
+        Timeout_Set(1, 0); // TMR1 1Second Start !
+        while ((tmr2_icycle < 5)) {
+            Nop();
+        }
+        Timeout_Unset();
+
+        // T2CONbits.TON = 0;
+        printf("---------------- \n");
+        for (i = 0; i < 5; i++) {
+            printf("cycles=%d, counter=%d \n", i, tmr2_wsptime[i]);
+        }
+        printf("\n\n");
+        tmr2_icycle = 0;
+    }
+     */
+
+    
+#endif
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 #ifdef __VAMP1K_TEST_SST26
 
     Device_SwitchSys(SYS_ON_EXCHANGE); // SPI
@@ -130,15 +279,16 @@ int main(void) {
     uint8_t datas[32];
 
     SST26_Enable();
-    SST26_Switch_Power();
-    //    SST26_ResetEn();
-    //    SST26_Reset();
+    //SST26_Chip_Erase();
+    //SST26_Switch_Power();
+    //SST26_ResetEn();
+    //SST26_Reset();
     SST26_Global_Block_Protection_Unlock();
-    //SST26_Wait_Busy();
+    SST26_Wait_Busy();
     SST26_WREN();
     SST26_Block_Erase(sst_addr); // Set 4K in 0xFF state
     SST26_Wait_Busy();
-    //SST26_Chip_Erase();
+
 
     int man, typ, id;
 
@@ -193,6 +343,7 @@ int main(void) {
     //    Device_ConfigWrite((uint8_t*) & g_dev.cnf); // Write EEprom/Flash
 #endif
 
+
 #ifdef __VAMP1K_TEST_BATTERY
     Device_SwitchSys(SYS_DEFAULT);
 
@@ -219,12 +370,8 @@ int main(void) {
         stime.sec = 1;
         RTCC_SetTime(&stime, 1);
     }
-
-
     // Enable USB Wake-Up
     // Device_IsUsbConnected()
-
-
 
     while (1) {
 
@@ -244,14 +391,14 @@ int main(void) {
 
         printf("Put into sleep mode. (RTTC/INT0 Wake)... \n");
         __delay(100); // Wait to complete printf
-        
+
         Device_SwitchSys(SYS_SLEEP);
         //  wait wake-up event...        
         // Reset USB Wake-up flag
         // 
         Device_SwitchSys(SYS_DEFAULT);
         UART2_Enable();
-        
+
         //printf("Hello, wake-up ! \n");
         int i;
         int z;
@@ -263,34 +410,6 @@ int main(void) {
         printf("wake-up: %u/%u/%u - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
     }
 #endif
-
-
-#ifdef  __VAMP1K_TEST_RESET    
-
-    if (RCONbits.WDTO) { // WDT Overflow Reset
-        printf("WDT\n");
-        RCONbits.WDTO = 0;
-        // Increment "alarm_counter"
-    } else if (RCONbits.BOR) { // Brown-out Reset
-        printf("Bor\n");
-        RCONbits.BOR = 0;
-        // Increment "alarm_counter"
-    } else if (RCONbits.DPSLP) { // Resume from Deep-sleep / DS Retention
-        printf("D-S\n");
-        RCONbits.DPSLP = 0;
-        if (RCONbits.RETEN) {
-            printf("RETEN\n");
-            // RCONbits.RETEN = 0;
-        }
-    } else if (RCONbits.POR) { // Power Reset
-        printf("POR\n");
-        RCONbits.POR = 0;
-    } else if (RCONbits.SWR) { // Power Reset
-        printf("SwR\n");
-        RCONbits.SWR = 0;
-    }
-    __delay(2000);
-#endif 
 
 
 #ifdef __VAMP1K_TEST_RTCC
@@ -321,9 +440,8 @@ int main(void) {
     if (stime.min > 59) {
         stime.min -= 59;
     }
+
     RTCC_AlarmSet(&stime);
-
-
     printf("Alarm set: %u:%u:%u \n", stime.hour, stime.min, stime.sec);
 
     while (1) {
@@ -343,113 +461,7 @@ int main(void) {
 #endif
 
 
-    /*
-    /// _______________TEST TMR1 TIMEOUT
-    setTimeout(2, 0);
-    printf("Timeout: 2sec \n");
-    while (!isTimeout()) { // Loop until cycle-time or full filled buffer
-        __delay(10);
-        printf(".");
-    }
-    printf("Tmr1 ok\n");
-     */
-
-    /*
-    /// _______________TEST TMR2 COUNTER  
-    WS_IN_SetDigitalInputLow();
-    IEC0bits.T2IE = 0; // Disable Int
-    T2CON = 0x00; // Reset TMR2, 16 Bit, No Prescaler
-    T2CONbits.TCS = 1; //  Extended Clock Source (TECS))
-    T2CONbits.TECS = 1; // T2CK pin 
-    TMR2 = 0x00; // TMR2 Counter Register
-    PR2 = 0x10; // TMR2 Counter
-    IFS0bits.T2IF = 0; // Reset iflag
-    IEC0bits.T2IE = 1; // Enable Int
-    T2CONbits.TON = 1;
-    tmr2trig = false;
-    while (1) {
-        if (tmr2trig) {
-            printf("!");
-            tmr2trig = 0;
-        }
-        // printf("°");
-    }
-     */
-
-    /*
-    #include <stdio.h>
-    #include <stdlib.h>
-    #include <string.h>
-
-    WS_IN_SetDigitalInputLow(); // Input RB2 (6) 
-
-    IEC0bits.T2IE = 0; // Disable Int
-    T2CON = 0x00; // Reset TMR2, 16 Bit, No Prescaler
-    T2CONbits.TCS = 1; //  Extended Clock Source (TECS))
-    T2CONbits.TECS = 1; // T2CK pin 
-    TMR2 = 0x00; // TMR2 Counter Register
-    PR2 = 0xFFFF; // TMR4 Single Event
-
-    Timeout_SetCallBack(tmr2_wscapture);
-
-    memset(&tmr2_wsptime, 0, sizeof (tmr2_wsptime));
-    tmr2_icycle = 0;
-    tmr2_wsready = 0;
-    T2CONbits.TON = 1;
-
-    while (1) {
-
-        Timeout_SetCallBack(tmr2_wscapture);
-        Timeout_Set(1, 0); // TMR1 1Second Start !
-        while ((tmr2_icycle < 5)) {
-            Nop();
-        }
-        Timeout_Unset();
-
-        // T2CONbits.TON = 0;
-        printf("---------------- \n");
-        for (i = 0; i < 5; i++) {
-            printf("cycles=%d, counter=%d \n", i, tmr2_wsptime[i]);
-        }
-        printf("\n\n");
-        tmr2_icycle = 0;
-    }
-     */
-
-
-    /*
-    /// _______________TEST TMR3 COUNTER
-    AV_SYN_SetDigital();
-    AV_SYN_SetDigitalInput(); // Input T3CK/RB15 (SYNCO)
-
-    T3CONbits.TON = 1;
-    //T3CON = 0x00; // Timer 3 Control Register
-    T2CONbits.T32 = 0; // Configure TMR3 16Bit Operation
-    T3CONbits.TCS = 1; // Clock Source 
-    //1 = External clock from pin, TyCK (on the rising edge)
-    //0 = Internal clock (FOSC/2)
-    T3CONbits.TECS = 0b01; // bit 9-8: Timery Extended Clock Source (when TCS = 1)
-    //11 = Generic timer (TxCK) external input
-    //10 = LPRC Oscillator
-    //01 = T3CK external clock input
-    //00 = SOSC
-    T3CONbits.TCKPS = 0b00; // Input Clock Prescale (00 = 1:1)
-    TMR3 = 0x00; //TMR3 Timer3 Counter Register  
-    PR3 = 10; // Count 
-    IFS0bits.T3IF = 0; // Reset Int vector
-    IEC0bits.T3IE = 1; // Int call-back 
-    //T3CONbits.TON = 1;
-
-    tmr3trig= false;
-    while (1) {
-        if (tmr3trig) {
-            printf("!");
-            tmr3trig = 0;
-        }
-        // printf("°");
-    }
-
-     */
+   
 
 
     while (1) {
