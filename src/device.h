@@ -19,7 +19,7 @@
 #define __HWDEVICE
 //#define __HWDEVICE_V2_302
 
-#define __VAMP1K_TEST
+//#define __VAMP1K_TEST
 
 //#define __NOFLASH    // Use RAM to store config
 //#define __NOUSB      // Force to use RF ( USB not connect )
@@ -133,6 +133,7 @@ uint16_t Device_GetBatteryLevel();
 
 // bool Device_IsUsbConnected(void);
 #define Device_IsUsbConnected() USB_Status
+//#define Device_IsUsbConnected() true
 //#define Device_IsUsbConnected() false
 
 

@@ -68,7 +68,7 @@ typedef enum {
 devicestate_t exchangeHandler();
 #endif
 
-#define Exchange_Connect(x) openChannel()
+#define Exchange_Connect(already_connected_usb) openChannel()
 #define Exchange_Disconnect() closeChannel()
 
 void passthruMainLoop(void);

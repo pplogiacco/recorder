@@ -255,6 +255,8 @@ void UART2_Disable(void) {
 }
 #endif 
 
+
+
 #if defined(__PIC24FJ256GA702__)
 
 void UART2_Enable(void) {
@@ -288,6 +290,14 @@ void UART2_Enable(void) {
      U2STAbits.UTXEN = 1;
 }
 
+
+void UART2_Disable(void) {
+   // IEC1bits.U2RXIE = 0;    //Make sure to set TxPin LAT bit High !!
+    U2MODEbits.UARTEN = 0;
+    U2STAbits.UTXEN = 0;
+}
+
+
 void UART2_SetTxInterruptHandler(void (* interruptHandler)(void)) {
     if (interruptHandler == NULL) {
         UART2_TxDefaultInterruptHandler = &UART2_Transmit_CallBack;
@@ -320,7 +330,6 @@ void __attribute__((interrupt, no_auto_psv)) _U2TXInterrupt(void) {
 }
 
 void __attribute__((weak)) UART2_Transmit_CallBack(void) {
-
 }
 
 void UART2_SetRxInterruptHandler(void (* interruptHandler)(void)) {
@@ -427,19 +436,7 @@ bool UART2_IsTxDone(void) {
     return false;
 }
 
-//void __attribute__((deprecated)) UART2_Enable(void) {
-//
-//    
-//    
-//    U2MODEbits.UARTEN = 1;
-//    U2STAbits.UTXEN = 1;
-//}
 
-void __attribute__((deprecated)) UART2_Disable(void) {
-   // IEC1bits.U2RXIE = 0;    //Make sure to set TxPin LAT bit High !!
-    U2MODEbits.UARTEN = 0;
-    U2STAbits.UTXEN = 0;
-}
 
 #endif // __PIC24FJ256GA702__
 

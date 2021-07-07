@@ -90,26 +90,18 @@ POWER   27  Vss
 #define AV_SYN_SetDigital()         _ANSB15=0  // Digital
 #define AV_SYN_SetDigitalInput()    _TRISB15=1 // Input T3CK/RB15 (SYNCO)
 
-//#define AV_INP_SetAnalog()          _ANSA0=1   // RA0 AN0 (2 DIP20) VRef+
-//#define AV_INP_SetAnalogInput()     _TRISA0=1     
-//#define AV_INN_SetAnalog()          _ANSA1=1   //  RA1 AN1 (3 DIP20) VRef-
-//#define AV_INN_SetAnalogInput()    { _TRISA1=1; _ANSA1=1; } 
-
 #define AV_IN_SetAnalogInput()   { _TRISA0=1;  _ANSA0=1; }   // AN0 
 
-
-
 #define ET_IN     _RB3  // AN5/C1INA/C2INC/SCL2/CN7/RB3 (7)
-//#define ET_IN_SetAnalog()         (_ANSB3 = 1 ) 
 #define ET_IN_SetAnalogInput()    {_TRISB3 = 1; _ANSB3 = 1; }
 
-
 #define WS_IN     _RB2  // AN4/C1INB/C2IND/SDA2/T5CK/T4CK/U1RX/CTED13/CN6/RB2 (6)
-//#define WS_IN_SetDigital()         (_ANSB2 = 0 ) 
 #define WS_IN_SetDigitalInputLow()    { _TRISB2 = 1; _ANSB2 = 0; _LATB2 = 0;} 
 #endif
 
 #endif // __SENSOR_BOARD
+
+
 
 
 #ifdef __UI // ______________________________________________________________UI
@@ -149,21 +141,13 @@ POWER   27  Vss
 
 #ifdef __USB  // ___________________________________________________________USB
 
-//#define USB_WK_SetDigital()  
-#define USB_WK_SetDigitalInputLow() {  _TRISB7 = 1; _LATB7 = 0; IOCPDBbits.CNPDB7 = 1; } 
-
 #define __UART2
+#define USB_WK_SetDigitalInputLow() {  _TRISB7 = 1; _LATB7 = 0;  } // IOCPDBbits.CNPDB7 = 1;
 
 #ifdef __HWDEVICE
-
-#ifdef __NOUSB
-#define USB_Status 0
-#else
 #define USB_Status _RB7 
-#endif
-
 #else // HWDONGLE
-#define USB_Status() (1)
+#define USB_Status (1)
 #endif
 #endif // __USB
 
@@ -171,36 +155,35 @@ POWER   27  Vss
 #if defined(__MRF24) // __________________________________________________MRF24
 
 #define __SPI1
-#define MRF24_INT   _RB7   // Shared USB_WK
+#define MRF24_INT             _RB7   // Shared USB_WK
 
-#if defined(__HWDEVICE) //  9	OSCI/AN13/CLKI/CN30/RA2     (S) MRF Chip Select
-#define MRF24_SS    _RA2   // Chip select
+#if defined(__HWDEVICE)     // 9	OSCI/AN13/CLKI/CN30/RA2  (S) MRF Chip Select
+
+#define MRF24_SS             (_RA2)   // Chip select
 #define MRF24_SS_SetHigh()   (_LATA2 = 1)
 #define MRF24_SS_SetLow()    (_LATA2 = 0)
-//#define MRF24_SS_SetDigital()  (_ANSA2 = 0)
 #define MRF_SS_SetDigitalOutputHigh()  {_TRISA2 = 0; _ANSA2 = 0; _LATA2 = 1; } 
 
-
 #elif defined(__HWDONGLE)
-#define MRF24_SS    _RB15   // Chip select
+#define MRF24_SS                    _RB15   // Chip select
 #define MRF24_SS_SetHigh()          (_LATB15 = 1)
 #define MRF24_SS_SetLow()           (_LATB15 = 0)
-#define MRF24_SS_SetDigital()   // No settings       
-#define MRF24_SS_SetDigitalOutput()  (_TRISB15 = 0)
+#define MRF24_SS_SetDigital()       // No settings       
+#define MRF24_SS_SetDigitalOutput() (_TRISB15 = 0)
 #endif
 #endif // __MRF24
 
 
 
-#ifdef __UART2
+#ifdef __UART2     // __________________________________________________UART2
+
 #define UART2_RX_SetDigitalInput() { _ANSB0 = 0; _TRISB0 = 0; _LATB0 = 1; }
-#define UART2_TX_SetDigitalOutputHigh() {_ANSB1 = 0; _TRISB1 = 1; }
+#define UART2_TX_SetDigitalOutputHigh() { _ANSB1 = 0; _TRISB1 = 1; }
 //    ANSBbits.ANSB0 = 0;
 //    ANSBbits.ANSB1 = 0;
 //    TRISBbits.TRISB0 = 0; // RB0 Out (4 DIP20)
 //    TRISBbits.TRISB1 = 1; // RB1 In (5 DIP20)
 //    LATBbits.LATB0 = 1; // Set TxPin high
-
 
 //    // UART2 INVERTED TX/RX
 //    ANSBbits.ANSB0 = 0;
@@ -213,11 +196,11 @@ POWER   27  Vss
 #endif
 
 
-#ifdef __SPI1
+#ifdef __SPI1   // __________________________________________________SPI1
 
 #endif
 
-#ifdef __I2C1
+#ifdef __I2C1   // __________________________________________________I2C
 //
 #define CARD_SCL    17   // I2C1.SCL
 #define CARD_SDA    18   // I2C1.SDA

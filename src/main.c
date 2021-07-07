@@ -19,12 +19,8 @@
 //------------------------------------------------------------------------------
 // Global Device 
 device_t g_dev;
-//timestamp_t stime; // Use: g_dev.st.lasttime
-
-// Measurement
 measurement_t g_measurement;
-
-// Exchange 
+//timestamp_t stime; // Use: g_dev.st.lasttime
 exchangestate_t exchState = EXCH_OPEN; // Use: g_dev.st.exchangestatus
 long attempt_last_time;
 //------------------------------------------------------------------------------
@@ -43,7 +39,7 @@ int main(void) {
 
     devicestate_t state, lstate; // Main cycle controls
     timestamp_t stime;
-    
+
     Device_SwitchSys(SYS_BOOT); // Eval RCON, rtcc, pins, read config
 
     state = STARTUP; // System startup
@@ -54,16 +50,17 @@ int main(void) {
         switch (state) {
                 //------------------------------------------------------------------
             case STARTUP: // Executed only after Power-On/Reset
-                Device_ConfigRead(&g_dev.cnf); // Read from EEprom/Flash
-                //g_dev.cnf.general.delaytime = 50; /// Override nvm check 
-                //Device_GetStatus(&g_dev.st);
                 //g_dev.st.alarm_counter = Device_CheckReset();
+                //Device_GetStatus(&g_dev.st);
+                Device_ConfigRead(&g_dev.cnf); // Read from NVM 
+                //g_dev.cnf.general.delaytime = 50; /// Override nvm check 
+
                 state = EXCHANGE; // After start-up try to connect
                 break;
+
                 //------------------------------------------------------------------
             case SAMPLING:
-                //lstate = state;
-                //state = SAMPLING;
+
                 // if ( g_dev.cnf.samplingmode != CNF_SAMPLING_OFF )
                 //!! RTCC_TimeGet(&stime);
                 //!! if ((stime.lstamp > g_config.general.startdate) && (stime.lstamp < g_config.general.stopdate)) {
@@ -78,10 +75,9 @@ int main(void) {
                     // state = (g_dev.cnf.exchange.attempt_mode == EXCHANGE_ATTEMPTMODE_EVERYCYCLE) ? EXCHANGE : TOSLEEP;
                     state = EXCHANGE;
                 }
-
                 break;
-                //------------------------------------------------------------------
 
+                //------------------------------------------------------------------
             case EXCHANGE:
                 lstate = state;
                 Device_StatusGet(&g_dev.st);
@@ -90,7 +86,7 @@ int main(void) {
                 do {
                     switch (exchState) {
                         case EXCH_OPEN:
-                            if (!Exchange_Connect( Device_IsUsbConnected() )) {
+                            if (!Exchange_Connect(Device_IsUsbConnected())) {
                                 exchState = EXCH_EXIT;
                             } else {
                                 exchState = EXCH_START_DISCOVERY;
@@ -112,7 +108,7 @@ int main(void) {
                             if (rtCommand == RTCMD_NONE) { // RTCMD_TERMINATE
                                 state = TOSLEEP;
                                 exchState = EXCH_EXIT;
-                                // not until disconnect request...
+                                // does nothing until disconnect request...
                             } else {
                                 rtDataSize = 0;
                                 state = EXCHANGE_RT;
@@ -137,18 +133,20 @@ int main(void) {
                     __clearWDT();
                 } while (exchState != EXCH_EXIT);
 
+
                 if (exchState != EXCH_SEND_COMMAND_RESPONSE) {
                     exchState = EXCH_OPEN;
                     Exchange_Disconnect();
-                    Device_SwitchSys(SYS_DEFAULT);
+                    //  Device_SwitchSys(SYS_DEFAULT);
+
                 }
 
                 if (g_dev.cnf.exchange.attempt_mode != CNF_ATTEMPTMODE_EVERYCYCLE) {
                     // Scheduled
                     // Set wake-up time to attempt exchange 
                 }
-
                 break;
+
                 //------------------------------------------------------------------
             case EXCHANGE_RT:
                 lstate = state;
@@ -157,7 +155,7 @@ int main(void) {
                 rtDataSize = 0;
                 switch (rtCommand) {
                     case RTCMD_TEST:
-                        rtDataBuffer[rtDataSize++] = g_dev.cnf.general.typeset && 0xFF;
+                        rtDataBuffer[rtDataSize++] = g_dev.cnf.general.typeset && 0xFF; // Ret typeset
                         rtDataBuffer[rtDataSize++] = (g_dev.cnf.general.typeset >> 8) && 0xFF;
                         //                        rtDataBuffer[rtDataSize++] = 'H';
                         //                        rtDataBuffer[rtDataSize++] = 'E';
@@ -174,30 +172,21 @@ int main(void) {
                         break;
                 }
                 break;
-                //------------------------------------------------------------------
 
+                //------------------------------------------------------------------
             case TOSLEEP:
                 //lstate = EXCHANGE_RT;
                 lstate = state;
                 state = SAMPLING;
                 //state = EXCHANGE;
 
-                if ( Device_IsUsbConnected() ) {
-                    //                    if (g_dev.cnf.general.delaytime > 60) {
-                    //                        waittime = RTCC_GetMinutes();
-                    //                        while ((RTCC_GetMinutes() - waittime) < (g_dev.cnf.general.delaytime / 60)) {
-                    //                            __delay(1000);
-                    //                            __clearWDT();
-                    //                        }
-                    //                    } else {
-                    //                        __delay(5000);
-                    //                    }
-                    //state = SAMPLING;
-                    __delay(10000);
-                    
+                if (Device_IsUsbConnected()) {
+
+                    __delay(10000); // wait 10 secs
+
                 } else { //  
-                    // Enable USB Wake-Up
-                    // Enable RTCC Alarm Wake-Up
+
+
                     RTCC_GetTime(&stime);
                     stime.sec += g_dev.cnf.general.delaytime % 60;
                     if (stime.sec > 59) {
@@ -208,12 +197,11 @@ int main(void) {
                     if (stime.min > 59) {
                         stime.min -= 59;
                     }
-                    RTCC_AlarmSet(&stime);  // RTTC_SetWakeUp ( delay_s );
-                    
-                    Device_SwitchSys(SYS_SLEEP);
-                    //  ... wait wake-up event
-                    Device_SwitchSys(SYS_DEFAULT);
-                } 
+                    RTCC_AlarmSet(&stime); // Enable RTCC Alarm Wake-Up
+                    Device_SwitchSys(SYS_SLEEP); // Enable USB Wake-Up
+
+                    Device_SwitchSys(SYS_DEFAULT); // ...wait wake-up
+                }
                 break;
         }
         __clearWDT();

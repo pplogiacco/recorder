@@ -239,7 +239,7 @@ bool Device_StatusGet(status_t * status) {
     status->storage_space = 10; // available meas?s storage memory
 
     // Exchange
-    status->link_status = USB_Status; // Exchange: USB / RF-RSSI
+    status->link_status = Device_IsUsbConnected(); // Exchange: USB / RF-RSSI
     status->locked = (g_dev.cnf.exchange.SKEY > 0); // Locked/not locked !!!
 
     return true;

@@ -109,10 +109,9 @@ void Device_Initialize() {
     MRF_SS_SetDigitalOutputHigh(); // MRF24J40.c    
     ADA_SS_SetDigitalOutput(); // ADA2200.c
     ADA_SS_SetHigh();
-    
+
     // _____________ADA Signals
     RPINR3bits.T3CKR = 0x000F; //RB15->TMR3:T3CK (Synco/TMR3))
-
     AV_SYN_SetDigital(); // Input T3CK/RB15 (SYNCO)
     AV_SYN_SetDigitalInput();
     AV_IN_SetAnalogInput();
@@ -125,19 +124,19 @@ void Device_Initialize() {
     UART2_TX_SetDigitalOutputHigh();
     RPOR0bits.RP0R = 0x0005; //RB0->UART2:U2TX
     RPINR19bits.U2RXR = 0x0001; //RB1->UART2:U2RX
-    
+
     // _____________WS TMR2:T2CK
     RPINR3bits.T2CKR = 0x0002; //RB2->TMR2:T2CK (WindSpeed/TMR2))
     WS_IN_SetDigitalInputLow(); // Input RB2 (6) 
 
     __builtin_write_OSCCONL(OSCCON | 0x40); // lock PPS
 
-        //______________I2C (ADG729)
+    //______________I2C (ADG729)
     LATBbits.LATB8 = 1; //Start with bus in idle mode - both lines high
     LATBbits.LATB9 = 1;
     TRISBbits.TRISB8 = 0; //SCL1 output
     TRISBbits.TRISB9 = 0; //SDA1 output
-    
+
     // _____________INT0 ( USb Wake-Up)
     USB_WK_SetDigitalInputLow(); // (16) INT0/RB7 
 
@@ -381,12 +380,12 @@ void Device_SwitchADG(uint8_t reg) { // ADG729_Switch(uint8_t reg)
 #elif defined( __PIC24FJ256GA702__ )
     i2clpw = PMD1bits.I2C1MD;
     PMD1bits.I2C1MD = 0; // Enable I2C Module
-        //______________I2C (ADG729)
-//    LATBbits.LATB8 = 1; //Start with bus in idle mode - both lines high
-//    LATBbits.LATB9 = 1;
-//    TRISBbits.TRISB8 = 0; //SCL1 output
-//    TRISBbits.TRISB9 = 0; //SDA1 output
-    
+    //______________I2C (ADG729)
+    //    LATBbits.LATB8 = 1; //Start with bus in idle mode - both lines high
+    //    LATBbits.LATB9 = 1;
+    //    TRISBbits.TRISB8 = 0; //SCL1 output
+    //    TRISBbits.TRISB9 = 0; //SDA1 output
+
     I2C1CONL = 0x8000;
     I2C1BRG = 0x4E; // 100Khz @ Fcy=16Mhz (Fosc=32Mhz)
     IFS1bits.MI2C1IF = 0; //Clear I2C master Int flag
@@ -415,9 +414,9 @@ void Device_SwitchADG(uint8_t reg) { // ADG729_Switch(uint8_t reg)
 bool Device_SwitchSys(runlevel_t rlv) {
 
     switch (rlv) {
-        /**********************************
-        * B O O T                        *
-        **********************************/
+            /**********************************
+             * B O O T                        *
+             **********************************/
         case SYS_BOOT: // Set DOZE MODE !!!
 
             Device_SwitchClock(CK_FAST); // Default clock 32Mhz            
@@ -425,7 +424,7 @@ bool Device_SwitchSys(runlevel_t rlv) {
             RTCC_Enable();
             Device_SwitchADG(PW_OFF); // All off
             //UART2_Initialize(); // Configure UART 
-            
+
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
 
             if (RCONbits.SLEEP) { // Resume from Deep Sleep
@@ -511,7 +510,7 @@ bool Device_SwitchSys(runlevel_t rlv) {
             //            DSWAKEbits
             // Enable USB Wake-Up
             // Enable RTC Alarm Wake-Up
-            
+
             PMD1 = 0xFF;
             PMD2 = 0xFF; // IC3MD enabled; OC1MD enabled; IC2MD enabled; OC2MD enabled; IC1MD enabled; OC3MD enabled; 
             PMD3 = 0b1111110111111111; // RTCC
@@ -525,7 +524,7 @@ bool Device_SwitchSys(runlevel_t rlv) {
             IEC0bits.INT0IE = 1; // enables INT0 (for change detection)
 
             Sleep(); // enter in sleep mode
-            
+
             //Idle();
             IEC0bits.INT0IE = 0; // Disable INT0 (No change detection)
 #endif
@@ -556,10 +555,10 @@ bool Device_SwitchSys(runlevel_t rlv) {
              * E X C H A N G E                *
              **********************************/
         case SYS_ON_EXCHANGE: // I2C1,TMR1,SPI1,UART2
-            // Unselect SPI's devices 
+            // Deselect unused SPI's devices 
             ADA_SS_SetHigh();
             SST26_SS_SetHigh();
-            Device_SwitchADG(PW_MRF); // Switch-on module
+
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))      
             //ADG729_Switch(_bs8(PW_MRF)); // RF Circuits On
             PMD3bits.RTCCMD = 0; // RTCC
@@ -567,10 +566,19 @@ bool Device_SwitchSys(runlevel_t rlv) {
             PMD1bits.T1MD = 0;
             PMD1bits.SPI1MD = 0; // Spi1 On
             PMD1bits.U2MD = 0; // Uart2 On
+
 #elif defined(__PIC24FJ256GA702__)
-            PMD1bits.T1MD = 0; // Tmr1 On 
-            PMD1bits.SPI1MD = 0; // Spi1 On
-            PMD1bits.U2MD = 0; // Uart2 On
+
+            if (Device_IsUsbConnected() == 0) {
+                // Wireless
+                PMD1bits.T1MD = 0; // Tmr1 On 
+                PMD1bits.SPI1MD = 0; // Spi1 On
+                Device_SwitchADG(PW_MRF); //Power switch       
+            } else {
+                // Wired
+                PMD1bits.T1MD = 0; // Tmr1 On 
+                PMD1bits.U2MD = 0; // Uart2 On
+            }
 #endif
             break;
 
@@ -578,6 +586,7 @@ bool Device_SwitchSys(runlevel_t rlv) {
              * S A M P L I N G   W S T        *
              **********************************/
         case SYS_ON_SAMP_WST: // TMR1,TMR4,ADC
+            
             Device_SwitchADG(PW_WST); // Wind & Temp Sensors Circuits On
 
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))      
@@ -590,7 +599,7 @@ bool Device_SwitchSys(runlevel_t rlv) {
             PMD1bits.AD1MD = 0; // ADC On 
             PMD1bits.T1MD = 0; // Tmr1 On 
             PMD1bits.T2MD = 0; // Tmr2 On
-            PMD1bits.T2MD = 0; // Tmr3 On
+            PMD1bits.T3MD = 0; // Tmr3 On
 #endif
             break;
 
@@ -611,7 +620,7 @@ bool Device_SwitchSys(runlevel_t rlv) {
             PMD1bits.AD1MD = 0; // ADC On 
             PMD1bits.T1MD = 0; // Tmr1 On 
             PMD1bits.T2MD = 0; // Tmr2 On
-            PMD1bits.T2MD = 0; // Tmr3 On
+            PMD1bits.T3MD = 0; // Tmr3 On
 #endif
             //Device_SwitchClock(); // 32Mhz
             break;
