@@ -6,7 +6,7 @@
 #define	DEVICE_H
 
 //------------------------------------------------------------------------------
-#define __DEVICE_DIN  100200300    // HWVAMP1K (Paolo)
+#define __DEVICE_DIN  100200301    // HWVAMP1K (Paolo)
 //#define __DEVICE_DIN 333222111  // HWDONGLE (Marco)
 //#define __DEVICE_DIN 999888777  // HWDONGLE (Marcello)
 
