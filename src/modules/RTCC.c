@@ -375,35 +375,35 @@ uint16_t RTCC_GetMinutes() {
 }
 #endif
 
-void RTCC_TimestampAEventManualSet(void) {
-    RTCSTATLbits.TSAEVT = 1;
-}
-
-bool RTCC_TimestampADataGet(struct tm *currentTime) {
-    //    uint16_t register_value;
-    if (!RTCSTATLbits.TSAEVT) {
-        return false;
-    }
-
-    //    register_value = TSADATEH;
-    //    currentTime->tm_year = ConvertBCDToHex((register_value & 0xFF00) >> 8);
-    //    currentTime->tm_mon = ConvertBCDToHex(register_value & 0x00FF);
-    //
-    //    register_value = TSADATEL;
-    //    currentTime->tm_mday = ConvertBCDToHex((register_value & 0xFF00) >> 8);
-    //    currentTime->tm_wday = ConvertBCDToHex(register_value & 0x00FF);
-    //
-    //    register_value = TSATIMEH;
-    //    currentTime->tm_hour = ConvertBCDToHex((register_value & 0xFF00) >> 8);
-    //    currentTime->tm_min = ConvertBCDToHex(register_value & 0x00FF);
-    //
-    //    register_value = TSATIMEL;
-    //    currentTime->tm_sec = ConvertBCDToHex((register_value & 0xFF00) >> 8);
-
-    RTCSTATLbits.TSAEVT = 0;
-
-    return true;
-}
+//void RTCC_TimestampAEventManualSet(void) {
+//    RTCSTATLbits.TSAEVT = 1;
+//}
+//
+//bool RTCC_TimestampADataGet(struct tm *currentTime) {
+//    //    uint16_t register_value;
+//    if (!RTCSTATLbits.TSAEVT) {
+//        return false;
+//    }
+//
+//    //    register_value = TSADATEH;
+//    //    currentTime->tm_year = ConvertBCDToHex((register_value & 0xFF00) >> 8);
+//    //    currentTime->tm_mon = ConvertBCDToHex(register_value & 0x00FF);
+//    //
+//    //    register_value = TSADATEL;
+//    //    currentTime->tm_mday = ConvertBCDToHex((register_value & 0xFF00) >> 8);
+//    //    currentTime->tm_wday = ConvertBCDToHex(register_value & 0x00FF);
+//    //
+//    //    register_value = TSATIMEH;
+//    //    currentTime->tm_hour = ConvertBCDToHex((register_value & 0xFF00) >> 8);
+//    //    currentTime->tm_min = ConvertBCDToHex(register_value & 0x00FF);
+//    //
+//    //    register_value = TSATIMEL;
+//    //    currentTime->tm_sec = ConvertBCDToHex((register_value & 0xFF00) >> 8);
+//
+//    RTCSTATLbits.TSAEVT = 0;
+//
+//    return true;
+//}
 
 void RTCC_SetWakeup(uint16_t period) {
     // Get current time

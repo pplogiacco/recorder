@@ -318,6 +318,9 @@ uint16_t SPI1_ExchangeBuffer(uint8_t *pTransmitData, uint16_t byteCount, uint8_t
 
 
 #endif   
+    
+    
+    
 
 #ifdef __PIC24FJ256GA702__
     uint16_t dataSentCount = 0;

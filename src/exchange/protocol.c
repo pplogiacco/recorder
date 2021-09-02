@@ -14,7 +14,6 @@
 #include "protocol.h"
 
 
-
 #ifndef __DONGLE_PASSTHRU
 
 #if 0 // only debug

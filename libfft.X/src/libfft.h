@@ -1,6 +1,6 @@
 
-#ifndef FOURIER_H
-#define	FOURIER_H
+#ifndef LIBFFT_H
+#define	LIBFFT_H
 
 // Signal & FFT 
 typedef signed short fix14_t;

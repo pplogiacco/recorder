@@ -11,7 +11,7 @@
 #include <xc.h>        // processor files
 #include <stdbool.h>
 #include "../device.h"    // Typeset defs / config params
-#include "measurement.h" // Typeset defs / config params
+//#include "measurement.h" // Typeset defs / config params
 
 #define sample_t signed short // fix14_t 
 
