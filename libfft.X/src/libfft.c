@@ -1,5 +1,5 @@
 #include <xc.h>
-#include "fourier.h"
+#include "libfft.h"
 
 #include <math.h>
 #include <stdlib.h> // abs
@@ -9,7 +9,7 @@
 #undef __FFT_TEST
 #undef __FFT_OUT8BIT
 
-#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
+#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__)|| defined(__PIC24FV32KA304__))
 #undef __FFT_TABLED
 //#define LOG2_N_WAVE     10     // log2(N_WAVE)   
 //#define N_WAVE          1024   // Signal & FFT points  

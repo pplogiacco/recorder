@@ -17,7 +17,7 @@
 
 #include "measurement.h"
 #include "ADA2200.h"        // HAL ADA2200
-#include "fourier.h"
+#include "../../libfft.X/src/libfft.h"
 
 
 /* -------------------------------------------------------------------------- *
