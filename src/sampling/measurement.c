@@ -112,10 +112,8 @@ uint16_t measurementAcquire(measurement_t * ms) {
             *(ptrSS + 1) = 1U < 12; // max Scale
             ptrSS += 2;
 
-            Device_SwitchSys(SYS_ON_SAMP_ADA);
 
-            // Manage g_dev parameters  
-            // uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t adc_fq, uint16_t fft_pw)
+            
             short m = 0;
             short l2 = (SS_BUF_SIZE - ms->ns);
 
@@ -124,18 +122,18 @@ uint16_t measurementAcquire(measurement_t * ms) {
                 l2 >>= 1;
             }
             // Force ADC frequency 0.5Khz ( g_dev.cnf.calibration.av_period )
-
+            Device_SwitchSys(SYS_ON_SAMP_ADA);
             nsamples = acquireAV_FFT(ptrSS, g_dev.cnf.general.cycletime, 10, \
                                  adc_fq, g_dev.cnf.calibration.av_filter);
-
-            //ms->ns = 4; // <temperature>,<windspeed>,<tick_period>,<scale_offset> populated by acquireAV
+            //ms->ns = 4; // <temperature>,<windspeed>,<tick_period>,<scale_offset>,[{<period>,<amplitude>},...]
             Device_SwitchSys(SYS_DEFAULT); // Device_SwitchPower(lastPwrState);
+            
+            ms->nss = (nsamples >> 1); // 512 Coefficients ( only positive - half spectrum )
+            
+//            ptrSS = 
+            
             // Process samples / Format measurament with only significative harmonics
             // Send only ((2^m)/2) samples, from 1 to N2+1
-            //ms->ss = SSBUF; // Return 1..N/2+1 
-            //
-
-            ms->nss = (nsamples >> 1); // 512 Coefficients ( only positive - half spectrum )
             // int i;
             //            ptrSS = (ms->ss + ms->ns);
             //            for (i = 0; i < ms->nss; i++) {

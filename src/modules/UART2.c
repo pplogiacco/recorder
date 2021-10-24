@@ -60,6 +60,7 @@ void UART2_Initialize(void) {
     // UTXISEL0 TX_ONE_CHAR; UTXINV disabled; OERR NO_ERROR_cleared; URXISEL RX_ONE_CHAR; UTXBRK COMPLETED; UTXEN disabled; ADDEN disabled;
     U2STA = 0x00;
     // BaudRate = 115200; Frequency = 4000000 Hz; BRG 8;
+    // UART_SPBRG   = (SYS_CLK_FrequencySystemGet()/2/16)/BAUD_RATE-1;
     U2BRG = 0x22; // 0x08;
 
     txHead = txQueue;

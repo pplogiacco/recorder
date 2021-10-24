@@ -1,3 +1,4 @@
+// Recorder !!!
 #include "xc.h"
 #include "..\device.h"  // Pins definitions ( Hardware )
 #include "SPI1.h"
@@ -8,7 +9,6 @@ uint16_t SPI1_ExchangeBuffer(uint8_t *pTransmitData, uint16_t byteCount, uint8_t
 
 void SPI1_Enable(SPI_MODE mode, SPI_BRATE speed) {
 
-    
 #if (1)  // Work for SST 
     
     // ____________________________________SPI Clock & Mode 
@@ -331,7 +331,8 @@ uint16_t SPI1_ExchangeBuffer(uint8_t *pTransmitData, uint16_t byteCount, uint8_t
     uint8_t *pSend, *pReceived;
     uint16_t addressIncrement;
     uint16_t receiveAddressIncrement, sendAddressIncrement;
-
+    uint16_t timeout = 500;
+    
     addressIncrement = 1;
 
     // set the pointers and increment delta 
@@ -376,11 +377,11 @@ uint16_t SPI1_ExchangeBuffer(uint8_t *pTransmitData, uint16_t byteCount, uint8_t
         }
 
     }
-    while (dataReceivedCount < byteCount) {
+    while ((dataReceivedCount < byteCount) && timeout-- )  {     // TIMEOUT !!!!!!!!!!!!!!!
         if (SPI1STATLbits.SPIRBE == false) {
 
             *pReceived = SPI1BUFL;
-
+            
             pReceived += receiveAddressIncrement;
             dataReceivedCount++;
         }

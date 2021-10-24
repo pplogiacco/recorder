@@ -1,19 +1,9 @@
 #include <string.h>
-//#include "../device.h"
-// #include "../utils.h"
+#include "../device.h"
+#include "../utils.h"
 
-void __delay_us(int t) {};
-void __delay(int t) {};
-    
-#define MRF24_SS    _RA2   // Chip select
-#define MRF24_SS_SetHigh()   (_LATA2 = 1)
-#define MRF24_SS_SetLow()    (_LATA2 = 0)
-#define MRF24_SS_SetDigital()  (_ANSA2 = 0)
-#define MRF24_SS_SetDigitalOutput()  (_TRISA2 = 0)
-
-
+#include "../modules/SPI1.h"    // Driver
 #include "MRF24J40.h"
-#include "MRF_spi1.h"
 
 #define MRF_RXMCR    0x00
 #define MRF_PANIDL   0x01
@@ -40,6 +30,7 @@ void __delay(int t) {};
 #define MRF_RFCON0   0x200
 #define MRF_RFCON1   0x201
 #define MRF_RFCON2   0x202
+#define MRF_RFCTRL3  0x203  // Plg
 #define MRF_RFCON6   0x206
 #define MRF_RFCON7   0x207
 #define MRF_RFCON8   0x208
@@ -61,69 +52,45 @@ int rxSize = 0;
 int rxCount = 0;
 uint8_t rxBuf[MRF_MAX_RX_FIFO_SIZE];
 
-//#if 0
-//// device.h / hardware.h 
-//// #define MRF_SS_SetLow()           (_LATB15 = 0)
-//// #define MRF_SS_SetHigh()          (_LATB15 = 1)
-//
-//void MRF24J40_Enable() {
-//    // _____SPI1 Master Mode 1 (2Wire:SCK+SDIO,softSS)
-//    SPI1STATbits.SPIEN = 0; // Disable module
-//    IFS0bits.SPI1IF = 0; // Clear int vect flag
-//    IEC0bits.SPI1IE = 0; // DISABLE INT !!!
-//    // ________SPI Pins
-//    TRISBbits.TRISB14 = 1; // SDI1 (MISO) In
-//    TRISBbits.TRISB13 = 0; // SDO1 (MOSI) Out
-//    TRISBbits.TRISB12 = 0; // SCK1 Digital Out
-//    // ______________Clock & Mode Selection
-//    SPI1CON1bits.MODE16 = 0; // Communication is word-wide (16 bits)
-//    SPI1CON1bits.MSTEN = 1; // Master Fsck=(Fosc/2)/(Ppre*Spre)==??
-//    SPI1CON1bits.PPRE = 0; // Primary prescaler:(0=low,3=High)
-//    SPI1CON2bits.FRMEN = 0; // Framed SPIx support DISABLE
-//    SPI1CON1bits.CKE = 0; // MODE1: Clock Edge (from Idle to active clock state)
-//    SPI1CON1bits.CKP = 1; // MODE1: Clock Polarity (active is a high level)
-//    SPI1CON1bits.SMP = 0; // Input data is sampled at (0-middle,1-end) of data output
-//    SPI1CON2bits.SPIBEN = 0; // Enhanced buffer enabled (0=Legacy No Buffering)
-//    SPI1STATbits.SPIROV = 0; // Receive Overflow Flag (0=NO Overflow).
-//    SPI1STATbits.SPIEN = 1; // Enable SPI
-//}
-//
-//void MRF_SetReg8(uint8_t reg, uint8_t data) {
-//
-//    uint16_t regx = (reg << 1 & 0b01111110) | 0b00000001;
-//    regx <<= 8;
-//    regx |= data;
-//
-//    MRF24_SS_SetLow();
-//    __delay(1);
-//    while (SPI1STATbits.SPITBF == true); // SPIxTXB
-//    SPI1BUF = (0x00FF & (regx >> 8));
-//    while (SPI1STATbits.SPITBF == true); // SPIxTXB
-//    SPI1BUF = data;
-//
-//    //while (SPI1STATbits.SPITBF == true); // SPIxTXB
-//    //SPI1BUF = data;
-//    //while (SPI1STATbits.SPITBF == true); // SPIxTXB
-//    __delay(2);
-//    MRF24_SS_SetHigh();
-//}
-//
-//void MRF_SetReg16(uint16_t reg, uint8_t data) {
-//
-//    uint16_t regx = ((reg >> 3 | 0b10000000) << 8) | (uint8_t) ((reg << 5 | 0b00010000) & 0x00FF);
-//    MRF24_SS_SetLow();
-//    __delay(1);
-//    while (SPI1STATbits.SPITBF == true); // SPIxTXB
-//    SPI1BUF = (0x00FF & (regx >> 8));
-//    while (SPI1STATbits.SPITBF == true); // SPIxTXB
-//    SPI1BUF = (0x00FF & ((uint8_t) regx));
-//    while (SPI1STATbits.SPITBF == true); // SPIxTXB
-//    SPI1BUF = data;
-//    while (SPI1STATbits.SPITBF == true); // SPIxTXB
-//    __delay(2);
-//    MRF24_SS_SetHigh();
-//}
-//#endif
+
+void MRF24J40_Enable() {
+    SPI1_Enable(MODE0,SPI_2MHZ);
+    MRF24J40_reset(); // Perform software reset
+    MRF24J40_init(); // Reinitialize all registers
+}
+
+void MRF24J40_Disable() {
+    // Disable PA and LNA
+    switch (type) {
+        case MRF24J40MB:
+            // GPIO1 and GPIO2 are connected
+            MRF24J40_writeLong(MRF_TESTMODE, 0b00001000); // Configure RF state machine for normal operation
+            MRF24J40_writeShort(MRF_TRISGPIO, 0b00000110); // Configure GPIO1 and GPIO2 for output
+            MRF24J40_writeShort(MRF_GPIO, 0); // Set GPIO1 and GPIO2 to 0 to disable PA and LNA
+            break;
+        case MRF24J40MC:
+            // GPIO1, GPIO2 and GPIO3 are connected - GPIO3 enables (high) or disables (low) the PA voltage regulator
+            MRF24J40_writeLong(MRF_TESTMODE, 0b00001000); // Configure RF state machine for normal operation
+            MRF24J40_writeShort(MRF_TRISGPIO, 0b00001110); // Configure GPIO1, GPIO2 and GPIO3 for output
+            MRF24J40_writeShort(MRF_GPIO, 0); // Set GPIO1, GPIO2 and GPIO3 to 0 to disable PA, LNA and PA regulator
+            break;
+        case MRF24J40MD:
+        case MRF24J40ME:
+            // GPIO0, GPIO1 and GPIO2 are connected
+            MRF24J40_writeLong(MRF_TESTMODE, 0b00001000); // Configure RF state machine for normal operation
+            MRF24J40_writeShort(MRF_TRISGPIO, 0b00000111); // Configure GPIO0, GPIO1 and GPIO2 for output
+            MRF24J40_writeShort(MRF_GPIO, 0); // Set GPIO1 and GPIO2 to 0 to disable PA and LNA
+            break;
+    }
+
+    MRF24J40_writeShort(MRF_SOFTRST, 0b00000100); // Perform Power Management Reset (RSTPWR = 1)
+    MRF24J40_writeShort(MRF_WAKECON, 0b10000000); // Enable Immediate Wake-up Mode (IMMWAKE = 1)
+    MRF24J40_writeShort(MRF_SLPACK, 0b10000000); // Put the module to sleep (SLPACK = 1)
+    
+    SPI1_Disable();  // Disable SPI1    
+    MRF24_SS_SetLow();  // CS low !
+}
+
 
 void MRF24J40_writeShort(uint8_t addr, uint8_t data) {
     uint8_t dataTransmitted[2];
@@ -176,6 +143,7 @@ unsigned char MRF24J40_readLong(uint16_t addr) {
     return (toReturn);
 }
 
+
 void MRF24J40_setPanId(uint16_t panId) {
     //this->panId = panId;
     MRF24J40_writeShort(MRF_PANIDH, panId >> 8);
@@ -208,14 +176,14 @@ void MRF24J40_reset() {
     MRF24J40_writeShort(MRF_SOFTRST, 0b00000111); // Perform full software reset (RSTPWR = 1, RSTBB = 1, RSTMAC = 1)
 }
 
-void MRF24J40_init() {
 
+void MRF24J40_init() {
+    
     rxSize = 0;
     rxCount = 0;
     seqNumber = 0;
-    MRF24_SS_SetDigital();
-
-    MRF24_SS_SetHigh();
+    MRF_SS_SetDigitalOutputHigh();        
+    //MRF24_SS_SetHigh();
 
     // -----------------------------------------
     // | b7 | b6 | b5 | b4 | b3 | b2 | b1 | b0 |
@@ -228,8 +196,17 @@ void MRF24J40_init() {
     MRF24J40_writeShort(MRF_RXMCR, 0b00000000); // Setup RECEIVE MAC b0 0=Discard packet when there is a MAC address mismatch, illegal frame type, dPAN/sPAN or MAC
 #endif
 
+    
+#if defined(MRF24J40MB) // Special MRF24J40 setting for Microchip MRF24J40MB module
+    MRF24J40_writeLong(MRF_RFCTRL3, 0x70);  // EUROPE output power set to be -14.9dB
+   // MRF24J40_writeLong(MRF_RFCTRL3, 0x18);    // USA output power set to be -1.9dB   
+   // MRF24J40_writeLong(MRF_RFCTRL3, 0x28);    // MRF24J40 output power set to be -3.7dB for MRF24J40MB/MC
+   // MRF24J40_writeLong(MRF_RFCTRL3, 0x00);    // set to 0dBm, must adjust according to FCC/IC/ETSI requirement
+#endif
+    
     MRF24J40_writeShort(MRF_PACON2, 0b10011000); // Setup recommended PA/LNA control timing (TXONTS = 0x6)
     MRF24J40_writeShort(MRF_TXSTBL, 0b10010101); // Setup recommended PA/LNA control timing (RFSTBL = 0x9)
+    
     MRF24J40_writeLong(MRF_RFCON0, 0b00000011); // Set recommended value for RF Optimize Control (RFOPT = 0x3)
     MRF24J40_writeLong(MRF_RFCON1, 0b00000010); // Set recommended value for VCO Optimize Control (VCOOPT = 0x2)
     MRF24J40_writeLong(MRF_RFCON2, 0b10000000); // Enable PLL (PLLEN = 1)
@@ -293,43 +270,7 @@ void MRF24J40_rxFlush() {
     MRF24J40_writeShort(MRF_RXFLUSH, 0b00000001);
 }
 
-void MRF24J40_Disable() {
-    // Disable PA and LNA
-    switch (type) {
-        case MRF24J40MB:
-            // GPIO1 and GPIO2 are connected
-            MRF24J40_writeLong(MRF_TESTMODE, 0b00001000); // Configure RF state machine for normal operation
-            MRF24J40_writeShort(MRF_TRISGPIO, 0b00000110); // Configure GPIO1 and GPIO2 for output
-            MRF24J40_writeShort(MRF_GPIO, 0); // Set GPIO1 and GPIO2 to 0 to disable PA and LNA
-            break;
-        case MRF24J40MC:
-            // GPIO1, GPIO2 and GPIO3 are connected - GPIO3 enables (high) or disables (low) the PA voltage regulator
-            MRF24J40_writeLong(MRF_TESTMODE, 0b00001000); // Configure RF state machine for normal operation
-            MRF24J40_writeShort(MRF_TRISGPIO, 0b00001110); // Configure GPIO1, GPIO2 and GPIO3 for output
-            MRF24J40_writeShort(MRF_GPIO, 0); // Set GPIO1, GPIO2 and GPIO3 to 0 to disable PA, LNA and PA regulator
-            break;
-        case MRF24J40MD:
-        case MRF24J40ME:
-            // GPIO0, GPIO1 and GPIO2 are connected
-            MRF24J40_writeLong(MRF_TESTMODE, 0b00001000); // Configure RF state machine for normal operation
-            MRF24J40_writeShort(MRF_TRISGPIO, 0b00000111); // Configure GPIO0, GPIO1 and GPIO2 for output
-            MRF24J40_writeShort(MRF_GPIO, 0); // Set GPIO1 and GPIO2 to 0 to disable PA and LNA
-            break;
-    }
 
-    MRF24J40_writeShort(MRF_SOFTRST, 0b00000100); // Perform Power Management Reset (RSTPWR = 1)
-    MRF24J40_writeShort(MRF_WAKECON, 0b10000000); // Enable Immediate Wake-up Mode (IMMWAKE = 1)
-    MRF24J40_writeShort(MRF_SLPACK, 0b10000000); // Put the module to sleep (SLPACK = 1)
-    
-    SPI1_Disable();  // Disable SPI1    
-
-}
-
-void MRF24J40_Enable() {
-    SPI1_Initialize();
-    MRF24J40_reset(); // Perform software reset
-    MRF24J40_init(); // Reinitialize all registers
-}
 
 void MRF24J40_TxBuffer(uint16_t addr, uint8_t *data, uint8_t length, bool ack) {
     // Send header size, frame size and header

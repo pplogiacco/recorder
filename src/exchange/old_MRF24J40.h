@@ -5,11 +5,6 @@
 #include <xc.h> // include processor files - each processor file is guarded.
 //#define  FCY  CLOCK_SystemFrequencyGet()     // Instruction cycle frequency, Hz - required for __delayXXX() to work
 //#include <libpic30.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stddef.h>
-
-
 
 #ifdef	__cplusplus
 extern "C" {
@@ -74,10 +69,15 @@ extern "C" {
         MRF24J40MA, MRF24J40MB, MRF24J40MC, MRF24J40MD, MRF24J40ME
     };
 
-    void MRF24J40_init();
-
     void MRF24J40_Enable();
 
+    void MRF24J40_init();
+    
+    void MRF24J40_reset();
+    
+    void MRF24J40_writeLong(uint16_t addr, uint8_t data);
+    void MRF24J40_writeShort(uint8_t addr, uint8_t data);
+    
     void MRF24J40_Disable();
 
     void MRF24J40_setAddress(uint16_t addr);

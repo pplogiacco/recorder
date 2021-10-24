@@ -7,7 +7,7 @@
 //#define SST26_SS_SetLow()    (_LATA4 = 0)
 
 void SST26_Enable() {
-    SST26_SS_SetDigitalOutputHigh();
+    SST_SS_SetDigitalOutputHigh();
     SPI1_Enable(MODE0, SPI_2MHZ);
 }
 

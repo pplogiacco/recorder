@@ -1,23 +1,24 @@
 /******************************************************************************\
 |                                                                              |
 | V A M P -  R E C O R D E R                                                   |
-| Ver. 0.0.19                                                  (@)2021 DTeam ! |
+| Ver. 0.0.20                                                  (@)2021 DTeam ! |
 |                                                                              |
 \******************************************************************************/
 
 //------------------------------------------------------------------------------
-#include "bits.h"  // PIC Settings
-#include "device.h"
+#include "bits.h"                   // PIC Settings
+#include "modules/RTCC.h"           // hal           
+#include "modules/UART2.h"          // hal
+//
+#include "device.h"                 // DaaS-Ex Services: config, status, sync  
 //
 #include "utils.h"
-#include "modules/RTCC.h"
-#include "modules/UART2.h"
 //
-#include "exchange/exchange.h"
-#include "sampling/measurement.h"
+#include "exchange/exchange.h"      // DaaS-Ex Protocol 
+#include "sampling/measurement.h"   // DaaS-Ex Protocol 
+//
+#include "memory/SST26VF064B.h"     // Flash SPI
 #include "memory/storage.h"
-#include "memory/SST26VF064B.h"     // eeprom
-
 //------------------------------------------------------------------------------
 // Global Device 
 device_t g_dev;
@@ -82,7 +83,10 @@ int main(void) {
                 //------------------------------------------------------------------
             case EXCHANGE:
                 lstate = state;
-                Device_StatusGet(&g_dev.st);
+                if (g_dev.cnf.exchange.attempt_mode != CNF_ATTEMPTMODE_EVERYCYCLE) {
+                    // exchange ? 
+                }
+                Device_StatusGet(&g_dev.st); // Refresh status object
                 Device_SwitchSys(SYS_ON_EXCHANGE);
 
                 do {
@@ -139,13 +143,10 @@ int main(void) {
                 if (exchState != EXCH_SEND_COMMAND_RESPONSE) {
                     exchState = EXCH_OPEN;
                     Exchange_Disconnect();
-                    //  Device_SwitchSys(SYS_DEFAULT);
+                    Device_SwitchSys(SYS_DEFAULT);
 
-                }
+                    state = TOSLEEP;
 
-                if (g_dev.cnf.exchange.attempt_mode != CNF_ATTEMPTMODE_EVERYCYCLE) {
-                    // Scheduled
-                    // Set wake-up time to attempt exchange 
                 }
                 break;
 
@@ -192,17 +193,19 @@ int main(void) {
                     RTCC_GetTime(&stime);
                     stime.sec += g_dev.cnf.general.delaytime % 60;
                     if (stime.sec > 59) {
-                        stime.sec -= 59;
+                        stime.sec -= 60;
                         stime.min++;
                     }
                     stime.min += g_dev.cnf.general.delaytime / 60;
                     if (stime.min > 59) {
-                        stime.min -= 59;
+                        stime.min -= 60;
+                        stime.hour++;
                     }
                     RTCC_AlarmSet(&stime); // Enable RTCC Alarm Wake-Up
                     Device_SwitchSys(SYS_SLEEP); // Enable USB Wake-Up
-
-                    Device_SwitchSys(SYS_DEFAULT); // ...wait wake-up
+                    // ...wait wake-up
+                    Device_SwitchSys(SYS_DEFAULT);
+                    RTCC_AlarmUnset();
                 }
                 break;
         }

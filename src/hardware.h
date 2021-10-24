@@ -46,6 +46,8 @@ POWER   27  Vss
 
 // Firmware / Hardware
 
+
+
 #ifdef __HWDONGLE
 //
 #define __UI
@@ -68,7 +70,7 @@ POWER   27  Vss
 
 
 // Flash memory ( SPI )
-#define SST26_SS_SetDigitalOutputHigh()  {_TRISA4 = 0; _LATA4 = 1; }
+#define SST_SS_SetDigitalOutputHigh()  {_TRISA4 = 0; _LATA4 = 1; }
 #define SST26_SS_SetHigh()   (_LATA4 = 1)
 #define SST26_SS_SetLow()    (_LATA4 = 0)
 #endif  
@@ -78,11 +80,14 @@ POWER   27  Vss
 #if defined(__SENSOR_BOARD) // ____________________________________SENSOR_BOARD 
 
 #define __SPI1  // Signal Bus
+
+
+
 #define __I2C1
 
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__)) || defined(__PIC24FJ256GA702__)
 
-#define ADA_SS                      _RB12  // RB14 INT1/AN10
+#define ADA_SS    _RB12  // RB14 INT1/AN10
 #define ADA_SS_SetHigh()            _LATB12=1
 #define ADA_SS_SetLow()             _LATB12=0
 #define ADA_SS_SetDigitalOutput()   _TRISB12=0
@@ -90,10 +95,10 @@ POWER   27  Vss
 #define AV_SYN_SetDigital()         _ANSB15=0  // Digital
 #define AV_SYN_SetDigitalInput()    _TRISB15=1 // Input T3CK/RB15 (SYNCO)
 
-#define AV_IN_SetAnalogInput()   { _TRISA0=1;  _ANSA0=1; }   // AN0 
+#define AV_IN_SetAnalogInput()      { _TRISA0=1;  _ANSA0=1; }   // AN0 
 
 #define ET_IN     _RB3  // AN5/C1INA/C2INC/SCL2/CN7/RB3 (7)
-#define ET_IN_SetAnalogInput()    {_TRISB3 = 1; _ANSB3 = 1; }
+#define ET_IN_SetAnalogInput()      {_TRISB3 = 1; _ANSB3 = 1; }
 
 #define WS_IN     _RB2  // AN4/C1INB/C2IND/SDA2/T5CK/T4CK/U1RX/CTED13/CN6/RB2 (6)
 #define WS_IN_SetDigitalInputLow()    { _TRISB2 = 1; _ANSB2 = 0; _LATB2 = 0;} 
@@ -158,19 +163,20 @@ POWER   27  Vss
 #define MRF24_INT             _RB7   // Shared USB_WK
 
 #if defined(__HWDEVICE)     // 9	OSCI/AN13/CLKI/CN30/RA2  (S) MRF Chip Select
-
 #define MRF24_SS             (_RA2)   // Chip select
 #define MRF24_SS_SetHigh()   (_LATA2 = 1)
 #define MRF24_SS_SetLow()    (_LATA2 = 0)
 #define MRF_SS_SetDigitalOutputHigh()  {_TRISA2 = 0; _ANSA2 = 0; _LATA2 = 1; } 
+#endif
 
-#elif defined(__HWDONGLE)
+#if defined(__HWDONGLE)
 #define MRF24_SS                    _RB15   // Chip select
 #define MRF24_SS_SetHigh()          (_LATB15 = 1)
 #define MRF24_SS_SetLow()           (_LATB15 = 0)
 #define MRF24_SS_SetDigital()       // No settings       
 #define MRF24_SS_SetDigitalOutput() (_TRISB15 = 0)
 #endif
+
 #endif // __MRF24
 
 

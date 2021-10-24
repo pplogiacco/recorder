@@ -57,7 +57,7 @@ void Device_ConfigDefaultSet(config_t * config) {
     // General settings
     config->general.typeset = _AV01; // _SIG0; // 
     config->general.cycletime = 5;
-    config->general.delaytime = 10; // 1 min
+    config->general.delaytime = 60; // 1 min
     config->general.timezone = 9; // Rome
     // Calibration
     config->calibration.et_factor = 100001; // Formato ?

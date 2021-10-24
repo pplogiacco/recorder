@@ -13,6 +13,10 @@
 
 #include "protocol.h"
 
+#define MRF24J40_DONGLE_ADDRESS 0x8888
+#define MRF24J40_DEVICE_ADDRESS 0xCCCC
+#define MRF24J40_RF_CHANNEL     11
+#define MRF24J40_MODULE_TYPE    MRF24J40MA
 
 #ifndef __DONGLE_PASSTHRU
 
@@ -72,9 +76,10 @@ bool openChannel() {
 
     } else { // Try by RF
 
-        MRF24J40_Enable(); // Enable ??
+        MRF24J40_Enable(MRF24J40_MODULE_TYPE, MRF24J40_RF_CHANNEL, MRF24J40_DEVICE_ADDRESS, 0); 
+        //MRF24J40_Enable(); // Enable ??
 
-        MRF24J40_setAddress(MRF24J40_DEVICE_ADDRESS);
+        //MRF24J40_setAddress(MRF24J40_DEVICE_ADDRESS);
         rfDestinationAddr = MRF24J40_DONGLE_ADDRESS;
         channelType = CNL_RF;
     }

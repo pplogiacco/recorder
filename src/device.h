@@ -18,15 +18,11 @@
 //#define __HWDONGLE
 #define __HWDEVICE
 //#define __HWDEVICE_V2_302
-
+//
 //#define __VAMP1K_TEST
-
 //#define __NOFLASH    // Use RAM to store config
 //#define __NOUSB      // Force to use RF ( USB not connect )
-//------------------------------------------------------------------------------
-
-
-
+//
 #ifdef __VAMP1K_TEST
 #undef __VAMP1K
 // Test Sampling
@@ -37,17 +33,22 @@
 #define __VAMP1K
 #endif
 
-
 //------------------------------------------------------------------------------
 #include "hardware.h"
 
+// bool Device_IsUsbConnected(void);
+#define Device_IsUsbConnected() USB_Status
+//#define Device_IsUsbConnected() true
+//#define Device_IsUsbConnected() false
+
 // The File I/O library requires the user to define the system clock frequency (Hz)
-#define _XTAL_FREQ  32000000UL              // 32Mhz Internal (FRC)
-#define _FOSC_      32000000UL
-#define _FCY_       16000000UL              // ( _FOSC_ / 2 )
-#define SYS_CLK_FrequencySystemGet()        _FOSC_
-#define SYS_CLK_FrequencyPeripheralGet()    _FOSC_
-#define SYS_CLK_FrequencyInstructionGet()   _FCY_
+//#define _XTAL_FREQ  32000000UL              // 32Mhz Internal (FRC)
+//#define _FOSC_      32000000UL
+//#define _FCY_       16000000UL              // ( _FOSC_ / 2 )
+#define SYS_CLK_FrequencySystemGet()        Device_FrequencySystemGet()    // _FOSC_
+#define SYS_CLK_FrequencyPeripheralGet()    (SYS_CLK_FrequencySystemGet()/2)
+#define SYS_CLK_FrequencyInstructionGet()   (SYS_CLK_FrequencySystemGet()/2)
+#define FCY                                 (SYS_CLK_FrequencyInstructionGet())
 
 typedef enum { // 
     STARTUP, // Switch-on state
@@ -58,7 +59,6 @@ typedef enum { //
 } devicestate_t;
 
 //----------------------------------------------------------------------------//
-
 
 typedef enum {
     SYS_OFF, // LTC shut-down
@@ -78,6 +78,7 @@ bool Device_SwitchSys(runlevel_t rlv); // clock, power, powered modules, pins...
 
 // ------------------------------------------------------
 // Testing - CALLED BY "switchSys()" / "getStatus()"
+
 typedef enum {
     SM_RUN,
     SM_IDLE,
@@ -86,19 +87,19 @@ typedef enum {
 } sysmode_t;
 
 typedef enum {
-    CK_SLOW,
     CK_DEFAULT,
+    CK_SLOW,
     CK_FAST
 } sysclock_t;
 
 void Device_Initialize();
+
+uint16_t Device_CheckHwReset(void); // Cheack reason of reboot 
+
 void Device_SwitchClock(sysclock_t ck);
+unsigned long inline Device_FrequencySystemGet();
 
 //----------------------------------------------------------------------------//
-//void Device_Boot(void);
-uint16_t Device_CheckHwReset(void);
-//void Device_Hybernate();
-//void Device_Resume();
 
 #define ADG729_ADDRESS      0b10011000
 
@@ -111,30 +112,27 @@ uint16_t Device_CheckHwReset(void);
 #define PW_ENC     (0b000000)
 
 void Device_SwitchADG(uint8_t reg);
+
 uint16_t Device_GetBatteryLevel();
 
 #define __clearWDT()  ClrWdt()
-
 #define _bs8(n) (1U<<n)
 
 // PIC24Fx32KA304 Family Power Managment Register
-#define PMD3_RTCCMD  _bs(6) // Bit 9
-#define PMD4_EEMD    _bs(6) // Bit 4
-#define PMD4_HLVDM   _bs(6) // Bit 4
+//#define PMD3_RTCCMD  _bs(6) // Bit 9
+//#define PMD4_EEMD    _bs(6) // Bit 4
+//#define PMD4_HLVDM   _bs(6) // Bit 4
+//
+//#define PMD1_U2MD   _bs(6)  // Bit 6
+//#define PMD1_I2C1MD _bs(6)  // Bit 7
+//#define PMD1_T1MD   _bs(6)  // Bit 11
+//#define PMD1_T2MD   _bs(6)  // Bit 12
+//#define PMD1_T3MD   _bs(6)  // Bit 13
+//#define PMD1_T5MD   _bs(6)  // Bit 15
+//#define PMD1_SPI1MD _bs(6)  // Bit 3
+//#define PMD1_ADC1MD _bs(6)  // Bit 0
 
-#define PMD1_U2MD   _bs(6)  // Bit 6
-#define PMD1_I2C1MD _bs(6)  // Bit 7
-#define PMD1_T1MD   _bs(6)  // Bit 11
-#define PMD1_T2MD   _bs(6)  // Bit 12
-#define PMD1_T3MD   _bs(6)  // Bit 13
-#define PMD1_T5MD   _bs(6)  // Bit 15
-#define PMD1_SPI1MD _bs(6)  // Bit 3
-#define PMD1_ADC1MD _bs(6)  // Bit 0
 
-// bool Device_IsUsbConnected(void);
-#define Device_IsUsbConnected() USB_Status
-//#define Device_IsUsbConnected() true
-//#define Device_IsUsbConnected() false
 
 
 #endif

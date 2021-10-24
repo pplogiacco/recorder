@@ -10,11 +10,11 @@
 
 #include "device.h"     // FCY
 // #define SYSCLK _FOSC_
-#define FCY _FCY_               // Required for __delayXXX() to work
-
-#define CLOCK_SystemFrequencyGet()        (_FOSC_)
-#define CLOCK_PeripheralFrequencyGet()    (_FOSC_)
-#define CLOCK_InstructionFrequencyGet()   (_FCY_)
+//#define FCY _FCY_               // Required for __delayXXX() to work
+//
+//#define CLOCK_SystemFrequencyGet()        (_FOSC_)
+//#define CLOCK_PeripheralFrequencyGet()    (_FOSC_)
+//#define CLOCK_InstructionFrequencyGet()   (_FCY_)
 
 #include <libpic30.h>   // __delay_ms, require FCY
 #include <stdio.h>      // printf
