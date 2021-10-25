@@ -475,6 +475,33 @@ uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uin
     return (iP);
 }
 
+
+uint16_t acquireAV_FFT2(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uint16_t adc_fq, uint16_t fft_pw) {
+    uint16_t npoints = (1U << log2_npoints);
+    uint16_t iP = 0;
+
+    fft_init(log2_npoints); // Initialize tables 
+    acquireAV_INIT_FFT(adc_fq); // ADC sampling frequency
+    ADA2200_Enable(); // Power-on: SPI1, Sensor Board LINE1
+    
+    
+    
+    acquireAV_START(1); // 1 sec samples
+    while (iP < npoints) {
+        if (_adcReady) {
+            _adcReady--;
+            *(dbuf + iP) = fft_windowing((ADC1BUF0 + ADC1BUF1) >> 1, iP);
+            //*(dbuf + iP + npoints) = 0;
+            iP++;
+        } // _adcReady
+    };
+    acquireAV_STOP();
+    fft_spectrum(dbuf);
+
+    return (iP);
+}
+
+
 /*----------------------------------------------------------------------------*
  * A C Q U I R E    A V   N O   D E L T A T I M E                             *
  *                                                                            *

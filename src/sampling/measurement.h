@@ -8,28 +8,28 @@
 #ifndef MEASUREMENT_H
 #define	MEASUREMENT_H
 
-#include <xc.h>        // processor files
+#include <xc.h>                     // processor files
 #include <stdbool.h>
-#include "../device.h"    // Typeset defs / config params
-//#include "measurement.h" // Typeset defs / config params
+#include "../device.h"              // Typeset defs / config params
+//#include "measurement.h"          // Typeset defs / config params
 
-#define sample_t signed short // fix14_t 
+#define sample_t signed short       // fix14_t 
 
-//typedef unsigned short sample_t; // ADC FormatAbsolute Integer Format
+//typedef unsigned short sample_t;  // ADC FormatAbsolute Integer Format
 #define FLOAT2INT_FACTOR 100000U
 #define SYNCO_FREQUENCY  38400U 
-#define SCALE_TOUNSIGNED 1024U  // 12 bit 4096
+#define SCALE_TOUNSIGNED 1024U      // 12 bit 4096
 
 //------------------------------------------------------------------------------
 #if ( defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__)) // Flash 32K, SRam 2K, EEprom 512
 
-#define SS_BUF_SIZE 512        // SRam
-#define SS_BUF_SIZE_NVM 1536    // Flash
+#define SS_BUF_SIZE 512             // SRam
+#define SS_BUF_SIZE_NVM 1536        // Flash
 
 #elif defined(__PIC24FJ256GA702__)
 
-#define SS_BUF_SIZE 4100 // SRam
-//#define SS_BUF_SIZE_NVM 1536    // Flash
+#define SS_BUF_SIZE 2048            // SRam
+//#define SS_BUF_SIZE_NVM 1536      // Flash
 
 #endif
 //------------------------------------------------------------------------------
@@ -44,12 +44,13 @@ typedef enum e_dimension { // physical phenomenon
 
 typedef enum e_typeset {
     _SIG0 = 0x02, // (02) Test signal  { <sig_fq>, <sig_maxa>, <adc_fq>, <res_scale>, [<dT>,<a>],[...] }
-    _AV04 = 0x04, // (04) Aeolean Vibration, samples without dT !            
-    _AV00 = 0x0A, // (10) Aeolian Vibration, RAW { <ET>,<WS>,<adc_fq> <res_scale,[<dT>,<s>],...}
+    _AV04 = 0x04, // (04) Aeolean Vibration, RAW without dT ! { <ET>,<WS>,<adc_fq> <res_scale>,<s1>,...,<sn>}            
+    _AV00 = 0x0A, // (10) Aeolian Vibration, RAW { <ET>,<WS>,<adc_fq> <res_scale>,[<dT>,<s>],...}
     _SS00 = 0x0B, // (11) Sub-Span, raw
     _AV02 = 0x0C, // (12) Aeolian Vibration, FFT Real { <ET>,<WS>,<adc_fq>,<log2_n>,[<rH1>],...,[<rH((2^log2_n)/2)>]}
     _AV01 = 0x0D, // (13) Aeolian Vibration, P-P { <ET>,<WS>,<adc_fq> <res_scale,[<dT>,<sp>],...}
-    _AV03 = 0x0E // (14) FFT Real { <ET>,<WS>,<adc_fq>,<log2_n>,[<rH1>],...,[<rH((2^log2_n)/2)>]}
+    _AV03 = 0x0E, // (14) FFT Real { <ET>,<WS>,<adc_fq>,<log2_n>,[<rH1>],...,[<rH((2^log2_n)/2)>]}
+    _AV05 = 0x0F //  (15) AVC { <ET>,<WS>,<adc_fq>,<res_scale>,<duration>,[ (<n>,<freq>,<amp>),...]}
 } typeset_t;
 
 typedef struct {

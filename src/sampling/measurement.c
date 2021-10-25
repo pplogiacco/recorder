@@ -27,8 +27,12 @@ static __prog__ uint8_t nvmDepot[DEPOT_SIZE] __attribute__((space(psv), aligned(
 
 uint16_t measurementAcquire(measurement_t * ms) {
     sample_t *ptrSS = SSBUF;
-    sample_t nsamples;
-    uint16_t adc_fq;
+    sample_t nsamples=0;
+    uint16_t adc_fq=0;
+
+    // FFTs
+    short m;
+    short l2;
 
 #ifdef __VAMP1K_TEST
     printf("Tset=%u\n", g_dev.cnf.general.typeset);
@@ -82,6 +86,15 @@ uint16_t measurementAcquire(measurement_t * ms) {
             Device_SwitchSys(SYS_DEFAULT); // Device_SwitchPower(lastPwrState);
             break;
 
+        case _AV04: // Aeolian Vibration, No DTime
+            ms->typeset = _AV01;
+            nsamples = acquireAV(ptrSS, g_dev.cnf.general.cycletime, (SS_BUF_SIZE - ms->ns), adc_fq, \
+                    (g_dev.cnf.calibration.av_filter < 1) ? 1 : g_dev.cnf.calibration.av_filter);
+            ms->nss = nsamples;
+            Device_SwitchSys(SYS_DEFAULT); // Device_SwitchPower(lastPwrState);
+            break;
+
+
         case _AV02: // Aeolian Vibration, FFT 
             Device_SwitchSys(SYS_ON_SAMP_WST); // lastPwrState = Device_SwitchPower(PW_ON_SAMP_WST);      
             ms->ss = SSBUF;
@@ -113,9 +126,8 @@ uint16_t measurementAcquire(measurement_t * ms) {
             ptrSS += 2;
 
 
-            
-            short m = 0;
-            short l2 = (SS_BUF_SIZE - ms->ns);
+            m = 0;
+            l2 = (SS_BUF_SIZE - ms->ns);
 
             while (l2 > 0) { // log2_npoints
                 m++;
@@ -127,11 +139,11 @@ uint16_t measurementAcquire(measurement_t * ms) {
                                  adc_fq, g_dev.cnf.calibration.av_filter);
             //ms->ns = 4; // <temperature>,<windspeed>,<tick_period>,<scale_offset>,[{<period>,<amplitude>},...]
             Device_SwitchSys(SYS_DEFAULT); // Device_SwitchPower(lastPwrState);
-            
+
             ms->nss = (nsamples >> 1); // 512 Coefficients ( only positive - half spectrum )
-            
-//            ptrSS = 
-            
+
+            //            ptrSS = 
+
             // Process samples / Format measurament with only significative harmonics
             // Send only ((2^m)/2) samples, from 1 to N2+1
             // int i;
@@ -142,12 +154,65 @@ uint16_t measurementAcquire(measurement_t * ms) {
 
             break;
 
-        case _AV04: // Aeolian Vibration, No DTime
-            ms->typeset = _AV01;
-            nsamples = acquireAV(ptrSS, g_dev.cnf.general.cycletime, (SS_BUF_SIZE - ms->ns), adc_fq, \
-                    (g_dev.cnf.calibration.av_filter < 1) ? 1 : g_dev.cnf.calibration.av_filter);
-            ms->nss = nsamples;
+        case _AV05: // (15) AVC { <ET>,<WS>,<adc_fq>,<res_scale>,<duration>,[ (<n>,<freq>,<amp>),...]}
+            Device_SwitchSys(SYS_ON_SAMP_WST); // lastPwrState = Device_SwitchPower(PW_ON_SAMP_WST);      
+            ms->ss = SSBUF;
+            ms->typeset = _AV05; // g_dev.cnf.general.typeset;
+            ms->dtime = RTCC_GetTimeL(); // get RTC datetime
+            ms->ns = 5; // ET,WS,FQ,SC,DU
+            acquireET(ptrSS); // RET: success
+            ptrSS++;
+            acquireWS(ptrSS); // RET: success
+            ptrSS++;
+
+            switch (g_dev.cnf.calibration.av_period) {
+                case 3: // ADC_FRQ_24Khz
+                    *ptrSS = 2400; // Sampling freq. (Hz)
+                    adc_fq = ADC_FRQ_24Khz; //  PR3=3200U
+                    break;
+                case 4: // ADC_FRQ_1Khz
+                    *ptrSS = 1000; // Sampling freq. (Hz))
+                    adc_fq = ADC_FRQ_1Khz; //  PR3=8000U
+                    break;
+
+                default: // ADC_FRQ_05Khz
+                    *ptrSS = 500; // Sampling freq. (Hz))
+                    adc_fq = ADC_FRQ_05Khz; //  PR3=8000U
+                    break;
+            }
+            ptrSS++;
+            *(ptrSS) = 1U < 12; // max Scale
+            ptrSS++;
+            *(ptrSS) = g_dev.cnf.general.cycletime;
+            ptrSS++;
+
+
+            m = 0;
+            l2 = (SS_BUF_SIZE - ms->ns);
+
+            while (l2 > 0) { // log2_npoints
+                m++;
+                l2 >>= 1;
+            }
+            // Force ADC frequency 0.5Khz ( g_dev.cnf.calibration.av_period )
+            Device_SwitchSys(SYS_ON_SAMP_ADA);
+            nsamples = acquireAV_FFT2(ptrSS, g_dev.cnf.general.cycletime, 10, \
+                                 adc_fq, g_dev.cnf.calibration.av_filter);
+            //ms->ns = 4; // <temperature>,<windspeed>,<tick_period>,<scale_offset>,[{<period>,<amplitude>},...]
             Device_SwitchSys(SYS_DEFAULT); // Device_SwitchPower(lastPwrState);
+
+            ms->nss = (nsamples >> 1); // 512 Coefficients ( only positive - half spectrum )
+
+            //            ptrSS = 
+
+            // Process samples / Format measurament with only significative harmonics
+            // Send only ((2^m)/2) samples, from 1 to N2+1
+            // int i;
+            //            ptrSS = (ms->ss + ms->ns);
+            //            for (i = 0; i < ms->nss; i++) {
+            //                *(ptrSS + i) = *(ptrSS + i + 1);
+            //            }
+
             break;
 
         case _SS00: // Vamp1K encoder Sub-span oscillation: // Raw sample signal
@@ -176,78 +241,78 @@ uint16_t measurementSave(measurement_t * ms) {
     if ((ms->ns + ms->nss) > 0) {
         msCounter++;
     };
-  
-        // depotAddBegin(uint16_t id, uint16_t size);
-        // depotAdd(char* data, uint16_t len);
-        // index = depotAddEnd();
-    
-        // depotDelete(uint16_t id);
-        // uint16_t = depotFreeSpace();  // blocks
-        // uint16_t = depotSize();
-    
-        // +-------------------------------
-        // | id | Offset        
-        // +------------------------------
-        // |  0 | pointer to first free block  
-        // |  1 | pointer to first block of chain 1                
-        // | ...| ....
-        //
-        // block: {datablock, MARKER } , MARKER:NXB/EOF
-        //
-        // Datablock:
-        // pgsize = 512          // min 4K block of flash memory - erase cycle
-        // BLOCK_MAXSAMPLES 48   // tranfer 96 Byte each trasmit buffer ( buffer size 128 )
-        // 
-    
-/*
-    if ((ms->ns + ms->nss) > 0) { // Save measurement
-        msCounter++;
+
+    // depotAddBegin(uint16_t id, uint16_t size);
+    // depotAdd(char* data, uint16_t len);
+    // index = depotAddEnd();
+
+    // depotDelete(uint16_t id);
+    // uint16_t = depotFreeSpace();  // blocks
+    // uint16_t = depotSize();
+
+    // +-------------------------------
+    // | id | Offset        
+    // +------------------------------
+    // |  0 | pointer to first free block  
+    // |  1 | pointer to first block of chain 1                
+    // | ...| ....
+    //
+    // block: {datablock, MARKER } , MARKER:NXB/EOF
+    //
+    // Datablock:
+    // pgsize = 512          // min 4K block of flash memory - erase cycle
+    // BLOCK_MAXSAMPLES 48   // tranfer 96 Byte each trasmit buffer ( buffer size 128 )
+    // 
+
+    /*
+        if ((ms->ns + ms->nss) > 0) { // Save measurement
+            msCounter++;
         
-        totSamplesBlocks = (uint16_t) ((uint16_t) (ms.nss + ms.ns) / BLOCK_MAXSAMPLES);
-        spareSamples = (uint16_t) ((uint16_t) (ms.nss + ms.ns) % BLOCK_MAXSAMPLES);
-        if (spareSamples > 0) {
-            totSamplesBlocks++;
-        }
-
-        offset = 0;
-        memcpy(&buffer[offset], &totSamplesBlocks, 2);
-        offset += 2;
-        memcpy(&buffer[offset], &ms.dtime, 4);
-        offset += 4;
-        buffer[offset++] = ms.typeset;
-        memcpy(&buffer[offset], &ms.ns, 2);
-        offset += 2;
-        memcpy(&buffer[offset], &ms.nss, 2);
-        offset += 2;
-
-        
-        if (protocolSend(CMD_MEASUREMENT_HEADER, offset, __ACK_TIMEOUT_DEFAULT)) {
-            result = true;
-            for (x = 0; x < totSamplesBlocks; x++) {
-                blockSize = BLOCK_MAXSAMPLES;
-                if ((spareSamples > 0) && (x == (totSamplesBlocks - 1))) {
-                    blockSize = spareSamples;
-                }
-                offset = 0;
-                buffer[offset++] = (uint8_t) (x + 1);
-
-                //memcpy(&buffer[offset], &ms.ss[x * BLOCK_MAXSAMPLES], (blockSize * 2));
-                measurementGetBlock(&buffer[offset], x * BLOCK_MAXSAMPLES, blockSize * 2); // blocksize multiplo di 3 in bytes 
-
-                offset += (blockSize * 2);
-  
-                // ****************** SAVE IN FLASH 
-                // Add NXB/EOF
-                if (!protocolSend(CMD_MEASUREMENT_BLOCK, offset, __ACK_TIMEOUT_DEFAULT)) {
-                    result = false;
-                    break;
-                }
-                // ******************
+            totSamplesBlocks = (uint16_t) ((uint16_t) (ms.nss + ms.ns) / BLOCK_MAXSAMPLES);
+            spareSamples = (uint16_t) ((uint16_t) (ms.nss + ms.ns) % BLOCK_MAXSAMPLES);
+            if (spareSamples > 0) {
+                totSamplesBlocks++;
             }
-        }
-    };
-*/
-    
+
+            offset = 0;
+            memcpy(&buffer[offset], &totSamplesBlocks, 2);
+            offset += 2;
+            memcpy(&buffer[offset], &ms.dtime, 4);
+            offset += 4;
+            buffer[offset++] = ms.typeset;
+            memcpy(&buffer[offset], &ms.ns, 2);
+            offset += 2;
+            memcpy(&buffer[offset], &ms.nss, 2);
+            offset += 2;
+
+        
+            if (protocolSend(CMD_MEASUREMENT_HEADER, offset, __ACK_TIMEOUT_DEFAULT)) {
+                result = true;
+                for (x = 0; x < totSamplesBlocks; x++) {
+                    blockSize = BLOCK_MAXSAMPLES;
+                    if ((spareSamples > 0) && (x == (totSamplesBlocks - 1))) {
+                        blockSize = spareSamples;
+                    }
+                    offset = 0;
+                    buffer[offset++] = (uint8_t) (x + 1);
+
+                    //memcpy(&buffer[offset], &ms.ss[x * BLOCK_MAXSAMPLES], (blockSize * 2));
+                    measurementGetBlock(&buffer[offset], x * BLOCK_MAXSAMPLES, blockSize * 2); // blocksize multiplo di 3 in bytes 
+
+                    offset += (blockSize * 2);
+  
+                    // ****************** SAVE IN FLASH 
+                    // Add NXB/EOF
+                    if (!protocolSend(CMD_MEASUREMENT_BLOCK, offset, __ACK_TIMEOUT_DEFAULT)) {
+                        result = false;
+                        break;
+                    }
+                    // ******************
+                }
+            }
+        };
+     */
+
 
 
 
