@@ -36,7 +36,6 @@
 //------------------------------------------------------------------------------
 #include "hardware.h"
 
-// bool Device_IsUsbConnected(void);
 #define Device_IsUsbConnected() USB_Status
 //#define Device_IsUsbConnected() true
 //#define Device_IsUsbConnected() false
@@ -99,9 +98,13 @@ uint16_t Device_CheckHwReset(void); // Cheack reason of reboot
 void Device_SwitchClock(sysclock_t ck);
 unsigned long inline Device_FrequencySystemGet();
 
-//----------------------------------------------------------------------------//
 
-#define ADG729_ADDRESS      0b10011000
+//----------------------------------------------------------------------------//
+#define ADG715
+
+#if defined(ADG729)
+
+#define ADG_ADDRESS      0b10011000
 
 #define PW_OFF     (0b000000)
 #define PW_MRF     (0b000001)  // OK 
@@ -110,6 +113,21 @@ unsigned long inline Device_FrequencySystemGet();
 #define PW_RS1     (0b001000)
 #define PW_RS2     (0b000000)
 #define PW_ENC     (0b000000)
+
+#elif defined (ADG715)
+#define ADG_ADDRESS      0b10010000
+
+#define PW_OFF     (0b00000000)
+#define PW_MRF     (0b00001000)  // OK 
+#define PW_WST     (0b00000100)  // OK 
+#define PW_ADA     (0b11100010)  // OK ( ADA assorbe lo stesso !!)
+#define PW_RS1     (0b00000001)  // Battery measurement 
+//#define PW_RS2     (0b00000000) 
+#define PW_ENC     (0b00010000)
+
+
+#endif
+
 
 void Device_SwitchADG(uint8_t reg);
 

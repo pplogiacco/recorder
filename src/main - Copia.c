@@ -17,7 +17,7 @@
 #include "exchange/exchange.h"      // DaaS-Ex Protocol 
 #include "sampling/measurement.h"   // DaaS-Ex Protocol 
 //
-//#include "memory/SST26VF064B.h"     // Flash SPI
+#include "memory/SST26VF064B.h"     // Flash SPI
 #include "memory/storage.h"
 //------------------------------------------------------------------------------
 // Global Device 
@@ -185,7 +185,7 @@ int main(void) {
 
                 if (Device_IsUsbConnected()) {
 
-                    __delay(5000); // wait 10 secs
+                    __delay(10000); // wait 10 secs
 
                 } else { //  
 

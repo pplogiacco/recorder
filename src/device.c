@@ -339,60 +339,7 @@ void Device_SwitchClock(sysclock_t ck) {
 #endif
 }
 
-void Device_SwitchADG(uint8_t reg) { // ADG729_Switch(uint8_t reg)
-#if defined(__HWDEVICE) 
-    uint16_t i2clpw;
 
-#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
-    // Power on i2c module !!!!!!!
-    I2C1CON = 0x1000; // i2c_1
-    I2C1BRG = 78; // Baud Rate
-    IFS1bits.MI2C1IF = 0; //Clear I2C master Int flag
-    I2C1CONbits.I2CEN = 1; //Enable I2C
-    I2C1STAT = 0x00;
-
-    I2C1CONbits.SEN = 1; // START condition
-    while (I2C1CONbits.SEN) { //HW cleared when complete
-    }
-    I2C1TRN = ADG729_ADDRESS; // Write address+(ADG729: 10011AAX)
-    while (I2C1STATbits.TRSTAT) {//HW cleared when TX complete
-    }
-    I2C1TRN = reg; // Write data
-    while (I2C1STATbits.TRSTAT) { //HW cleared when TX complete
-    }
-    I2C1CONbits.PEN = 1; // Send a stop
-    while (I2C1CONbits.PEN) {//HW cleared when complete
-    }
-    I2C1CONbits.I2CEN = 0; // Disable module
-
-#elif defined( __PIC24FJ256GA702__ )
-    i2clpw = PMD1bits.I2C1MD;
-    PMD1bits.I2C1MD = 0; // Enable I2C Module
-    //______________I2C (ADG729)
-    //    LATBbits.LATB8 = 1; //Start with bus in idle mode - both lines high
-    //    LATBbits.LATB9 = 1;
-    //    TRISBbits.TRISB8 = 0; //SCL1 output
-    //    TRISBbits.TRISB9 = 0; //SDA1 output
-
-    I2C1CONL = 0x8000;
-    I2C1BRG = 0x4E; // 100Khz @ Fcy=16Mhz (Fosc=32Mhz)
-    IFS1bits.MI2C1IF = 0; //Clear I2C master Int flag
-    I2C1CONLbits.I2CEN = 1; //Enable I2C
-    I2C1STAT = 0x00;
-    I2C1CONLbits.SEN = 1; // START condition
-    while (I2C1CONLbits.SEN); //HW cleared when complete
-    I2C1TRN = ADG729_ADDRESS; // Write address+(ADG729: 10011AAX)
-    while (I2C1STATbits.TRSTAT); //HW cleared when TX complete
-    I2C1TRN = reg; // Write data
-    while (I2C1STATbits.TRSTAT); //HW cleared when TX complete
-    I2C1CONLbits.PEN = 1; // Send a stop
-    while (I2C1CONLbits.PEN); //HW cleared when complete
-    I2C1CONLbits.I2CEN = 0; // Disable module
-    PMD1bits.I2C1MD = i2clpw;
-#endif
-
-#endif // HWDEVICE
-}
 
 /*******************************************************************************
  *                                                                             * 
@@ -775,7 +722,7 @@ uint16_t Device_GetBatteryLevel() {
     AD1CON3bits.ADCS = 0x7; // ADC Clock ( 1TAD = 4 TCY -> 250 nS)
     AD1CON5 = 0; // No CTMU, No Band Gap Req. ( VBG=1.2V, Vdd = 3.3 Volt +/-5%)
     AD1CHS = 0; // No channels
-    AD1CHSbits.CH0SA = 1; // S/H+ Input A (AN1)
+    AD1CHSbits.CH0SA = BAT_LV_ADC_CH0SA; // S/H+ Input A (0=AN0,1=AN1)
     AD1CSSL = 0; // No Scan, ADC1MD bit in the PMD1
 
     // ____________________________________Acquire
@@ -1232,3 +1179,59 @@ bool _Device_WriteConfig(uint8_t * config) {
 //void Device_Boot(void) { // call each sys boot
 //}
 //
+
+
+void Device_SwitchADG(uint8_t reg) { // ADG729_Switch(uint8_t reg)
+#if defined(__HWDEVICE) 
+    uint16_t i2clpw;
+
+#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
+    // Power on i2c module !!!!!!!
+    I2C1CON = 0x1000; // i2c_1
+    I2C1BRG = 78; // Baud Rate
+    IFS1bits.MI2C1IF = 0; //Clear I2C master Int flag
+    I2C1CONbits.I2CEN = 1; //Enable I2C
+    I2C1STAT = 0x00;
+
+    I2C1CONbits.SEN = 1; // START condition
+    while (I2C1CONbits.SEN) { //HW cleared when complete
+    }
+    I2C1TRN = ADG_ADDRESS; // Write address+(ADG729: 10011AAX)
+    while (I2C1STATbits.TRSTAT) {//HW cleared when TX complete
+    }
+    I2C1TRN = reg; // Write data
+    while (I2C1STATbits.TRSTAT) { //HW cleared when TX complete
+    }
+    I2C1CONbits.PEN = 1; // Send a stop
+    while (I2C1CONbits.PEN) {//HW cleared when complete
+    }
+    I2C1CONbits.I2CEN = 0; // Disable module
+
+#elif defined( __PIC24FJ256GA702__ )
+    i2clpw = PMD1bits.I2C1MD;
+    PMD1bits.I2C1MD = 0; // Enable I2C Module
+    //______________I2C (ADG729)
+    //    LATBbits.LATB8 = 1; //Start with bus in idle mode - both lines high
+    //    LATBbits.LATB9 = 1;
+    //    TRISBbits.TRISB8 = 0; //SCL1 output
+    //    TRISBbits.TRISB9 = 0; //SDA1 output
+
+    I2C1CONL = 0x8000;
+    I2C1BRG = 0x4E; // 100Khz @ Fcy=16Mhz (Fosc=32Mhz)
+    IFS1bits.MI2C1IF = 0; //Clear I2C master Int flag
+    I2C1CONLbits.I2CEN = 1; //Enable I2C
+    I2C1STAT = 0x00;
+    I2C1CONLbits.SEN = 1; // START condition
+    while (I2C1CONLbits.SEN); //HW cleared when complete
+    I2C1TRN = ADG_ADDRESS; // Write address+(ADG729: 10011AAX)
+    while (I2C1STATbits.TRSTAT); //HW cleared when TX complete
+    I2C1TRN = reg; // Write data
+    while (I2C1STATbits.TRSTAT); //HW cleared when TX complete
+    I2C1CONLbits.PEN = 1; // Send a stop
+    while (I2C1CONLbits.PEN); //HW cleared when complete
+    I2C1CONLbits.I2CEN = 0; // Disable module
+    PMD1bits.I2C1MD = i2clpw;
+#endif
+
+#endif // HWDEVICE
+}

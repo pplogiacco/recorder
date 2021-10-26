@@ -46,8 +46,6 @@ POWER   27  Vss
 
 // Firmware / Hardware
 
-
-
 #ifdef __HWDONGLE
 //
 #define __UI
@@ -63,10 +61,14 @@ POWER   27  Vss
 #define __MRF24
 #undef __SDCARD
 #define __SENSOR_BOARD
+
+
 // Battery Level
-// 10  OSCO/AN14/CLKO/CN29/RA3     (S) Batt Level
-//#define BAT_LVL_OLD2LOW()   { _TRISA3=0;  _ANSA3=0; _LATA3 = 0; }   // AN1 
-#define BAT_LV_SetAnalogInput()   { _TRISA1=1;  _ANSA1=1; }   // AN1 
+#define BAT_LV_SetAnalogInput()   { _TRISA0=1;  _ANSA0=1; }   // AN0
+#define BAT_LV_ADC_CH0SA          0     // S/H+ Input A (0=AN0,1=AN1)
+
+#define ADA_IN_SetAnalogInput()   { _TRISA1=1;  _ANSA1=1; }   // AN0 
+#define ADA_IN_ADC_CH0SA          1     // S/H+ Input A 
 
 
 // Flash memory ( SPI )
@@ -95,7 +97,7 @@ POWER   27  Vss
 #define AV_SYN_SetDigital()         _ANSB15=0  // Digital
 #define AV_SYN_SetDigitalInput()    _TRISB15=1 // Input T3CK/RB15 (SYNCO)
 
-#define AV_IN_SetAnalogInput()      { _TRISA0=1;  _ANSA0=1; }   // AN0 
+#define AV_IN_SetAnalogInput()      ADA_IN_SetAnalogInput()
 
 #define ET_IN     _RB3  // AN5/C1INA/C2INC/SCL2/CN7/RB3 (7)
 #define ET_IN_SetAnalogInput()      {_TRISB3 = 1; _ANSB3 = 1; }

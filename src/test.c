@@ -10,12 +10,12 @@
 // Test HW
 //#define __VAMP1K_TEST_HW                      // Perform hardware test
 //#define __VAMP1K_TEST_RESET
-#define __VAMP1K_TEST_TIMERS
+// #define __VAMP1K_TEST_TIMERS
 //#define __VAMP1K_TEST_CONFIG 
 // #define __VAMP1K_TEST_ADG
 // #define __VAMP1K_TEST_USB
 //#define __VAMP1K_TEST_BATTERY
-//#define __VAMP1K_TEST_SST26
+#define __VAMP1K_TEST_SST26
 // #define __VAMP1K_TEST_SLEEP
 // #define __VAMP1K_TEST_RTCC
 
@@ -260,14 +260,6 @@ int main(void) {
 
     
 #endif
-    
-    
-    
-    
-    
-    
-    
-    
     
     
     

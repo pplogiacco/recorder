@@ -125,7 +125,6 @@ unsigned char SST26_Read(unsigned long Dst) {
 
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(0x03); /* read command */
-
     SPI1_Exchange8bit(((Dst & 0xFFFFFF) >> 16)); /* send 3 address bytes */
     SPI1_Exchange8bit(((Dst & 0xFFFF) >> 8));
     SPI1_Exchange8bit(Dst & 0xFF);
@@ -274,6 +273,7 @@ void SST26_Page_Program(unsigned long Dst, unsigned char *Prog_data) {
     }
     SST26_SS_SetHigh(); /* disable device */
 }
+
 
 uint16_t SST26_Write_Bytes(uint32_t addr, uint8_t *dbuf, uint16_t dlen) {
     uint16_t i = 0;

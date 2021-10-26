@@ -28,7 +28,7 @@
 
 #elif defined(__PIC24FJ256GA702__)
 
-#define SS_BUF_SIZE 2048            // SRam
+#define SS_BUF_SIZE 4096           // SRam
 //#define SS_BUF_SIZE_NVM 1536      // Flash
 
 #endif
@@ -120,6 +120,8 @@ uint16_t getRTMeasure(measureCmd_t cmd, measure_t mtype, sample_t *nsamp);
 #define DEPOT_BLOCK_SIZE FLASH_WRITE_ROW_SIZE_IN_INSTRUCTIONS * 4 
 #define DEPOT_BLOCKS  32  // ONE PAGE 32 ROWS (1024 INSTRUCTIONS * 3 Bytes phantom+data )
 #define DEPOT_SIZE 0x1000 // 4096 - phantom bytes
+
+
 #define  to24bit(t,v) ((((uint32_t)t)<<12) | (v && 0xFFF))
 //
 

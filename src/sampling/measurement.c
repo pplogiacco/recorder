@@ -29,7 +29,7 @@ uint16_t measurementAcquire(measurement_t * ms) {
     sample_t *ptrSS = SSBUF;
     sample_t nsamples=0;
     uint16_t adc_fq=0;
-
+    uint16_t hert_fq;
     // FFTs
     short m;
     short l2;
@@ -39,35 +39,68 @@ uint16_t measurementAcquire(measurement_t * ms) {
     //g_dev.cnf.general.typeset = _AV00;
 #endif
 
-    if ((g_dev.cnf.general.typeset == _AV00) || (g_dev.cnf.general.typeset == _AV01) || (g_dev.cnf.general.typeset == _AV04)) {
-        ms->ss = ptrSS;
-        ms->dtime = RTCC_GetTimeL(); // get RTC datetime
-        /* ----------------- TMR3/ADC Frequency    
-        3: 2^3 -1,  PR3 = 63, Synco 38.4 Khz : 8 =  4.8Khz, T=0,000208s
-        4: 2^4 -1,  PR3 = 127, Synco 38.4 Khz :16 = 2.4Khz, T=0,000416s 
-        5: 2^5 -1,  PR3 = 255, Synco 38.4 Khz :32 = 1.2Khz, T=0.000833s 
-        6: 2^6 -1,  PR3 = 511, Synco 38.4 Khz :64 = 600Hz, T=0.0017s (1,7 ms) */
-        if ((g_dev.cnf.calibration.av_period < 2) || (g_dev.cnf.calibration.av_period > 6)) {
-            g_dev.cnf.calibration.av_period = 6; // Default: SYNCO_FREQUENCY / 2^6 = 600Hz
-        }
-        adc_fq = (1U << (g_dev.cnf.calibration.av_period - 1)) - 1; // Frequency divider, compute PR3 
+//    if ((g_dev.cnf.general.typeset == _AV00) || (g_dev.cnf.general.typeset == _AV01) || (g_dev.cnf.general.typeset == _AV04)) {
+//        ms->ss = ptrSS;
+//        ms->dtime = RTCC_GetTimeL(); // get RTC datetime
+//        /* ----------------- TMR3/ADC Frequency    
+//        3: 2^3 -1,  PR3 = 63, Synco 38.4 Khz : 8 =  4.8Khz, T=0,000208s
+//        4: 2^4 -1,  PR3 = 127, Synco 38.4 Khz :16 = 2.4Khz, T=0,000416s 
+//        5: 2^5 -1,  PR3 = 255, Synco 38.4 Khz :32 = 1.2Khz, T=0.000833s 
+//        6: 2^6 -1,  PR3 = 511, Synco 38.4 Khz :64 = 600Hz, T=0.0017s (1,7 ms) */
+//        if ((g_dev.cnf.calibration.av_period < 2) || (g_dev.cnf.calibration.av_period > 6)) {
+//            g_dev.cnf.calibration.av_period = 6; // Default: SYNCO_FREQUENCY / 2^6 = 600Hz
+//        }
+//        adc_fq = (1U << (g_dev.cnf.calibration.av_period - 1)) - 1; // Frequency divider, compute PR3 
+//
+//        // ----------------- Add Single Samples
+//        Device_SwitchSys(SYS_ON_SAMP_WST); // lastPwrState = Device_SwitchPower(PW_ON_SAMP_WST); 
+//        acquireET(ptrSS); // RET: success
+//        ptrSS++;
+//        acquireWS(ptrSS); // RET: success
+//        ptrSS++;
+//        *ptrSS = SYNCO_FREQUENCY >> g_dev.cnf.calibration.av_period; // Compute ADC frequency (Hz)
+//        ptrSS++;
+//        *ptrSS = 4200; // Scale Resolution 2^12 (12 Bit ADC)
+//        ptrSS++;
+//        ms->ns = 4;
+//        // -----------------
+//        Device_SwitchSys(SYS_ON_SAMP_ADA);
+//    }
 
-        // ----------------- Add Single Samples
-        Device_SwitchSys(SYS_ON_SAMP_WST); // lastPwrState = Device_SwitchPower(PW_ON_SAMP_WST); 
-        acquireET(ptrSS); // RET: success
-        ptrSS++;
-        acquireWS(ptrSS); // RET: success
-        ptrSS++;
-        *ptrSS = SYNCO_FREQUENCY >> g_dev.cnf.calibration.av_period; // Compute ADC frequency (Hz)
-        ptrSS++;
-        *ptrSS = 4200; // Scale Resolution 2^12 (12 Bit ADC)
-        ptrSS++;
-        ms->ns = 4;
-        // -----------------
-        Device_SwitchSys(SYS_ON_SAMP_ADA);
+
+        switch (g_dev.cnf.calibration.av_period) {
+        case 3: // ADC_FRQ_24Khz
+            hert_fq = 2400; // Sampling freq. (Hz)
+            adc_fq = ADC_FRQ_24Khz; //  PR3=3200U
+            break;
+        case 4: // ADC_FRQ_1Khz
+            hert_fq = 1000; // Sampling freq. (Hz))
+            adc_fq = ADC_FRQ_1Khz; //  PR3=8000U
+            break;
+
+        default: // ADC_FRQ_05Khz
+            hert_fq = 500; // Sampling freq. (Hz))
+            adc_fq = ADC_FRQ_05Khz; //  PR3=8000U
+            break;
     }
-
-
+        
+    ms->ss = ptrSS;
+    ms->dtime = RTCC_GetTimeL(); // get RTC datetime
+    // ----------------- Add Single Samples
+    Device_SwitchSys(SYS_ON_SAMP_WST); // lastPwrState = Device_SwitchPower(PW_ON_SAMP_WST); 
+    acquireET(ptrSS); // RET: success
+    ptrSS++;
+    acquireWS(ptrSS); // RET: success
+    ptrSS++;
+    *ptrSS = hert_fq; // ADC frequency (Hz)
+    ptrSS++;
+    *ptrSS = 4200; // Scale Resolution 2^12 (12 Bit ADC)
+    ptrSS++;
+    ms->ns = 4;
+    // -----------------
+    Device_SwitchSys(SYS_ON_SAMP_ADA);
+    
+   
     switch (g_dev.cnf.general.typeset) {
 
         case _AV00: // Aeolian Vibration, RAW
@@ -96,34 +129,34 @@ uint16_t measurementAcquire(measurement_t * ms) {
 
 
         case _AV02: // Aeolian Vibration, FFT 
-            Device_SwitchSys(SYS_ON_SAMP_WST); // lastPwrState = Device_SwitchPower(PW_ON_SAMP_WST);      
-            ms->ss = SSBUF;
-            ms->typeset = _AV02; // g_dev.cnf.general.typeset;
-            ms->dtime = RTCC_GetTimeL(); // get RTC datetime
-            ms->ns = 4; // ET,WS
-
-            acquireET(ptrSS); // RET: success
-            ptrSS++;
-            acquireWS(ptrSS); // RET: success
-            ptrSS++;
-
-            switch (g_dev.cnf.calibration.av_period) {
-                case 3: // ADC_FRQ_24Khz
-                    *ptrSS = 2400; // Sampling freq. (Hz)
-                    adc_fq = ADC_FRQ_24Khz; //  PR3=3200U
-                    break;
-                case 4: // ADC_FRQ_1Khz
-                    *ptrSS = 1000; // Sampling freq. (Hz))
-                    adc_fq = ADC_FRQ_1Khz; //  PR3=8000U
-                    break;
-
-                default: // ADC_FRQ_05Khz
-                    *ptrSS = 500; // Sampling freq. (Hz))
-                    adc_fq = ADC_FRQ_05Khz; //  PR3=8000U
-                    break;
-            }
-            *(ptrSS + 1) = 1U < 12; // max Scale
-            ptrSS += 2;
+//            Device_SwitchSys(SYS_ON_SAMP_WST); // lastPwrState = Device_SwitchPower(PW_ON_SAMP_WST);      
+//            ms->ss = SSBUF;
+//            ms->typeset = _AV02; // g_dev.cnf.general.typeset;
+//            ms->dtime = RTCC_GetTimeL(); // get RTC datetime
+//            ms->ns = 4; // ET,WS
+//
+//            acquireET(ptrSS); // RET: success
+//            ptrSS++;
+//            acquireWS(ptrSS); // RET: success
+//            ptrSS++;
+//
+//            switch (g_dev.cnf.calibration.av_period) {
+//                case 3: // ADC_FRQ_24Khz
+//                    *ptrSS = 2400; // Sampling freq. (Hz)
+//                    adc_fq = ADC_FRQ_24Khz; //  PR3=3200U
+//                    break;
+//                case 4: // ADC_FRQ_1Khz
+//                    *ptrSS = 1000; // Sampling freq. (Hz))
+//                    adc_fq = ADC_FRQ_1Khz; //  PR3=8000U
+//                    break;
+//
+//                default: // ADC_FRQ_05Khz
+//                    *ptrSS = 500; // Sampling freq. (Hz))
+//                    adc_fq = ADC_FRQ_05Khz; //  PR3=8000U
+//                    break;
+//            }
+//            *(ptrSS + 1) = 1U < 12; // max Scale
+//            ptrSS += 2;
 
 
             m = 0;
@@ -133,11 +166,12 @@ uint16_t measurementAcquire(measurement_t * ms) {
                 m++;
                 l2 >>= 1;
             }
+            
             // Force ADC frequency 0.5Khz ( g_dev.cnf.calibration.av_period )
-            Device_SwitchSys(SYS_ON_SAMP_ADA);
-            nsamples = acquireAV_FFT(ptrSS, g_dev.cnf.general.cycletime, 10, \
-                                 adc_fq, g_dev.cnf.calibration.av_filter);
-            //ms->ns = 4; // <temperature>,<windspeed>,<tick_period>,<scale_offset>,[{<period>,<amplitude>},...]
+//            Device_SwitchSys(SYS_ON_SAMP_ADA);
+            
+            nsamples = acquireAV_FFT(ptrSS, g_dev.cnf.general.cycletime, 10, adc_fq);
+            
             Device_SwitchSys(SYS_DEFAULT); // Device_SwitchPower(lastPwrState);
 
             ms->nss = (nsamples >> 1); // 512 Coefficients ( only positive - half spectrum )
@@ -196,7 +230,7 @@ uint16_t measurementAcquire(measurement_t * ms) {
             }
             // Force ADC frequency 0.5Khz ( g_dev.cnf.calibration.av_period )
             Device_SwitchSys(SYS_ON_SAMP_ADA);
-            nsamples = acquireAV_FFT2(ptrSS, g_dev.cnf.general.cycletime, 10, \
+            nsamples = acquireAV_EVC(ptrSS, g_dev.cnf.general.cycletime, 10, \
                                  adc_fq, g_dev.cnf.calibration.av_filter);
             //ms->ns = 4; // <temperature>,<windspeed>,<tick_period>,<scale_offset>,[{<period>,<amplitude>},...]
             Device_SwitchSys(SYS_DEFAULT); // Device_SwitchPower(lastPwrState);
@@ -237,11 +271,73 @@ uint16_t measurementAcquire(measurement_t * ms) {
 }
 
 /* -------------------------------------------------------------------------- */
+
+//#define DEPOT_ADDR 0x0000
+//#define DEPOT_SIZE  0x000
+
+
+/*
+
+ Device             Program Memory          Write Blocks(1)     Erase Blocks(1)
+                    Upper Boundary
+                    (Instruction Words)
+-------------------------------------------------------------------------------
+PIC24FJ256GA70X     02AFFEh (88,064 x 24)       688                 86
+
+- One Write Block = 128 Instruction Words;
+- One Erase Block (Page) = 1024 Instruction Words.
+  
+  
+ 
+ +-----------------------------+ 
+ | box                         |
+ +------+---------------+------+
+ | head |    databox    | next |
+ +------+---------------+------+
+  
+ +-----------------------+
+ | head             |
+ +-----------------------+ 
+ |b31,b30|b29-b24|b23,b0 |  
+ +-------+-------+-------+
+ | state | ....  | size  |
+ +-------+-------+-------+
+  
+  
+ +-----------------------+
+ | next             |
+ +-----------------------+ 
+ |b31,b30|b29-b24|b23,b0 |  
+ +-------+-------+-------+
+ | state | bank  | addr  |
+ +-------+-------+-------+
+  
+ 
+    BTY ( Bank Type - Flash/Eeprom  )
+    AUS ( Allocation Unit Size - bytes ) 
+   
+    [HDDDDDNHDDDDDNHddddddddNHDDDDDDN.....]
+     ^      ^      ^         ^       
+     |      |      |         |
+    Hp      H1     H2        H3                
+  
+  
+ 
+ */
+
+
 uint16_t measurementSave(measurement_t * ms) {
     if ((ms->ns + ms->nss) > 0) {
         msCounter++;
     };
-
+    
+    // trova spazio libero 
+    // salva misura 
+    // aggiorna lookup table 
+    
+    
+//    depot_nextfree(DEPOT_ADDR);
+    
     // depotAddBegin(uint16_t id, uint16_t size);
     // depotAdd(char* data, uint16_t len);
     // index = depotAddEnd();

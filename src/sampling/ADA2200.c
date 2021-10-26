@@ -157,7 +157,7 @@ void ADA2200_Enable() {
     // Default 0x2D ( 1 = delays the phase between the RCLK output and the strobe )
 
     // ADA_SetReg8(ADA_CKDIV, 0b00110); // Clock Configuration
-    ADA_SetReg8(ADA_CKDIV, 0b00110); // Clock Configuration
+    ADA_SetReg8(ADA_CKDIV, 0b00001001); // Clock Configuration
     // [7:5] Unused
     // [4:2] CLKIN DIV  ( The division factor between fCLKIN and fSI.
     //                      000 = divide by 1.
@@ -214,6 +214,7 @@ void ADA2200_Enable() {
     ADA_SetReg8(ADA_STROBE, 0b1); // Update IIR coeff.  SEBASTIANO !!!
     ADA_SetReg8(ADA_RESET, 1); // Core Reset & Start
     ADA_SetReg8(ADA_RESET, 0);
+//    __delay_ms(1);
 }
 
 void ADA2200_Synco(uint8_t synco_trim) { // 1..14
