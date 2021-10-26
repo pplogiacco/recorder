@@ -15,20 +15,27 @@
 // #define __VAMP1K_TEST_ADG
 // #define __VAMP1K_TEST_USB
 //#define __VAMP1K_TEST_BATTERY
-#define __VAMP1K_TEST_SST26
+// #define __VAMP1K_TEST_SST26
 // #define __VAMP1K_TEST_SLEEP
 // #define __VAMP1K_TEST_RTCC
+// #define __VAMP1K_TEST_BATLEV
 
 #define __VAMP1K_TEST_measurement_printf
 
+#define FORCED_TYPESET _AV05
+//    _SIG0 = 0x02, // (02) Test signal  { <sig_fq>, <sig_maxa>, <adc_fq>, <res_scale>, [<dT>,<a>],[...] }
+//    _AV04 = 0x04, // (04) Aeolean Vibration, RAW without dT ! { <ET>,<WS>,<adc_fq> <res_scale>,<s1>,...,<sn>}            
+//    _AV00 = 0x0A, // (10) Aeolian Vibration, RAW { <ET>,<WS>,<adc_fq> <res_scale>,[<dT>,<s>],...}
+//    _SS00 = 0x0B, // (11) Sub-Span, raw
+//    _AV02 = 0x0C, // (12) Aeolian Vibration, FFT Real { <ET>,<WS>,<adc_fq>,<log2_n>,[<rH1>],...,[<rH((2^log2_n)/2)>]}
+//    _AV01 = 0x0D, // (13) Aeolian Vibration, P-P { <ET>,<WS>,<adc_fq> <res_scale,[<dT>,<sp>],...}
+//    _AV03 = 0x0E, // (14) FFT Real { <ET>,<WS>,<adc_fq>,<log2_n>,[<rH1>],...,[<rH((2^log2_n)/2)>]}
+//    _AV05 = 0x0F //  (15) AVC { <ET>,<WS>,<adc_fq>,<res_scale>,<duration>,[ (<n>,<freq>,<amp>),...]}
+
 //#define __AV0NVM     // Save samples in flash
-
-
-
 //volatile int int0trig = 0;
 //void __attribute__((weak)) EX_INT0_CallBack(void) {
 //}
-
 
 
 // TEST TMR3
@@ -97,6 +104,14 @@ int main(void) {
     printf("[%u:%u:%u]\n#:", stime.hour, stime.min, stime.sec);
 
     
+#ifdef __VAMP1K_TEST_BATLEV   
+    while (1) {
+        printf("BAT Level: %d \n", Device_GetBatteryLevel());
+        __delay(1000);
+    }
+
+#endif 
+
 #ifdef  __VAMP1K_TEST_RESET    
 
     if (RCONbits.WDTO) { // WDT Overflow Reset
@@ -123,13 +138,13 @@ int main(void) {
     }
     __delay(2000);
 #endif 
-    
+
 #ifdef __VAMP1K_TEST_USB
     while (1) {
         if (!Device_IsUsbConnected()) {
-            printf("USB Waiting (RB7=%d)... \n",Device_IsUsbConnected());
+            printf("USB Waiting (RB7=%d)... \n", Device_IsUsbConnected());
         } else {
-            printf("USB Connected (RB7=%d) !  \n",Device_IsUsbConnected());
+            printf("USB Connected (RB7=%d) !  \n", Device_IsUsbConnected());
         }
         __delay(1000);
     }
@@ -176,12 +191,12 @@ int main(void) {
     IFS0bits.T2IF = 0; // Reset iflag
     IEC0bits.T2IE = 1; // Enable Int
     T2CONbits.TON = 1;
-    
+
     tmr2trig = false;
     while (!tmr2trig) {
         if (tmr2trig) {
             printf("Tmr2 ok\n");
-          //  tmr2trig = 0;
+            //  tmr2trig = 0;
         }
         // printf("°");
     }
@@ -209,7 +224,7 @@ int main(void) {
     IEC0bits.T3IE = 1; // Int call-back 
     //T3CONbits.TON = 1;
 
-    tmr3trig= false;
+    tmr3trig = false;
     while (1) {
         if (tmr3trig) {
             printf("!");
@@ -258,11 +273,11 @@ int main(void) {
     }
      */
 
-    
+
 #endif
-    
-    
-    
+
+
+
 #ifdef __VAMP1K_TEST_SST26
 
     Device_SwitchSys(SYS_ON_EXCHANGE); // SPI
@@ -453,7 +468,7 @@ int main(void) {
 #endif
 
 
-   
+
 
 
     while (1) {
@@ -474,6 +489,7 @@ int main(void) {
                 lstate = state;
                 // RTCC_TimeGet(&stime);
                 //!! if ((stime.lstamp > g_config.general.startdate) && (stime.lstamp < g_config.general.stopdate)) {
+                g_dev.cnf.general.typeset = FORCED_TYPESET;
                 measurementAcquire(&g_measurement);
                 //measurementSave(&g_measurement);
                 //!!};

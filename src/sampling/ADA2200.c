@@ -157,7 +157,8 @@ void ADA2200_Enable() {
     // Default 0x2D ( 1 = delays the phase between the RCLK output and the strobe )
 
     // ADA_SetReg8(ADA_CKDIV, 0b00110); // Clock Configuration
-    ADA_SetReg8(ADA_CKDIV, 0b00001001); // Clock Configuration
+    //ADA_SetReg8(ADA_CKDIV, 0b00001001); // Clock Configuration
+        ADA_SetReg8(ADA_CKDIV, 0b0001010); // Clock Configuration
     // [7:5] Unused
     // [4:2] CLKIN DIV  ( The division factor between fCLKIN and fSI.
     //                      000 = divide by 1.

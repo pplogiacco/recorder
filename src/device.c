@@ -82,16 +82,12 @@ uint16_t Device_CheckHwReset(void) {
     return rreason;
 }
 
+
 void Device_Initialize() { // INITIAL/DEFAULT SETTING 
 
     Device_SwitchClock(CK_DEFAULT); // Set clock speed 
 
-#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
-    LATA = 0x0000; // Setting the Output Latch SFR(s)
-    LATB = 0x8005;
-    TRISA = 0x0000; // Setting the GPIO Direction SFR(s)
-    TRISB = 0x4393;
-#elif defined (__PIC24FJ256GA702__)
+#if defined (__PIC24FJ256GA702__)
     // Setting the Output Latch SFR(s)
     LATA = 0x0000;
     LATB = 0x0001;
@@ -242,6 +238,11 @@ void Device_Initialize() { // INITIAL/DEFAULT SETTING
 #endif  // SENSOR_BOARD
 
 } // Initialize
+
+
+
+
+
 
 /* CLOCK Switching Settings
    COSC = 001; // 8 MHz FRC Oscillator with Postscaler and PLL module (FRCPLL)
@@ -637,111 +638,6 @@ bool Device_SwitchSys(runlevel_t rlv) {
     return (true);
 }
 
-/*******************************************************************************
-Device_GetPowerLevel()
-Set up the ADC with +Reference set to AVdd, and -Reference set to AVss.
-Set up BandGap reference to be enabled for ADC.
-Set up ADC channel to read Vbg (the Bandgap Reference voltage).
-Read the ADC value, for 10-bit ADC format, compute:
-
-    Vadc = (ADC Reading / 1024) * AVdd
-    AVdd = Vbg * 1024 / (ADC Reading)
-
-to verify that AVdd is equal to 3.3 Volts +- 5%
-Nominal ADC reading        =    1.2    * 1024 /    3.3     = (Approximately)372
-Max acceptable ADC Reading = (1.2*1.05)* 1024 / (3.3*0.95) = (Approximately)412
-Min acceptable ADC Reading = (1.2*0.95)* 1024 / (3.3*1.05) = (Approximately)337
- *******************************************************************************/
-uint16_t Device_GetBatteryLevel() {
-
-#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
-    // ____________________________________ADC Input Pin
-
-    // ____________________________________ADC setup
-    IEC0bits.AD1IE = 0; // Disable A/D conversion interrupt
-    AD1CON1 = 0x2200; // Configure clock and trigger mode.
-    AD1CON1bits.FORM = 0; // Absolute decimal result, unsigned, right-justified
-    AD1CON1bits.SSRC = 0; // Software conversion trigger (SAMP=0/1)
-    AD1CON1bits.ASAM = 0; // AD begins when manually SAMP=0 set)
-    //
-    AD1CON2 = 0; // ADC voltage reference, buffer fill modes
-    AD1CON2bits.PVCFG = 0; // Positive Voltage Reference (0 AVDD)
-    AD1CON2bits.NVCFG = 0; // Negative Voltage Reference (0 AVSS)
-    AD1CON2bits.CSCNA = 0; // Does not scan inputs for CH0+ S/H (MUX A)
-    // ____________________________________Conversion Timing
-    AD1CON3 = 0; // (.ADRC=0)Clock is derived from the system clock (Tcy= 1/Fcy)
-    AD1CON3bits.EXTSAM = 1; // Extended Sampling Time bit
-    AD1CON3bits.SAMC = 22; // 16 Auto-Sample Time TAD
-    AD1CON3bits.ADCS = 0b00111111; // ADC Clock Select ( 4Tcy=1TAD 250nS*4 = 1uS)
-    // 00111111 = 64·TCY = TAD
-    // 00000001 = 2·TCY = TAD
-    //
-    AD1CON5bits.BGREQ = 1; // Band Gap Request bit ( 1 = BGP enabled )
-    AD1CHSbits.CH0NA = 0; // MUXA Channel 0 Negative Input (000 = AVSS)
-    AD1CHSbits.CH0SA = 0b11010; // MUXA Positive Input (BGR)
-    AD1CSSL = 0; // No inputs are scanned.
-    // ____________________________________Acquire
-    AD1CON1bits.ADON = 1; // Turn on A/D
-    AD1CON1bits.SAMP = 1; // Start sampling the input
-    //__delay(1); // Ensure the correct sampling time has elapsed
-    AD1CON1bits.SAMP = 0; // End sampling and start conversion
-    while (!AD1CON1bits.DONE) {
-    }
-    //printf("adc=%d \n", ADC1BUF0);
-    AD1CON1bits.ADON = 0;
-    return (ADC1BUF0);
-#endif   
-
-#ifdef __PIC24FJ256GA702__
-
-    // Enable ADG port 
-    Device_SwitchADG(PW_RS1); // RF Module switch-on
-    //#include "modules/SPI1.h"
-
-    // SPI1_Enable(MODE0,0);
-    //    { _TRISB11 = 0; _LATB11 = 0; }
-    //    { _TRISB13 = 0; _LATB13 = 0; }    
-
-
-    BAT_LV_SetAnalogInput(); // (S) Batt Level ( AN1 )
-    //    BAT_LVL_OLD2LOW();
-
-    uint8_t ad1md = PMD1bits.AD1MD;
-    PMD1bits.AD1MD = 0;
-
-    // ____________________________________A/D Converter Setup
-    AD1CON1 = 0; // No operation in Idle mode, Converter off
-    AD1CON1bits.MODE12 = 0; // Resolution 10 bit (1=12)
-    AD1CON1bits.ASAM = 1; // Auto-Convert ON (end sampling and start conversion)
-    AD1CON2 = 0; // Inputs are not scanned
-    AD1CON3 = 0;
-    //AD1CON1bits.SSRC = 0b0111; // Auto-Convert mode
-    AD1CON1bits.SSRC = 00; // SAMP is cleared by softwar
-    AD1CON3bits.SAMC = 14; // 12 Auto-Sample Time TAD
-    AD1CON3bits.EXTSAM = 1; // Extend sampling time
-    AD1CON3bits.ADCS = 0x7; // ADC Clock ( 1TAD = 4 TCY -> 250 nS)
-    AD1CON5 = 0; // No CTMU, No Band Gap Req. ( VBG=1.2V, Vdd = 3.3 Volt +/-5%)
-    AD1CHS = 0; // No channels
-    AD1CHSbits.CH0SA = BAT_LV_ADC_CH0SA; // S/H+ Input A (0=AN0,1=AN1)
-    AD1CSSL = 0; // No Scan, ADC1MD bit in the PMD1
-
-    // ____________________________________Acquire
-    AD1CON1bits.ADON = 1; // Turn on A/D
-    //while (0) {
-    AD1CON1bits.SAMP = 1; // Start sampling the input
-    __delay(1); // Ensure the correct sampling time has elapsed
-    AD1CON1bits.SAMP = 0; // End sampling and start conversion
-    while (!AD1CON1bits.DONE) {
-        Nop();
-    }
-    AD1CON1bits.ADON = 0; // ADC Off
-    //*dbuf =  (1024 - ADC1BUF0);
-    //printf("adc=%d \n", ADC1BUF0);
-    PMD1bits.AD1MD = ad1md;
-
-    return (ADC1BUF0);
-#endif
-}
 
 
 
@@ -1234,4 +1130,68 @@ void Device_SwitchADG(uint8_t reg) { // ADG729_Switch(uint8_t reg)
 #endif
 
 #endif // HWDEVICE
+}
+
+
+
+/*******************************************************************************
+Device_GetPowerLevel()
+ 
+Voltage Divider Circuit:
+ Set up the ADC with +Reference set to ANx, and -Reference set to AVss.  
+ Enable external Voltage Divider Circuit
+ Read the ADC value, for 10-bit ADC format, compute:
+ 
+ 
+
+      
+BandGap: 
+ Set up the ADC with +Reference set to AVdd, and -Reference set to AVss.
+ Set up BandGap reference to be enabled for ADC.
+ Set up ADC channel to read Vbg (the Bandgap Reference voltage).
+ Read the ADC value, for 10-bit ADC format, compute:
+    Vadc = (ADC Reading / 1024) * AVdd
+    AVdd = Vbg * 1024 / (ADC Reading)
+ to verify that AVdd is equal to 3.3 Volts +- 5%
+ Nominal ADC reading        =    1.2    * 1024 /    3.3     = (Approximately)372
+ Max acceptable ADC Reading = (1.2*1.05)* 1024 / (3.3*0.95) = (Approximately)412
+ Min acceptable ADC Reading = (1.2*0.95)* 1024 / (3.3*1.05) = (Approximately)337
+*******************************************************************************/
+uint16_t Device_GetBatteryLevel() {
+#ifdef __PIC24FJ256GA702__
+    uint8_t ad1md = PMD1bits.AD1MD; // Enable AD
+    BAT_LV_SetAnalogInput();        // Batteries Level ( ANx )
+    Device_SwitchADG(PW_RS1);       // Enabler detection circuit
+    PMD1bits.AD1MD = 0; // Enable ADC module
+
+    // ____________________________________A/D Converter Setup
+    AD1CON1 = 0; // No operation in Idle mode, Converter off
+    AD1CON1bits.MODE12 = 0; // Resolution 10 bit (1=12)
+    AD1CON1bits.ASAM = 1; // Auto-Convert ON (end sampling and start conversion)
+    AD1CON2 = 0; // Inputs are not scanned
+    AD1CON3 = 0;
+    //AD1CON1bits.SSRC = 0b0111; // Auto-Convert mode
+    AD1CON1bits.SSRC = 00; // SAMP is cleared by softwar
+    AD1CON3bits.SAMC = 14; // 12 Auto-Sample Time TAD
+    AD1CON3bits.EXTSAM = 1; // Extend sampling time
+    AD1CON3bits.ADCS = 0x7; // ADC Clock ( 1TAD = 4 TCY -> 250 nS)
+    AD1CON5 = 0; // No CTMU, No BandGap
+    // AD1CON5bits.BGREQ = 1; // Band Gap Req. ( VBG=1.2V, Vdd = 3.3 Volt +/-5%)
+    AD1CHS = 0; // No channels
+    AD1CHSbits.CH0SA = BAT_LV_ADC_CH0SA; // S/H+ Input A (0=AN0,1=AN1)
+    AD1CSSL = 0; // No Scan, ADC1MD bit in the PMD1
+
+    // ____________________________________Acquire
+    AD1CON1bits.ADON = 1; // Turn on A/D
+    //while (0) {
+    AD1CON1bits.SAMP = 1; // Start sampling the input
+    __delay(2); // Ensure the correct sampling time has elapsed
+    AD1CON1bits.SAMP = 0; // End sampling and start conversion
+    while (!AD1CON1bits.DONE) {
+        Nop();
+    }
+    AD1CON1bits.ADON = 0; // ADC Off    
+    PMD1bits.AD1MD = ad1md;
+    return (ADC1BUF0);
+#endif
 }

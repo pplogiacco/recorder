@@ -17,9 +17,18 @@
 // Hardware:
 //#define __HWDONGLE
 #define __HWDEVICE
-//#define __HWDEVICE_V2_302
+
+// #define __HWDEVICE_V1
+// Logic Board V1 + Sensor Board + RF Board
+// #define __BOARD_V2
+// Logic Board V2 + RF Board
+
+#define __USE_ADG715
+
+
+
 //
-//#define __VAMP1K_TEST
+#define __VAMP1K_TEST
 //#define __NOFLASH    // Use RAM to store config
 //#define __NOUSB      // Force to use RF ( USB not connect )
 //
@@ -27,7 +36,7 @@
 #undef __VAMP1K
 // Test Sampling
 //#define __VAMP1K_TEST_AV_printf    // Test Acquire/ADC HW
-//#define __VAMP1K_TEST_measurement_printf  // Test Measurement format 
+#define __VAMP1K_TEST_measurement_printf  // Test Measurement format 
 //#define __VAMP1K_TEST_measurement_DATAVIS    // send ADC to serial mc datavis
 #else
 #define __VAMP1K
@@ -100,12 +109,9 @@ unsigned long inline Device_FrequencySystemGet();
 
 
 //----------------------------------------------------------------------------//
-#define ADG715
-
-#if defined(ADG729)
+#ifndef __USE_ADG715
 
 #define ADG_ADDRESS      0b10011000
-
 #define PW_OFF     (0b000000)
 #define PW_MRF     (0b000001)  // OK 
 #define PW_WST     (0b000010)  // OK 
@@ -114,9 +120,9 @@ unsigned long inline Device_FrequencySystemGet();
 #define PW_RS2     (0b000000)
 #define PW_ENC     (0b000000)
 
-#elif defined (ADG715)
-#define ADG_ADDRESS      0b10010000
+#else  // Use ADG729 
 
+#define ADG_ADDRESS      0b10010000
 #define PW_OFF     (0b00000000)
 #define PW_MRF     (0b00001000)  // OK 
 #define PW_WST     (0b00000100)  // OK 
@@ -124,7 +130,6 @@ unsigned long inline Device_FrequencySystemGet();
 #define PW_RS1     (0b00000001)  // Battery measurement 
 //#define PW_RS2     (0b00000000) 
 #define PW_ENC     (0b00010000)
-
 
 #endif
 

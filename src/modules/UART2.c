@@ -1,7 +1,5 @@
+// UART2 Exchange - RECORDER
 
-/**
-  Section: Included Files
- */
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -9,17 +7,13 @@
 #include "UART2.h"
 
 
-/** UART Driver Queue Status
- */
-
 static uint8_t * volatile rxTail;
 static uint8_t *rxHead;
 static uint8_t *txTail;
 static uint8_t * volatile txHead;
 static bool volatile rxOverflowed;
 
-/** UART Driver Queue Length
- */
+/** UART Driver Queue Length */
 
 /* We add one extra byte than requested so that we don't have to have a separate
  * bit to determine the difference between buffer full and buffer empty, but
@@ -30,8 +24,7 @@ static bool volatile rxOverflowed;
 #define UART2_CONFIG_TX_BYTEQ_LENGTH (8+1)
 #define UART2_CONFIG_RX_BYTEQ_LENGTH (128+1)
 
-/** UART Driver Queue
- */
+/** UART Driver Queue */
 static uint8_t txQueue[UART2_CONFIG_TX_BYTEQ_LENGTH];
 static uint8_t rxQueue[UART2_CONFIG_RX_BYTEQ_LENGTH];
 

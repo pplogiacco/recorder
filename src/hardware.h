@@ -64,11 +64,20 @@ POWER   27  Vss
 
 
 // Battery Level
-#define BAT_LV_SetAnalogInput()   { _TRISA0=1;  _ANSA0=1; }   // AN0
-#define BAT_LV_ADC_CH0SA          0     // S/H+ Input A (0=AN0,1=AN1)
+#undef __BOARD_V2
 
+#ifdef __BOARD_V2
+#define BAT_LV_SetAnalogInput()   { _TRISA0=1;  _ANSA0=1; }   // AN0
+#define BAT_LV_ADC_CH0SA          0    // S/H+ Input A (0=AN0,1=AN1)
 #define ADA_IN_SetAnalogInput()   { _TRISA1=1;  _ANSA1=1; }   // AN0 
 #define ADA_IN_ADC_CH0SA          1     // S/H+ Input A 
+
+#else
+#define BAT_LV_SetAnalogInput()   { _TRISA1=1;  _ANSA1=1; }   // AN0
+#define BAT_LV_ADC_CH0SA          1    // S/H+ Input A (0=AN0,1=AN1)
+#define ADA_IN_SetAnalogInput()   { _TRISA0=1;  _ANSA0=1; }   // AN0 
+#define ADA_IN_ADC_CH0SA          0     // S/H+ Input A 
+#endif
 
 
 // Flash memory ( SPI )
@@ -78,18 +87,14 @@ POWER   27  Vss
 #endif  
 
 
-
 #if defined(__SENSOR_BOARD) // ____________________________________SENSOR_BOARD 
 
 #define __SPI1  // Signal Bus
-
-
-
 #define __I2C1
 
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__)) || defined(__PIC24FJ256GA702__)
 
-#define ADA_SS    _RB12  // RB14 INT1/AN10
+#define ADA_SS                      _RB12  // RB14 INT1/AN10
 #define ADA_SS_SetHigh()            _LATB12=1
 #define ADA_SS_SetLow()             _LATB12=0
 #define ADA_SS_SetDigitalOutput()   _TRISB12=0
@@ -99,11 +104,11 @@ POWER   27  Vss
 
 #define AV_IN_SetAnalogInput()      ADA_IN_SetAnalogInput()
 
-#define ET_IN     _RB3  // AN5/C1INA/C2INC/SCL2/CN7/RB3 (7)
+#define ET_IN                       _RB3  // AN5/C1INA/C2INC/SCL2/CN7/RB3 (7)
 #define ET_IN_SetAnalogInput()      {_TRISB3 = 1; _ANSB3 = 1; }
 
-#define WS_IN     _RB2  // AN4/C1INB/C2IND/SDA2/T5CK/T4CK/U1RX/CTED13/CN6/RB2 (6)
-#define WS_IN_SetDigitalInputLow()    { _TRISB2 = 1; _ANSB2 = 0; _LATB2 = 0;} 
+#define WS_IN                       _RB2  // AN4/C1INB/C2IND/SDA2/T5CK/T4CK/U1RX/CTED13/CN6/RB2 (6)
+#define WS_IN_SetDigitalInputLow()  { _TRISB2 = 1; _ANSB2 = 0; _LATB2 = 0;} 
 #endif
 
 #endif // __SENSOR_BOARD
@@ -150,68 +155,25 @@ POWER   27  Vss
 
 #define __UART2
 #define USB_WK_SetDigitalInputLow() {  _TRISB7 = 1; _LATB7 = 0;  } // IOCPDBbits.CNPDB7 = 1;
-
-#ifdef __HWDEVICE
 #define USB_Status _RB7 
-#else // HWDONGLE
-#define USB_Status (1)
-#endif
 #endif // __USB
 
 
 #if defined(__MRF24) // __________________________________________________MRF24
 
-#define __SPI1
 #define MRF24_INT             _RB7   // Shared USB_WK
-
-#if defined(__HWDEVICE)     // 9	OSCI/AN13/CLKI/CN30/RA2  (S) MRF Chip Select
 #define MRF24_SS             (_RA2)   // Chip select
 #define MRF24_SS_SetHigh()   (_LATA2 = 1)
 #define MRF24_SS_SetLow()    (_LATA2 = 0)
 #define MRF_SS_SetDigitalOutputHigh()  {_TRISA2 = 0; _ANSA2 = 0; _LATA2 = 1; } 
-#endif
-
-#if defined(__HWDONGLE)
-#define MRF24_SS                    _RB15   // Chip select
-#define MRF24_SS_SetHigh()          (_LATB15 = 1)
-#define MRF24_SS_SetLow()           (_LATB15 = 0)
-#define MRF24_SS_SetDigital()       // No settings       
-#define MRF24_SS_SetDigitalOutput() (_TRISB15 = 0)
-#endif
-
 #endif // __MRF24
 
 
 
 #ifdef __UART2     // __________________________________________________UART2
 
-#define UART2_RX_SetDigitalInput() { _ANSB0 = 0; _TRISB0 = 0; _LATB0 = 1; }
 #define UART2_TX_SetDigitalOutputHigh() { _ANSB1 = 0; _TRISB1 = 1; }
-//    ANSBbits.ANSB0 = 0;
-//    ANSBbits.ANSB1 = 0;
-//    TRISBbits.TRISB0 = 0; // RB0 Out (4 DIP20)
-//    TRISBbits.TRISB1 = 1; // RB1 In (5 DIP20)
-//    LATBbits.LATB0 = 1; // Set TxPin high
-
-//    // UART2 INVERTED TX/RX
-//    ANSBbits.ANSB0 = 0;
-//    ANSBbits.ANSB1 = 0;
-//    TRISBbits.TRISB0 = 1; // RB0 IN (4 DIP20)
-//    TRISBbits.TRISB1 = 0; // RB1 OUT (5 DIP20)
-//    LATBbits.LATB1 = 1; // Set TxPin high
-//    RPOR0bits.RP1R = 0x0005; //RB1->UART2:U2TX
-//    RPINR19bits.U2RXR = 0x0000; //RB0->UART2:U2RX
-#endif
-
-
-#ifdef __SPI1   // __________________________________________________SPI1
-
-#endif
-
-#ifdef __I2C1   // __________________________________________________I2C
-//
-#define CARD_SCL    17   // I2C1.SCL
-#define CARD_SDA    18   // I2C1.SDA
+#define UART2_RX_SetDigitalInput()      { _ANSB0 = 0; _TRISB0 = 0; _LATB0 = 1; }
 #endif
 
 #endif // HARDWARE_H

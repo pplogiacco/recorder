@@ -32,7 +32,7 @@ uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uin
 uint16_t acquireAV_RAW(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc_pr3, uint16_t amp_filter);
 
 // Acquire Event Counter 
-uint16_t acquireAV_EVC(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uint16_t adc_fq, uint16_t fft_pw);
+uint16_t acquireAV_EVC(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t log2_npoints, uint16_t adc_fq, uint16_t fft_min_pw, uint16_t fft_avg_co);
 
 #endif	// ACQUIRE_H
 
