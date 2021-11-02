@@ -46,7 +46,7 @@
 #define SPIFLASH_BLOCKERASE_32K   0x52        // erase one 32K block of flash memory
 #define SPIFLASH_BLOCKERASE_64K   0xD8        // erase one 64K block of flash memory
 #define SPIFLASH_CHIPERASE        0x60        // chip erase (may take several seconds depending on size)
-                                              // but no actual need to wait for completion (instead need to check the status register BUSY bit)
+// but no actual need to wait for completion (instead need to check the status register BUSY bit)
 #define SPIFLASH_STATUSREAD       0x05        // read status register
 #define SPIFLASH_STATUSWRITE      0x01        // write status register
 #define SPIFLASH_ARRAYREAD        0x0B        // read array (fast, need to add 1 dummy byte after 3 address bytes)
@@ -74,7 +74,7 @@ void SST26_Reset();
 unsigned char SST26_Read_Status();
 unsigned char SST26_Read_Configuration();
 
-unsigned char SST26_SFDP_Read(unsigned long Dst);   // This procedure reads SFDP Table
+unsigned char SST26_SFDP_Read(unsigned long Dst); // This procedure reads SFDP Table
 void SST26_Jedec_ID_Read(int *Manufacturer_Id, int *Device_Type, int *Device_Id);
 
 void SST26_Wait_Busy();
@@ -85,9 +85,11 @@ void SST26_WRDI();
 unsigned char SST26_Read(unsigned long Dst);
 unsigned char SST26_HighSpeed_Read(unsigned long Dst);
 void SST26_HighSpeed_Read_Cont(unsigned long Dst, unsigned long no_bytes, unsigned int *read_data);
-void SST26_Read_Cont(unsigned long Dst, unsigned long no_bytes, unsigned int *read_data);
+void SST26_Read_Cont(unsigned long Dst, unsigned long no_bytes, uint8_t* read_data);
 
 uint16_t SST26_Read_Bytes(uint32_t addr, uint16_t nbytes, uint8_t *dbuf);
+uint16_t SST26_Write_Bytes(uint32_t addr, uint8_t *dbuf, uint16_t dlen);
+
 
 // Erase/Write
 void SST26_Chip_Erase();
@@ -95,7 +97,7 @@ void SST26_Sector_Erase(unsigned long Dst);
 void SST26_Block_Erase(unsigned long Dst);
 
 void SST26_Page_Program(unsigned long Dst, unsigned char *Prog_data);
-uint16_t SST26_Write_Bytes(uint32_t addr, uint8_t *dbuf, uint16_t dlen);
+
 
 void SST26_Write_Suspend();
 void SST26_Write_Resume();

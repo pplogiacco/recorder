@@ -7,18 +7,17 @@
 
 //------------------------------------------------------------------------------
 #include "bits.h"                   // PIC Settings
+#include "test.h"
 #include "modules/RTCC.h"           // hal           
 #include "modules/UART2.h"          // hal
-//
 #include "device.h"                 // DaaS-Ex Services: config, status, sync  
-//
 #include "utils.h"
+#include "sampling/measurement.h"
+#include "exchange/exchange.h"
 //
-#include "exchange/exchange.h"      // DaaS-Ex Protocol 
-#include "sampling/measurement.h"   // DaaS-Ex Protocol 
 //
 //#include "memory/SST26VF064B.h"     // Flash SPI
-#include "memory/storage.h"
+//#include "memory/storage.h"
 //------------------------------------------------------------------------------
 // Global Device 
 device_t g_dev;
@@ -31,7 +30,9 @@ long attempt_last_time;
 int waittime = 0;
 
 #ifdef __VAMP1K_TEST
-#include "test.c"
+
+#include "test.inc"
+
 #else
 
 int main(void) {
@@ -139,14 +140,11 @@ int main(void) {
                     __clearWDT();
                 } while (exchState != EXCH_EXIT);
 
-
                 if (exchState != EXCH_SEND_COMMAND_RESPONSE) {
                     exchState = EXCH_OPEN;
                     Exchange_Disconnect();
                     Device_SwitchSys(SYS_DEFAULT);
-
                     state = TOSLEEP;
-
                 }
                 break;
 
@@ -184,12 +182,8 @@ int main(void) {
                 //state = EXCHANGE;
 
                 if (Device_IsUsbConnected()) {
-
                     __delay(5000); // wait 10 secs
-
                 } else { //  
-
-
                     RTCC_GetTime(&stime);
                     stime.sec += g_dev.cnf.general.delaytime % 60;
                     if (stime.sec > 59) {

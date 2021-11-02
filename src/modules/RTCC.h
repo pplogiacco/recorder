@@ -54,7 +54,7 @@ extern "C" {
     uint16_t RTCC_GetMinutes();
 
     
-    void Timestamp2Time(timestamp_t *t);
+    void L2Time(timestamp_t *t);
     //void Time2Timestamp(timestamp_t *t);
 
     //    // Timeout utils

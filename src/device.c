@@ -1,10 +1,12 @@
 
 #include <string.h>
 #include <stdio.h>  // printf
+//#include "device.h"
+#include "utils.h"  // include device.h
 #include "modules/RTCC.h"
 #include "modules/UART2.h"
-#include "device.h"
-#include "utils.h"
+#include "memory/DEE/dee.h"
+
 
 //#include "modules/RTCC.h"
 //#if defined(__PIC24FJ256GA702__)   
@@ -82,7 +84,6 @@ uint16_t Device_CheckHwReset(void) {
     return rreason;
 }
 
-
 void Device_Initialize() { // INITIAL/DEFAULT SETTING 
 
     Device_SwitchClock(CK_DEFAULT); // Set clock speed 
@@ -95,6 +96,7 @@ void Device_Initialize() { // INITIAL/DEFAULT SETTING
     // Setting the GPIO Direction SFR(s)
     TRISA = 0x000B;
     TRISB = 0xC7EE;
+    
 
     // Setting the Weak Pull Up and Weak Pull Down SFR(s)
     IOCPDA = 0x0000;
@@ -143,9 +145,14 @@ void Device_Initialize() { // INITIAL/DEFAULT SETTING
     // _____________INT0 (USB Wake-Up/ MRF24 DTR )
     USB_WK_SetDigitalInputLow(); // (16) INT0/RB7 
 
-    // _____________ADC:AN1 (Measure Batt Level)
+    // _____________ADC:AN3 (Measure Batt Level)
     BAT_LV_SetAnalogInput(); // (S) Batt Level ( AN1 )
 
+
+    LATBbits.LATB8 = 1; //Start with bus in idle mode - both lines high
+    LATBbits.LATB9 = 1;
+    TRISBbits.TRISB8 = 0; //SCL1 output
+    TRISBbits.TRISB9 = 0; //SDA1 output
     //    ET_IN_SetAnalog();      
     //    ET_IN_SetAnalogInput(); // ADC ( Pin 7 AN5/RP3 )
 
@@ -160,22 +167,6 @@ void Device_Initialize() { // INITIAL/DEFAULT SETTING
     _TRISA1 = 1; // Input SWC1
 #endif
 
-#ifdef __USB // _______________________________________________
-    //    USB_WK_SetDigitalInputLow(); // (16) INT0/RB7 
-
-#endif
-
-#ifdef __UART2 // _______________________________________________
-
-#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))  
-    ANSBbits.ANSB0 = 0; // Digital USB_TX
-    TRISBbits.TRISB0 = 0; // RB0 Output (4 DIP20)
-    ANSBbits.ANSB1 = 0; // Digital USB_RX
-    TRISBbits.TRISB1 = 1; // RB1 Input (5 DIP20)
-    LATBbits.LATB0 = 1; // Set TxPin HIGH
-#endif
-
-#endif //  __UART2
 
 #ifdef __MRF24  // ___________________________________________
     //    MRF24_SS_SetDigital();
@@ -184,65 +175,10 @@ void Device_Initialize() { // INITIAL/DEFAULT SETTING
     MRF_SS_SetDigitalOutputHigh();
 #endif
 
-
-#ifdef __I2C1
-
-#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))   
-    //ANSBbits.ANSB8 = 0; // Digital SCL1/C3OUT/CTED10/CN22/RB8
-    //ANSBbits.ANSB9 = 0; // Digital SDA1/T1CK/IC2/CTED4/CN21/RB9
-    //LATBbits.LATB8 = 1; // Set TxPin HIGH
-    //LATBbits.LATB9 = 0; // Set RxPin LOW 
-    //TRISBbits.TRISB8 = 0; // RB0 Output (4 DIP20)
-    //TRISBbits.TRISB9 = 1; // RB1 Input (5 DIP20) 
-
-    //I2C - drive outputs so we can manually clear lines
-    LATBbits.LATB8 = 1; //Start with bus in idle mode - both lines high
-    LATBbits.LATB9 = 1;
-    ODCBbits.ODB8 = 1; //Open drain mode
-    ODCBbits.ODB9 = 1;
-    TRISBbits.TRISB8 = 0; //SCL1 output
-    TRISBbits.TRISB9 = 0; //SDA1 output
-#endif
-
-#endif  // __MRF24
-
-
-#ifdef __SPI1
-
-#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))  
-    TRISBbits.TRISB14 = 1; // SDI1 (MISO) In
-    TRISBbits.TRISB13 = 0; // SDO1 (MOSI) Out
-    TRISBbits.TRISB12 = 0; // SCK1 Digital Out   
-#endif 
-
-#endif  // __SPI1 
-
-
-#ifdef __SENSOR_BOARD
-
-    // Set timers pins
-#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
-    ADA_SS_SetDigitalOutput();
-    AV_SYN_SetDigital();
-    AV_SYN_SetDigitalInput();
-    AV_INP_SetAnalog();
-    AV_INP_SetAnalogInput();
-    AV_INN_SetAnalog();
-    AV_INN_SetAnalogInput();
-    ET_IN_SetAnalogInput();
-    ET_IN_SetAnalog();
-    WS_IN_SetDigital();
-    WS_IN_SetDigitalInput();
-#endif
-
-#endif  // SENSOR_BOARD
+    DEE_RETURN_STATUS ddeStatus;
+    ddeStatus = DEE_Init();
 
 } // Initialize
-
-
-
-
-
 
 /* CLOCK Switching Settings
    COSC = 001; // 8 MHz FRC Oscillator with Postscaler and PLL module (FRCPLL)
@@ -267,12 +203,10 @@ void Device_SwitchClock(sysclock_t ck) {
 #if defined(__PIC24FJ256GA702__)
     __builtin_disable_interrupts();
 
-
+    SYS_CLOCK = 32000000UL;
 
     switch (ck) {
         case CK_DEFAULT: // 8Mhz - Initiate Clock Set Internal FRC no PLL
-            SYS_CLOCK = 32000000;
-
             // FNOSC2:FNOSC0: Initial Oscillator Select bits
             // POSCMOD1:POSCMOD0: Primary Oscillator Configuration bits
             CLKDIV = 0x3600; // CPDIV 1:1; PLLEN disabled; DOZE 1:8; RCDIV DCO; DOZEN disabled; ROI disabled;  
@@ -302,33 +236,33 @@ void Device_SwitchClock(sysclock_t ck) {
             break;
     }
 #endif
-/*
-    // CLOCK Switching Routine
-    //asm(" ; New oscillator selection in W0 during any clock switches. \
-                 ; DISABLE GLOBAL INT \
-                 ;OSCCONH (high byte) Unlock Sequence \
-                 MOV #OSCCONH, w1  \
-                 MOV #0x78, w2   \
-                 MOV #0x9A, w3  \
-                 MOV.b w2, [w1]  \
-                 MOV.b w3, [w1] \
-                 ;Set new oscillator selection \
-                 MOV.b WREG, OSCCONH \
-                 ;OSCCONL (low byte) unlock sequence   \
-                 MOV #OSCCONL, w1  \
-                 MOV #0x46, w2    \
-                 MOV #0x57, w3   \
-                 MOV.b w2, [w1]   \
-                 MOV.b w3, [w1]   \
-                 ;Start oscillator switch operation (OSWEN = 1)  \
-                 BSET OSCCON,#0 \
-                 ; ENABLE GLOBAL INT ");
+    /*
+        // CLOCK Switching Routine
+        //asm(" ; New oscillator selection in W0 during any clock switches. \
+                     ; DISABLE GLOBAL INT \
+                     ;OSCCONH (high byte) Unlock Sequence \
+                     MOV #OSCCONH, w1  \
+                     MOV #0x78, w2   \
+                     MOV #0x9A, w3  \
+                     MOV.b w2, [w1]  \
+                     MOV.b w3, [w1] \
+                     ;Set new oscillator selection \
+                     MOV.b WREG, OSCCONH \
+                     ;OSCCONL (low byte) unlock sequence   \
+                     MOV #OSCCONL, w1  \
+                     MOV #0x46, w2    \
+                     MOV #0x57, w3   \
+                     MOV.b w2, [w1]   \
+                     MOV.b w3, [w1]   \
+                     ;Start oscillator switch operation (OSWEN = 1)  \
+                     BSET OSCCON,#0 \
+                     ; ENABLE GLOBAL INT ");
 
-    // Wait for Clock switch
-    // while ( !(OSCCON & 0x02) );   // Wait for PLL to lock
+        // Wait for Clock switch
+        // while ( !(OSCCON & 0x02) );   // Wait for PLL to lock
 
-    // INTCON1bits.NSTDIS = 1; // Disable nested Int
-*/
+        // INTCON1bits.NSTDIS = 1; // Disable nested Int
+     */
 
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
     CLKDIV = 0x3000;
@@ -339,7 +273,6 @@ void Device_SwitchClock(sysclock_t ck) {
 
 #endif
 }
-
 
 
 /*******************************************************************************
@@ -357,21 +290,17 @@ bool Device_SwitchSys(runlevel_t rlv) {
              **********************************/
         case SYS_DEFAULT: // RTCC,I2C1,TMR1
 
-            Device_SwitchADG(PW_OFF); // External Circuits all Off
+#if defined(__PIC24FJ256GA702__)
 
-#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))      
-            PMD3bits.RTCCMD = 0; // RTCC
-            PMD1bits.I2C1MD = 0;
-            PMD1bits.T1MD = 0;
-#elif defined(__PIC24FJ256GA702__)
-            // All Disabled except RTCC
 #ifdef __VAMP1K_TEST            
             PMD1 = 00; // 0b1111111110111111; // Uart2 enabled            
+            Device_SwitchADG(0xFF); // External Circuits all Off
 #else
             PMD1 = 0xFF; // ADC, I2C, SPI, USART, TMR1, TMR2,TMR3
+            Device_SwitchADG(PW_OFF); // External Circuits all Off
 #endif
             PMD2 = 0xFF;
-            PMD3 = 0b1111110111111111; // RTCC
+            PMD3 = 0b1111110111111111; // All Disabled except RTCC
             PMD4 = 0xFF;
             PMD5 = 0xFF;
             PMD6 = 0xFF;
@@ -496,7 +425,6 @@ bool Device_SwitchSys(runlevel_t rlv) {
             //   1     1   Fast Retention (2)
             // -----+-----+-------------------------
             //
-
             //
             PMD1 = 0xFF;
             PMD2 = 0xFF; // IC3MD enabled; OC1MD enabled; IC2MD enabled; OC2MD enabled; IC1MD enabled; OC3MD enabled; 
@@ -506,12 +434,16 @@ bool Device_SwitchSys(runlevel_t rlv) {
             PMD6 = 0xFF; // SPI3MD enabled; 
             PMD7 = 0xFF; // DMA1MD enabled; DMA0MD disabled; 
             PMD8 = 0xFF; // CLC1MD enabled; CLC2MD enabled; 
+            
             // set INT0 wake_up
             IFS0bits.INT0IF = 0;
             IEC0bits.INT0IE = 1; // enables INT0 (for change detection)
             RCONbits.RETEN = 1;
             RCONbits.VREGS = 0;
+            PW_Sleep();
             Sleep(); // enter in sleep mode
+            PW_Default();
+            
             IEC0bits.INT0IE = 0; // Disable INT0 (No change detection)          
 #endif
             break;
@@ -1076,7 +1008,6 @@ bool _Device_WriteConfig(uint8_t * config) {
 //}
 //
 
-
 void Device_SwitchADG(uint8_t reg) { // ADG729_Switch(uint8_t reg)
 #if defined(__HWDEVICE) 
     uint16_t i2clpw;
@@ -1132,8 +1063,6 @@ void Device_SwitchADG(uint8_t reg) { // ADG729_Switch(uint8_t reg)
 #endif // HWDEVICE
 }
 
-
-
 /*******************************************************************************
 Device_GetPowerLevel()
  
@@ -1156,12 +1085,15 @@ BandGap:
  Nominal ADC reading        =    1.2    * 1024 /    3.3     = (Approximately)372
  Max acceptable ADC Reading = (1.2*1.05)* 1024 / (3.3*0.95) = (Approximately)412
  Min acceptable ADC Reading = (1.2*0.95)* 1024 / (3.3*1.05) = (Approximately)337
-*******************************************************************************/
+ *******************************************************************************/
 uint16_t Device_GetBatteryLevel() {
 #ifdef __PIC24FJ256GA702__
     uint8_t ad1md = PMD1bits.AD1MD; // Enable AD
-    BAT_LV_SetAnalogInput();        // Batteries Level ( ANx )
-    Device_SwitchADG(PW_RS1);       // Enabler detection circuit
+    uint8_t bat;
+
+    BAT_LV_SetAnalogInput(); // Batteries Level ( ANx )
+    Device_SwitchADG(PW_RS1); // Enabler detection circuit
+
     PMD1bits.AD1MD = 0; // Enable ADC module
 
     // ____________________________________A/D Converter Setup
@@ -1173,7 +1105,7 @@ uint16_t Device_GetBatteryLevel() {
     //AD1CON1bits.SSRC = 0b0111; // Auto-Convert mode
     AD1CON1bits.SSRC = 00; // SAMP is cleared by softwar
     AD1CON3bits.SAMC = 14; // 12 Auto-Sample Time TAD
-    AD1CON3bits.EXTSAM = 1; // Extend sampling time
+    AD1CON3bits.EXTSAM = 0; // Extend sampling time
     AD1CON3bits.ADCS = 0x7; // ADC Clock ( 1TAD = 4 TCY -> 250 nS)
     AD1CON5 = 0; // No CTMU, No BandGap
     // AD1CON5bits.BGREQ = 1; // Band Gap Req. ( VBG=1.2V, Vdd = 3.3 Volt +/-5%)
@@ -1185,13 +1117,14 @@ uint16_t Device_GetBatteryLevel() {
     AD1CON1bits.ADON = 1; // Turn on A/D
     //while (0) {
     AD1CON1bits.SAMP = 1; // Start sampling the input
-    __delay(2); // Ensure the correct sampling time has elapsed
+    __delay(5); // Ensure the correct sampling time has elapsed
     AD1CON1bits.SAMP = 0; // End sampling and start conversion
     while (!AD1CON1bits.DONE) {
         Nop();
     }
+    bat = ADC1BUF0;
     AD1CON1bits.ADON = 0; // ADC Off    
     PMD1bits.AD1MD = ad1md;
-    return (ADC1BUF0);
+    return (bat);
 #endif
 }

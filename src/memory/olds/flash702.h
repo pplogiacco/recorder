@@ -28,8 +28,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define FLASH_WRITE_ROW_SIZE_IN_INSTRUCTIONS  128U
-#define FLASH_ERASE_PAGE_SIZE_IN_INSTRUCTIONS 1024U
+#define FLASH_WRITE_ROW_SIZE_IN_INSTRUCTIONS  128U      // 128x3 = 384 Byte
+#define FLASH_ERASE_PAGE_SIZE_IN_INSTRUCTIONS 1024U     // 3072 Byte
 
 #define FLASH_ERASE_PAGE_SIZE_IN_PC_UNITS  (FLASH_ERASE_PAGE_SIZE_IN_INSTRUCTIONS*2U)
 #define FLASH_WRITE_ROW_SIZE_IN_PC_UNITS (FLASH_WRITE_ROW_SIZE_IN_INSTRUCTIONS*2U)
@@ -38,6 +38,7 @@
 #define FLASH_UNLOCK_KEY 0x00AA0055
 
 #define FLASH_ERASE_PAGE_MASK (~((FLASH_ERASE_PAGE_SIZE_IN_INSTRUCTIONS*2U) - 1U)) 
+
 void     FLASH_Unlock(uint32_t  key);
 void     FLASH_Lock(void);
 
@@ -70,8 +71,6 @@ bool     FLASH_WriteRow16(uint32_t address, uint16_t *data);
 
 uint16_t FLASH_GetErasePageOffset(uint32_t address);
 uint32_t FLASH_GetErasePageAddress(uint32_t address);
-
-
 
 
 #endif	/* FLASH_H */

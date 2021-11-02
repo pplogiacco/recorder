@@ -1,5 +1,7 @@
 #include "xc.h"
 #include <stdbool.h>
+
+#include "test.h"
 #include "dev-config.h"
 
 #ifndef DEVICE_H
@@ -26,37 +28,17 @@
 #define __USE_ADG715
 
 
-
-//
-#define __VAMP1K_TEST
-//#define __NOFLASH    // Use RAM to store config
-//#define __NOUSB      // Force to use RF ( USB not connect )
-//
-#ifdef __VAMP1K_TEST
-#undef __VAMP1K
-// Test Sampling
-//#define __VAMP1K_TEST_AV_printf    // Test Acquire/ADC HW
-#define __VAMP1K_TEST_measurement_printf  // Test Measurement format 
-//#define __VAMP1K_TEST_measurement_DATAVIS    // send ADC to serial mc datavis
-#else
-#define __VAMP1K
-#endif
-
 //------------------------------------------------------------------------------
 #include "hardware.h"
 
-#define Device_IsUsbConnected() USB_Status
-//#define Device_IsUsbConnected() true
-//#define Device_IsUsbConnected() false
-
-// The File I/O library requires the user to define the system clock frequency (Hz)
-//#define _XTAL_FREQ  32000000UL              // 32Mhz Internal (FRC)
-//#define _FOSC_      32000000UL
-//#define _FCY_       16000000UL              // ( _FOSC_ / 2 )
 #define SYS_CLK_FrequencySystemGet()        Device_FrequencySystemGet()    // _FOSC_
-#define SYS_CLK_FrequencyPeripheralGet()    (SYS_CLK_FrequencySystemGet()/2)
-#define SYS_CLK_FrequencyInstructionGet()   (SYS_CLK_FrequencySystemGet()/2)
+#define SYS_CLK_FrequencyPeripheralGet()    (Device_FrequencySystemGet()/2)
+#define SYS_CLK_FrequencyInstructionGet()   (Device_FrequencySystemGet()/2)
 #define FCY                                 (SYS_CLK_FrequencyInstructionGet())
+
+#define Device_IsUsbConnected() USB_Status
+
+
 
 typedef enum { // 
     STARTUP, // Switch-on state
@@ -109,7 +91,18 @@ unsigned long inline Device_FrequencySystemGet();
 
 
 //----------------------------------------------------------------------------//
-#ifndef __USE_ADG715
+#ifdef __USE_ADG715
+
+#define ADG_ADDRESS  0b10010000
+#define PW_OFF      (0b00000000)
+#define PW_MRF      (0b00001000)  // OK 
+#define PW_WST      (0b00000100)  // OK 
+#define PW_ADA      (0b11100010)  // OK ( ADA assorbe lo stesso !!)
+#define PW_RS1      (0b00000001)  // Battery measurement 
+//#define PW_RS2     (0b00000000) 
+#define PW_ENC      (0b00010000)
+
+#else  // Use ADG729 
 
 #define ADG_ADDRESS      0b10011000
 #define PW_OFF     (0b000000)
@@ -120,16 +113,6 @@ unsigned long inline Device_FrequencySystemGet();
 #define PW_RS2     (0b000000)
 #define PW_ENC     (0b000000)
 
-#else  // Use ADG729 
-
-#define ADG_ADDRESS      0b10010000
-#define PW_OFF     (0b00000000)
-#define PW_MRF     (0b00001000)  // OK 
-#define PW_WST     (0b00000100)  // OK 
-#define PW_ADA     (0b11100010)  // OK ( ADA assorbe lo stesso !!)
-#define PW_RS1     (0b00000001)  // Battery measurement 
-//#define PW_RS2     (0b00000000) 
-#define PW_ENC     (0b00010000)
 
 #endif
 

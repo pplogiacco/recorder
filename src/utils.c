@@ -6,7 +6,7 @@ T I M E O U T
 TMR1  
  *******************************************************************************/
 
-volatile static bool _timed = false;
+static bool _elapsed = false;
 
 void (*Timeout_CallBack)(void) = NULL; // Interrupt Handler Default CallBack
 
@@ -19,13 +19,13 @@ void __attribute__((__interrupt__, no_auto_psv)) _T1Interrupt(void) {
     if (Timeout_CallBack) { // Execute call-back 
         Timeout_CallBack();
     } else {
-        _timed = true;
+        _elapsed = true;
     }
 }
 
 void Timeout_Set(uint16_t nsec, uint16_t nms) {
     if ((nsec + nms) > 0) { // set Timeout
-        _timed = false;
+        _elapsed = false;
 
 #if defined(__PIC24FJ256GA702__)
 
@@ -35,7 +35,8 @@ void Timeout_Set(uint16_t nsec, uint16_t nms) {
         TMR1 = 0; // Clear timer register 
         if (nsec > 0) { // Scount sec and ignore ms
             T1CONbits.TCKPS = 0b01; // Select 1:8 Prescaler   
-            PR1 = (nsec * 0xF22) >> 1; // Tick = 1s
+            //PR1 = (nsec * 0xF22) >> 1; // Tick = 1s 
+            PR1 = (SYS_CLK_FrequencyPeripheralGet() / 60) - 1;
         } else { // count ms
             T1CONbits.TCKPS = 0b00; // Select 1:1 (LPRC 1/31Khz * 0x1E = )
             PR1 = (nms * 0x1E); // ( 0x1E = 125 = 1ms period )
@@ -61,17 +62,17 @@ void Timeout_Set(uint16_t nsec, uint16_t nms) {
         T1CONbits.TON = 1; // Enable Timer
 #endif        
     } else {
-        _timed = true;
+        _elapsed = true;
         // _timed = false; // Non scaduto 
     }
 }
 // startTimeout()
 
 bool isTimeout(void) { // 2ms x unit
-    if (_timed) {
+    if (_elapsed) {
         T1CONbits.TON = 0; // Disable Timer    
     }
-    return (_timed);
+    return (_elapsed);
 }
 
 // stopTimeout()

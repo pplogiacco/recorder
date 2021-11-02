@@ -2,10 +2,6 @@
 #ifndef _UART2_H
 #define _UART2_H
 
-/**
- Section: Included Files
- */
-
 #include <stdbool.h>
 #include <stdint.h>
 

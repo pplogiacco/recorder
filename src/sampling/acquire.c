@@ -18,48 +18,48 @@
 #include "measurement.h"
 #include "ADA2200.h"        // HAL ADA2200
 #include "../../libfft.X/src/libfft.h"
-
+#include "acquire.h"
 
 /* -------------------------------------------------------------------------- *
  * DEMO SIGNAL
  * 4 single samples,  N/2 sequenced samples
  * { [period],[ampmax],[nT,A],... }
  * -------------------------------------------------------------------------- */
-static float const ADC_FQ = 1000; // 1KHz Fix !!! T=0.001 (1ms) 
-static sample_t const SIG_MIN_AMP = 100; // 12 bits ( 0..4096 )
-static sample_t const SIG_SCALE = 4096; // 12 bits ( 0..2047 )
-
+const float ADC_T = 0.001; // 1ms (1KHz) Fix !!!
+#define SIG_DEF_AMP 100
+#define SIG_MAX_AMP 4096
 //const float Pi = 3.141592653589793;
-static float const _2Pi = 6.283185308;
+const float _2Pi = 6.283185308;
 
-uint16_t acquireSig(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t sig_freq, uint16_t sig_amp) {
-    sample_t nT = 0, centerscale;
-    sample_t *pSSBUF = dbuf;
+uint16_t acquireSig(sample_t* dbuf, uint16_t nsec, uint16_t nsamples, uint16_t sig_freq, uint16_t sig_amp, bool add_deltatick) {
+    sample_t ibuf, nT = 0;
     float dTr = 0, kTr = 0;
 
-    kTr = _2Pi / (ADC_FQ / sig_freq); // signal frequency (ADC fix 1Khz)
-    if (sig_amp < SIG_MIN_AMP) {
-        sig_amp = SIG_MIN_AMP;
+    if (sig_amp < SIG_DEF_AMP) {
+        sig_amp = SIG_DEF_AMP;
     }
-    maxpoints -= 2; // Add <Frequency> & <Scale> 
-    *pSSBUF = ADC_FQ;
-    *(pSSBUF + 1) = SIG_SCALE;
-    pSSBUF += 2;
-    centerscale = SIG_SCALE >> 1;
+    //kTr = _2Pi / (1000.0 / sig_freq); // freq. in Hz del segnale  
+    kTr = _2Pi / sig_freq * ADC_T; // freq. in Hz del segnale  
 
-    while ((nT < maxpoints) && ((nT * (1.0 / ADC_FQ)) <= nsec)) {
-        *pSSBUF = (nT == 0) ? 0 : 1;
-        *(pSSBUF + 1) = centerscale + (sin(dTr) * (float) sig_amp);
-        pSSBUF += 2;
+    *dbuf = (1 / ADC_T); // Add <Period> & <Offset> as single sample 
+    *(dbuf + 1) = SIG_MAX_AMP;
+    ibuf = 2;
+
+    while ((ibuf < nsamples) && ((nT * ADC_T) <= nsec)) {
+        if (add_deltatick) {
+            *(dbuf + ibuf) = (nT == 0) ? 0 : 1;
+            *(dbuf + ibuf + 1) = (SIG_MAX_AMP / 2) - ((float) sin(dTr) * sig_amp);
+            ibuf += 2;
+
+        } else {
+            *(dbuf + ibuf) = (SIG_MAX_AMP / 2) - ((float) sin(dTr) * sig_amp);
+            ibuf++;
+        }
         dTr += kTr;
-        //        if (dTr > (_2Pi)) {
-        //            dTr -= (_2Pi);
-        //        }
         nT++;
     }
-    return (nT);
+    return (ibuf);
 }
-
 
 
 
@@ -68,19 +68,14 @@ uint16_t acquireSig(sample_t* dbuf, uint16_t nsec, uint16_t maxpoints, uint16_t 
  * acquireAV_INIT(adc_period)  --> tick_time                                  *
  *----------------------------------------------------------------------------*/
 
-volatile static uint8_t _adcReady; // ADC Cycle control
-volatile static bool _cycletime;
+volatile uint8_t _adcReady; // ADC Cycle control
+volatile bool _cycletime;
 
 static sample_t *ptrDB; // buffer pointer 
 static sample_t Tc, Tcp;
 static uint16_t nSamples;
 
-typedef struct {
-    sample_t T;
-    sample_t A;
-} point_t;
-
-inline static void cycletimer(void) { // called by TMR1 ISR on elapsed cycle
+inline void cycletimer(void) { // called by TMR1 ISR on elapsed cycle
     _cycletime = false;
 }
 
@@ -268,19 +263,24 @@ void __attribute__((__interrupt__, no_auto_psv)) _ADC1Interrupt(void) { // , wea
   
  
  ******************************************************************************/
+
+#define ADC_SMPI     1                           // each other sample 
+#define ADC_FQ      (fq_pr3<<1)                  // Double sampling frequency
+#define ADC_VALUE   ((ADC1BUF0+ADC1BUF1)>>1)     // do average
+
 void acquireTMR3_INIT(uint16_t fq_pr3) {
 
 #if defined( __PIC24FJ256GA702__ ) // New sensor board & PIC 702
     // ==== TMR3 as base frequency divider ====
     IEC0bits.T3IE = 0; // TMR3 Int call-back disabled (Trig ADC)
+    IFS0bits.T3IF = 0; // Reset int flag
     T3CONbits.TON = 1;
     T2CONbits.T32 = 0; // Configure TMR3 16Bit Operation
     T3CONbits.TCS = 0; // Clock Source  (0=FOSC/2)/(1=TECS)
     T3CONbits.TECS = 0; // Timery Extended Clock Source (TxCK, LPRC, T3CK)
     T3CONbits.TCKPS = 00; // Input Clock Prescale (00 = 1:1)
     TMR3 = 0x00;
-    PR3 = fq_pr3; // Frequency divider
-    IFS0bits.T3IF = 0; // Reset int flag
+    PR3 = (SYS_CLK_FrequencyPeripheralGet() / ADC_FQ); // Frequency divider
 
     // ____________________________________Input Analog pins
     // ____________________________________A/D Converter Setup
@@ -304,7 +304,7 @@ void acquireTMR3_INIT(uint16_t fq_pr3) {
     // ____________________________________Buffering & References
     AD1CON2bits.BUFREGEN = 0; // A/D result buffer is treated as a FIFO
     AD1CON2bits.BUFM = 0; // No alternate half-buffer (starts ADCBUF0)
-    AD1CON2bits.SMPI = 0; // Interrupt Sample/DMA Increment Rate 
+    AD1CON2bits.SMPI = ADC_SMPI; // Interrupt Sample/DMA Increment Rate 
     // ____________________________________Conversion Timing   
     AD1CON3bits.ADRC = 0; // Clock is derived from the system clock (Tcy= 1/Fcy)
     AD1CON3bits.EXTSAM = 0; // Extended Sampling Time bit
@@ -320,7 +320,7 @@ void acquireTMR3_INIT(uint16_t fq_pr3) {
     AD1CON2bits.NVCFG0 = 0; // ADC Negative Reference 
     AD1CHSbits.CH0NA = 0; // S/H- Input A
     AD1CHSbits.CH0SA = ADA_IN_ADC_CH0SA; // S/H+ Input A 
-    _adcReady = 0;
+    //    _adcReady = 0;
 #endif // __PIC24FJ256GA702__
 }
 
@@ -345,9 +345,9 @@ void acquire_START(uint16_t nsec) {
 void acquire_STOP() {
     AD1CON1bits.ADON = 0; // Converter Off
     IEC0bits.AD1IE = 0; // Disable A/D conversion interrupt
-    T3CONbits.TON = 0; 
+    T3CONbits.TON = 0;
     Timeout_Unset();
-    
+
 }
 
 
@@ -356,138 +356,52 @@ void acquire_STOP() {
 
 /******************************************************************************/
 
-
-uint16_t acquireAV(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc_pr3, uint16_t pp_filter) {
+/*----------------------------------------------------------------------------*
+ * A C Q U I R E   A V   R A W                                                *
+ *----------------------------------------------------------------------------*/
+uint16_t acquireAV_RAW(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc_pr3) {
 #ifdef __VAMP1K_TEST
-    printf("AV0X - RAW / P-P \n");
+    printf("AV0X - RAW\n");
 #endif  
 
     ptrDB = dbuf;
     //    acquireAV_INIT(adc_pr3, true); // Use ADA2200 Synco 
     acquireTMR3_INIT(adc_pr3); // ADC sampling frequency
     ADA2200_Enable(); // Power-on: SPI1, Sensor Board LINE1
-
     //__delay(2); // wait to stabilize
-
-    if (pp_filter == 0) { // ---------------- Raw data _AV00
-
-        acquire_START(nsec);
+    acquire_START(nsec);
 
 #if defined( __VAMP1K_TEST ) && defined( __VAMP1K_TEST_AV_printf )
-        while (!isTimeout()) { // Loop until cycle-time or full filled buffer
-            if (_adcReady) { // New data available
-                _adcReady--;
-                printf("%d \n", ADC1BUF0);
-            }// _adcReady
-        }
+    while (!isTimeout()) { // Loop until cycle-time or full filled buffer
+        if (_adcReady) { // New data available
+            _adcReady--;
+            printf("%d \n", ADC_VALUE);
+        }// _adcReady
+    }
 #else        
-
-        while ((nSamples < db_size) && _cycletime) { // Loop until cycle-time or full filled buffer
-            if (_adcReady) { // New data available
-                _adcReady--;
-                *ptrDB = Tc - Tcp; //-Tcp;
-                Tcp = Tc;
-                ptrDB++;
-                *ptrDB = ADC1BUF0; //(SCALE_TOUNSIGNED - ADC1BUF0); // Positive point
-                //        _LATB2 ^= 1; // IO_LED2_Toggle() 
-                ptrDB++;
-                nSamples += 2;
-                Tc++; // T = fSynco/16
-            }// _adcReady
-        }
+    while ((nSamples < db_size) && _cycletime) { // Loop until cycle-time or full filled buffer
+        if (_adcReady) { // New data available
+            _adcReady--;
+            *ptrDB = Tc - Tcp; //-Tcp;
+            Tcp = Tc;
+            ptrDB++;
+            *ptrDB = ADC_VALUE; //(SCALE_TOUNSIGNED - ADC1BUF0); // Positive point
+            //        _LATB2 ^= 1; // IO_LED2_Toggle() 
+            ptrDB++;
+            nSamples += 2;
+            Tc++; // T = fSynco/16
+        }// _adcReady
+    }
 #endif
-        acquire_STOP();
-
-    } else { // ----------------  Peak-Peak _ AV01
-
-        point_t points[3]; // SAMPLING_AV_PBUFFER
-        uint16_t pIndex = 0;
-        signed short pm01, pm12, lpm = -1;
-
-        db_size -= 2; // Reserve one for last point
-        acquire_START(nsec);
-
-        while ((nSamples < db_size) && _cycletime) { // Loop until cycle-time or full filled buffer
-
-            if (_adcReady) { // New data available
-                // ---------------- get samples
-                _adcReady--;
-                //printf("%d \n", ADC1BUF0);                        
-                points[pIndex].A = ADC1BUF0; // ADC Positive data !!!!!
-                points[pIndex].T = Tc;
-                if (pIndex > 0) { // !!! Inizializzare a 2 volte SCALE_... ed elimina IF nel ciclo
-                    if (abs((points[pIndex].A) - (points[pIndex - 1].A)) < pp_filter) { // ONLY POSITIVE !!!
-                        points[pIndex - 1] = points[pIndex];
-                    } else {
-                        pIndex++;
-                    }
-                } else { // save first sample T=0
-                    *ptrDB = points[0].T;
-                    ptrDB++;
-                    *ptrDB = points[0].A;
-                    ptrDB++;
-                    nSamples += 2;
-                    pIndex++;
-                }
-                Tc++; // n Synco Pulses
-                // ---------------- get samples
-
-                if (pIndex == 3) { // min 3 points to mach PP
-
-                    // PPmatch = false;
-                    //pm01 = (points[0].A > (points[1].A + g_dev.cnf.calibration.av_filter)); // _snr = 30;
-                    //pm12 = (points[1].A > (points[2].A + g_dev.cnf.calibration.av_filter));
-                    // pm01 = (points[0].A > points[1].A); // On filtered points
-                    // pm12 = (points[1].A > points[2].A);
-                    // if ((!pm01) != (!pm12)) { // Save PP point
-
-                    pm01 = (points[0].A < points[1].A); // _snr = 30;
-                    pm12 = (points[1].A < points[2].A);
-                    if (pm01 != pm12) { // Save PP point
-
-                        if (pm01 == lpm) { // Over the last one ?
-                            *(ptrDB - 2) += (points[1].T - Tcp); // Time
-                            Tcp = points[1].T;
-                            *(ptrDB - 1) = points[1].A; // Amplitude
-                        } else {
-                            *ptrDB = (points[1].T - Tcp); // Time
-                            Tcp = points[1].T;
-                            ptrDB++;
-                            *ptrDB = points[1].A; // Amplitude
-                            ptrDB++;
-                            nSamples += 2;
-                        }
-                        points[0] = points[2];
-                        pIndex = 1;
-                        lpm = pm01;
-
-                    } else {
-                        points[0] = points[1];
-                        points[1] = points[2];
-                        pIndex = 2;
-                    }
-                } // Maching PP
-            }// _adcReady
-        }
-
-        acquire_STOP();
-
-        *ptrDB = points[pIndex - 1].T - Tcp; // Last Sample Tn  
-        ptrDB++;
-        *ptrDB = points[pIndex - 1].A; // Amplitude
-        nSamples += 2;
-    } // End Peak2Peak
-
+    acquire_STOP();
     ADA2200_Disable();
     return (nSamples);
 }
 
 /*----------------------------------------------------------------------------*
- * A C Q U I R E   A V   R A W   N O   D E L T A T I M E                             *
- *                                                                            *
- *                                                                            *
+ * A C Q U I R E   A V   R A W   N O   D E L T A T I M E                      *
  *----------------------------------------------------------------------------*/
-uint16_t acquireAV_RAW(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc_pr3, uint16_t amp_filter) {
+uint16_t acquireAV_RNT(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc_pr3) {
 #ifdef __VAMP1K_TEST
     printf("AV_RAW-NDT\n");
 #endif  
@@ -498,40 +412,133 @@ uint16_t acquireAV_RAW(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t
     ADA2200_Enable();
     acquire_START(nsec);
 
-#if defined( __VAMP1K_TEST ) && defined( __VAMP1K_TEST_AV_printf )
-    while (!isTimeout()) { // Loop until cycle-time or full filled buffer
-        if (_adcReady) { // New data available
-            _adcReady--;
-            printf("%d \n", ADC1BUF0);
-        }// _adcReady
-    }
-#else        
     while ((nSamples < db_size) && _cycletime) { // Loop until cycle-time or full filled buffer
         if (_adcReady) { // New data available
             _adcReady--;
             // Apply amp_filter
-            *ptrDB = ADC1BUF0; //(SCALE_TOUNSIGNED - ADC1BUF0); // Positive point
+            *ptrDB = ADC_VALUE; //(SCALE_TOUNSIGNED - ADC1BUF0); // Positive point
             //     _LATB2 ^= 1; // IO_LED2_Toggle() 
             ptrDB++;
             nSamples++;
         }// _adcReady
     }
-#endif
+
     acquire_STOP();
     ADA2200_Disable();
     return (nSamples);
 }
 
+/*----------------------------------------------------------------------------*
+ * A C Q U I R E   A V   P 2 P                                   *
+ *----------------------------------------------------------------------------*/
+//typedef struct {
+//    sample_t T;
+//    sample_t A;
+//} point_t;
 
-uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uint16_t adc_fq) {
+uint16_t acquireAV_P2P(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t adc_pr3, uint16_t pp_filter) {
+#ifdef __VAMP1K_TEST
+    printf("AV0X - P-P\n");
+#endif  
+
+    ptrDB = dbuf;
+    //    acquireAV_INIT(adc_pr3, true); // Use ADA2200 Synco 
+    acquireTMR3_INIT(adc_pr3); // ADC sampling frequency
+    ADA2200_Enable(); // Power-on: SPI1, Sensor Board LINE1
+
+    point_t points[3]; // SAMPLING_AV_PBUFFER
+    uint16_t pIndex = 0;
+    signed short pm01, pm12, lpm = -1;
+
+    db_size -= 2; // Reserve one for last point
+    acquire_START(nsec);
+
+    while ((nSamples < db_size) && _cycletime) { // Loop until cycle-time or full filled buffer
+
+        if (_adcReady) { // New data available
+            // ---------------- get samples
+            _adcReady--;
+            //printf("%d \n", ADC1BUF0);                        
+            points[pIndex].A = ADC_VALUE; // ADC Positive data !!!!!
+            points[pIndex].T = Tc;
+            if (pIndex > 0) { // !!! Inizializzare a 2 volte SCALE_... ed elimina IF nel ciclo
+                if (abs((points[pIndex].A) - (points[pIndex - 1].A)) < pp_filter) { // ONLY POSITIVE !!!
+                    points[pIndex - 1] = points[pIndex];
+                } else {
+                    pIndex++;
+                }
+            } else { // save first sample T=0
+                *ptrDB = points[0].T;
+                ptrDB++;
+                *ptrDB = points[0].A;
+                ptrDB++;
+                nSamples += 2;
+                pIndex++;
+            }
+            Tc++; // n Synco Pulses
+            // ---------------- get samples
+
+            if (pIndex == 3) { // min 3 points to mach PP
+
+                // PPmatch = false;
+                //pm01 = (points[0].A > (points[1].A + g_dev.cnf.calibration.av_filter)); // _snr = 30;
+                //pm12 = (points[1].A > (points[2].A + g_dev.cnf.calibration.av_filter));
+                // pm01 = (points[0].A > points[1].A); // On filtered points
+                // pm12 = (points[1].A > points[2].A);
+                // if ((!pm01) != (!pm12)) { // Save PP point
+
+                pm01 = (points[0].A < points[1].A); // _snr = 30;
+                pm12 = (points[1].A < points[2].A);
+                if (pm01 != pm12) { // Save PP point
+
+                    if (pm01 == lpm) { // Over the last one ?
+                        *(ptrDB - 2) += (points[1].T - Tcp); // Time
+                        Tcp = points[1].T;
+                        *(ptrDB - 1) = points[1].A; // Amplitude
+                    } else {
+                        *ptrDB = (points[1].T - Tcp); // Time
+                        Tcp = points[1].T;
+                        ptrDB++;
+                        *ptrDB = points[1].A; // Amplitude
+                        ptrDB++;
+                        nSamples += 2;
+                    }
+                    points[0] = points[2];
+                    pIndex = 1;
+                    lpm = pm01;
+
+                } else {
+                    points[0] = points[1];
+                    points[1] = points[2];
+                    pIndex = 2;
+                }
+            } // Maching PP
+        }// _adcReady
+    }
+
+    acquire_STOP();
+
+    *ptrDB = points[pIndex - 1].T - Tcp; // Last Sample Tn  
+    ptrDB++;
+    *ptrDB = points[pIndex - 1].A; // Amplitude
+    nSamples += 2;
+
+    ADA2200_Disable();
+    return (nSamples);
+}
+
+/*----------------------------------------------------------------------------*
+ * A C Q U I R E    D F T 
+ *----------------------------------------------------------------------------*/
+uint16_t acquireAV_DFT(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uint16_t adc_pr3) {
     uint16_t npoints = (1U << log2_npoints);
     uint16_t iP = 0;
 #ifdef __VAMP1K_TEST
     printf("AV_FFT\n");
 #endif 
-    
+
     fft_init(log2_npoints); // Initialize tables 
-    acquireTMR3_INIT(adc_fq); // ADC sampling frequency
+    acquireTMR3_INIT(adc_pr3); // ADC sampling frequency
     ADA2200_Enable(); // Power-on: SPI1, Sensor Board LINE1
 
     acquire_START(0); // No timeout, full filled buffer
@@ -539,7 +546,7 @@ uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uin
         if (_adcReady) {
             _adcReady--;
             //            *(dbuf + iP) = fft_windowing((ADC1BUF0 + ADC1BUF1) >> 1, iP);
-            *(dbuf + iP) = fft_windowing(ADC1BUF0, iP);
+            *(dbuf + iP) = fft_windowing(ADC_VALUE, iP);
             //*(dbuf + iP + npoints) = 0;
             iP++;
         } // _adcReady
@@ -552,95 +559,161 @@ uint16_t acquireAV_FFT(sample_t* dbuf, uint16_t nsec, uint16_t log2_npoints, uin
     return (iP);
 }
 
-
 /*----------------------------------------------------------------------------*
- * A C Q U I R E    V I B R A T I O N   C O U N T E R
+ * A C Q U I R E   E V   C O U N T E R  P 2 P
  
   Use splitted buffer: 
     first part as {[<nOCC>,<Freq>,<Amp>],....}  
     second used as sampled buffer 
  *----------------------------------------------------------------------------*/
-typedef struct {
-    sample_t occ; // Occurencies counter
-    sample_t nC; // Number of FFT Coefficient
-    sample_t Pw; // Coefficient Spectral Power
-} vibration_t;
+uint16_t acquireAV_EVC_P2P(sample_t* dbuf, uint16_t nsec, uint16_t dbsize, uint16_t wbsize, uint16_t adc_pr3, uint16_t p2p_filter) {
+    // -- Based P2P
 
-uint16_t acquireAV_EVC(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t log2_npoints, uint16_t adc_fq, uint16_t fft_min_pw, uint16_t fft_avg_co) {
-    uint16_t nP = (1U << log2_npoints);
-    uint16_t n2P = (1U << log2_npoints) - 1; // Valid FFT Spectrum Coefficient = (point/2)-1
-    uint16_t iP;
-    
-    sample_t* ptrS = dbuf + (db_size - nP); // Ptr to samples buffer part
-    
-    uint16_t iV, nV = 0, maxV = (db_size - nP) / 3; // Max vibration type
-    vibration_t* ptrV = (vibration_t*) dbuf;
-    
-    #ifdef __VAMP1K_TEST
-    printf("AV_EVC\n");
-    #endif 
-    
-    for (iV = 0; iV < maxV; iV++) { // Also use memset
-        ptrV[iV].nC = 0xFF;
+    sample_t* wbPtr;
+    uint16_t maxsamples, maxoss, noss;
+    uint16_t i, j, n;
+    point_t* pPtr;
+    uint16_t oT, oA;
+    oscill_t * oPtr;
+
+    //    dbsize = (SS_BUF_SIZE - ms->ns)
+    //    wbSize = 1024; // Work Buffer Size
+
+    maxsamples = (dbsize - wbsize);
+    maxoss = maxsamples / 3; // Size of tuple in sample_t
+
+    wbPtr = dbuf + maxsamples; // begin of working buffer
+    pPtr = (point_t*) wbPtr; // use working buffer as points
+
+    for (i = 0; i < maxoss; i++) { // Initialize measurement result
+        *(dbuf + i) = 0x0;
     }
 
+    oPtr = (oscill_t *) dbuf; // use ptrSS as oscillation
+    noss = 0; // Tuple counter
+
+    // _____ Cycle...
+
+    g_dev.cnf.calibration.av_filter = 20;
+    n = acquireAV_P2P(wbPtr, 1, wbsize, adc_pr3, g_dev.cnf.calibration.av_filter);
+    // n == wbsize    
+    for (i = 1; i < (wbsize >> 1) - 1; i++) { // Al acquired samples
+
+        oA = abs((int) pPtr[i + 1].A - pPtr[i].A);
+
+        oT = pPtr[i + 1].T; // - pPtr[i].A ;
+
+        j = 0;
+        while ((j < noss) && ((oPtr[j].A != oA) || (oPtr[j].T != oT))) { // Searching 
+            j++;
+        }
+
+        if (j == noss) { // Add
+            if (noss < maxoss) {
+                oPtr[noss].A = oA;
+                oPtr[noss].T = oT;
+                oPtr[noss].n = 1;
+                noss++;
+            }
+        } else { // Update
+            oPtr[noss].n++;
+        }
+    }
+
+    // _________
+    return (noss * 3);
+}
+
+/*----------------------------------------------------------------------------*
+ * A C Q U I R E   E V   C O U N T E R  D F T 
+ 
+  Uses splitted dbuf buffer to process data and return samples 
+    
+ *----------------------------------------------------------------------------*/
+
+uint16_t acquireAV_EVC_DFT(sample_t* dbuf, uint16_t nsec, uint16_t db_size, uint16_t log2_npoints, uint16_t adc_pr3, uint16_t fft_min_pw, uint16_t fft_avg_co) {
+    uint16_t nP = (1U << log2_npoints);
+    uint16_t n2P = (nP >> 1) - 1; // Valid FFT coefficients  1..(point/2)-1
+    sample_t* wbPtr = dbuf + (db_size - nP); // Ptr to working buffer part
+    vibration_t* ptrV = (vibration_t*) dbuf; // Access output buffer as vibrations
+    uint16_t ios, noss, maxoss;
+    uint16_t iwb;
+
+#ifdef __VAMP1K_TEST
+    printf("AV_EVC-DFT\n");
+    printf("db_size %d\n", db_size);
+#endif 
+
+
     fft_init(log2_npoints); // Initialize tables ( STORE IN FLASH )
-    
-    acquireTMR3_INIT(adc_fq); // ADC sampling frequency
-    
+
+    maxoss = (db_size - nP) / 3; // Max output samples
+    for (ios = 0; ios < maxoss; ios++) { // Also use memset
+        ptrV[ios].nC = 0xFF;
+    }
+    noss = 0;
+
+    acquireTMR3_INIT(adc_pr3); // ADC sampling frequency
     ADA2200_Enable(); // Power-on: SPI1, Sensor Board LINE1
 
     while (nsec > 0) {
-
-        iP = 0; // Acquired Points Counter
-        acquire_START(0); // No timeout, full filled buffer
         
-        while ( iP < nP ) {
+        iwb = 0; // Acquire samples
+        
+        _adcReady = 0;
+        IFS0bits.AD1IF = 0; // Clear A/D int flag
+        IEC0bits.AD1IE = 1; // Enable A/D interrupt
+        AD1CON1bits.ADON = 1; // Start ADC
+        while (iwb < nP) { // Full fill buffer
             if (_adcReady) {
                 _adcReady--;
-                *(ptrS + iP) = fft_windowing(ADC1BUF0, iP); // fft_windowing((ADC1BUF0 + ADC1BUF1) >> 1, iP);
-                iP++;
+                *(dbuf + iwb) = fft_windowing(ADC_VALUE, iwb);
+                iwb++;
             } // _adcReady
         };
-        acquire_STOP();
+        AD1CON1bits.ADON = 0; // Converter Off
+        IEC0bits.AD1IE = 0; // Disable ADC interrupt 
 
+        fft_spectrum(wbPtr);
 
-        fft_spectrum(ptrS);
+        iwb = 0; // Save vibration occurrencies
+        while (iwb < n2P) { // For all output Coefficients
 
-        iP = 0; // Save vibration occurrencies
-        while (iP < n2P) { // For all Coefficients
-            if (*(ptrS + iP) > fft_min_pw) { // Valid coefficient
-                iV = 0;
-                while ((iV < nV) && ptrV[iV].nC != iP) {
-                    iV++;
+            if (*(wbPtr + iwb) > fft_min_pw) { // Eval power 
+                ios = 0;
+                while ((ios < noss) && (ptrV[ios].nC != iwb)) {
+                    ios++;
                 }
-                if (iV == nV) { // Add
-                    nV++;
-                    ptrV[iV].nC = iP;
-                    ptrV[iV].Pw = *(ptrS + iP);
-                    ptrV[iV].occ = 1;
+                if (ios == noss) { // Add
+                    if (noss < maxoss) {
+                        noss++;
+                        ptrV[ios].nC = iwb;
+                        ptrV[ios].Pw = *(wbPtr + iwb);
+                        ptrV[ios].occ = 1;
+                    } // else out-of-memory
                 } else { // Update
-                    ptrV[iV].occ++;
+                    ptrV[ios].occ++;
                 }
             }
-            iP++;
+            iwb++;
         } // Save
 
         nsec--;
-    }// 
+    }
 
+    T3CONbits.TON = 0;
     ADA2200_Disable();
 
-    return (nV * 3);
+    //    return (nV * 3);
+    return (noss);
 }
-
 
 /* -------------------------------------------------------------------------- *
  * E N V I R O M E N T   T E M P E R A T U R E
  * Read analog pin value (ADC)
  * Sum readed values to compute everage on 6 measures.
  * -------------------------------------------------------------------------- */
-uint16_t acquireET(sample_t* dbuf) { // RealTime ?
+uint16_t acquireET(sample_t * dbuf) { // RealTime ?
 #ifdef __VAMP1K_TEST
     printf("ET\n");
 #endif    
@@ -731,14 +804,16 @@ void everySecond(void) {
 #endif 
 }
 
-uint16_t acquireWS(sample_t* dbuf) {
+uint16_t acquireWS(sample_t * dbuf) {
 #ifdef __VAMP1K_TEST
     printf("WS\n");
 #endif
+
 #if !defined(__SENSOR_BOARD)
     *dbuf = 0;
     return (0); // Hardware not supported
 #endif  
+
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
     // TMR4 as Pulses Counter
     WS_IN_SetDigital(); // Input AN4/T5CK/T4CK/U1RX/CTED13/CN6/RB2 (6) 

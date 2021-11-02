@@ -3,18 +3,18 @@
  *******************************************************************************
 Module  PIN Signal                      BUS Function
   
-PROG 	1 	MCLR Reset  
-        2 	AN0                         (S) ADA2200 IN-P 
-        3	AN1                         (S) Batt Level   ( EX.ADA2200 IN-N) 
-USART2	4	U2RX/RB0/PGD1/RP0               MCP2221
-        5	U2TX/RB1/PGC1/RP1               MCP2221
-        6	AN4/T5CK/T4CK/RB2           (S) Wind speed sensor
-        7	AN5/RB3                     (S) Temperature sensor
-POWER	8	Vss
-        9	OSCI/AN13/CLKI/CN30/RA2     (S) MRF Chip Select
-XX!     10  OSCO/RA3                    (S) FORZARE INPUT (il 702 ha 9 AN!!)
-        11  SOSCI/AN15/U2RTS/CN1/RB4    (A) ??
-        12  SOSCO/SCLKI/U2CTS/CN0/RA4   (S)  CS Flash ( SST26VF064B )
+PROG  	 1 	MCLR Reset  
+LVDT+    2 	AN0                         (S) ADA2200 IN-P 
+BATLV    3	AN1                         (S) Batt Level   ( EX.ADA2200 IN-N) 
+USART2	 4	U2RX/RB0/PGD1/RP0               MCP2221
+         5	U2TX/RB1/PGC1/RP1               MCP2221
+         6	AN4/T5CK/T4CK/RB2           (S) Wind speed sensor
+         7	AN5/RB3                     (S) Temperature sensor
+POWER	 8	Vss
+         9	OSCI/AN13/CLKI/CN30/RA2     (S) MRF Chip Select
+        10  OSCO/RA3                    (S) ??
+        11  SOSCI/AN15/U2RTS/CN1/RB4    (A) High SHUTDOWN LTC3127 (main power)
+        12  SOSCO/SCLKI/U2CTS/CN0/RA4   (S) CS Flash ( SST26VF064B )
 POWER   13  Vdd
         14  RB5 Programming
         15  RB6 Programming
@@ -28,7 +28,7 @@ SPI1    21  SDI/RP10                    (S)
         22  SCLK (S)
         24  SDO
         25  AN10/INT1/RB14              (S) Encoder B
-        26  AN9/C3INA/T3CK/T2CK/SS1     (S) ADA2200 Synco / Encoder A
+        26  AN9/C3INA/T3CK/T2CK/SS1     (S) High Enable LDO AD151
 POWER   27  Vss
         28  Vdd
  *******************************************************************************/
@@ -64,12 +64,24 @@ POWER   27  Vss
 
 
 // Battery Level
-#undef __BOARD_V2
+#define __BOARD_V2
 
 #ifdef __BOARD_V2
-#define BAT_LV_SetAnalogInput()   { _TRISA0=1;  _ANSA0=1; }   // AN0
-#define BAT_LV_ADC_CH0SA          0    // S/H+ Input A (0=AN0,1=AN1)
-#define ADA_IN_SetAnalogInput()   { _TRISA1=1;  _ANSA1=1; }   // AN0 
+#define BAT_LV_SetAnalogInput()   { _TRISA3=1;  _ANSA3=1; }   // AN3
+#define BAT_LV_ADC_CH0SA          5    // S/H+ Input A3
+
+#define PW_SWC_SetDigitalOutputLow()   { _TRISB4=0;  _LATB4=0; } // LTC3127 On
+#define PW_SWC_SetHigh()               { _LATB4=1; }          // Off   
+#define PW_SWC_SetLow()                { _LATB4=0; }          // On   
+
+#define PW_ADP_SetDigitalOutputLow()   { _TRISB15=0;  _ANSB15=0; _LATB15=0; }   // AN3
+#define PW_ADP_SetHigh()               { _LATB4=1; }  // ADP151 On      
+#define PW_ADP_SetLow()                { _LATB4=0; }  // ADP151 Off
+
+#define PW_Sleep()                     { PW_SWC_SetHigh(); PW_ADP_SetHigh(); }                       
+#define PW_Default()                   { PW_SWC_SetLow(); PW_ADP_SetLow(); }
+
+#define ADA_IN_SetAnalogInput()   { _TRISA1=1;  _ANSA1=1; }   // AN1 
 #define ADA_IN_ADC_CH0SA          1     // S/H+ Input A 
 
 #else
@@ -81,7 +93,7 @@ POWER   27  Vss
 
 
 // Flash memory ( SPI )
-#define SST_SS_SetDigitalOutputHigh()  {_TRISA4 = 0; _LATA4 = 1; }
+#define SST_SS_SetDigitalOutputHigh()  {  _TRISA4 = 0; _LATA4 = 1; }
 #define SST26_SS_SetHigh()   (_LATA4 = 1)
 #define SST26_SS_SetLow()    (_LATA4 = 0)
 #endif  
@@ -195,7 +207,7 @@ POWER	8	Vss
         9	OSCI/AN13/CLKI/CN30/RA2     (S) MRF Chip Select
         10  OSCO/AN14/CLKO/CN29/RA3     (S) Batt Level
         11  SOSCI/AN15/U2RTS/CN1/RB4    (A) ??
-        12  SOSCO/SCLKI/U2CTS/CN0/RA4   (S)  
+        12  SOSCO/SCLKI/U2CTS/CN0/RA4   (S) SST226 CS
 POWER   13  Vdd
         14  RB5 Programming
         15  RB6 Programming

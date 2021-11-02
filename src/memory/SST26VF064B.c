@@ -2,13 +2,10 @@
 
 #include "../modules/SPI1.h"
 #include "../device.h"
-//#define   {_TRISA4 = 0; _LATA4 = 1; }
-//#define SST26_SS_SetHigh()   (_LATA4 = 1)
-//#define SST26_SS_SetLow()    (_LATA4 = 0)
 
 void SST26_Enable() {
-    SST_SS_SetDigitalOutputHigh();
-    SPI1_Enable(MODE0, SPI_2MHZ);
+   SST_SS_SetDigitalOutputHigh();
+   SPI1_Enable(MODE0, SPI_2MHZ);
 }
 
 void SST26_Disable() {
@@ -146,7 +143,7 @@ unsigned char SST26_Read(unsigned long Dst) {
 /*      	no_bytes	Number of bytes to read	(max = 256)	*/
 
 /************************************************************************/
-void SST26_Read_Cont(unsigned long Dst, unsigned long no_bytes, unsigned int *read_data) {
+void SST26_Read_Cont(unsigned long Dst, unsigned long no_bytes, uint8_t *read_data) {
     unsigned long i = 0;
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(0x03); /* read command */
@@ -317,7 +314,7 @@ void SST26_Chip_Erase() {
 **************************************************************************/
 void SST26_Sector_Erase(unsigned long Dst) {
     SST26_SS_SetLow(); /* enable device */
-    SPI1_Exchange8bit(0x20); /* send Sector Erase command */
+    SPI1_Exchange8bit(SPIFLASH_BLOCKERASE_4K); /* send Sector Erase command */
     SPI1_Exchange8bit(((Dst & 0xFFFFFF) >> 16)); /* send 3 address bytes */
     SPI1_Exchange8bit(((Dst & 0xFFFF) >> 8));
     SPI1_Exchange8bit(Dst & 0xFF);
@@ -332,7 +329,7 @@ void SST26_Sector_Erase(unsigned long Dst) {
  **************************************************************************/
 void SST26_Block_Erase(unsigned long Dst) {
     SST26_SS_SetLow(); /* enable device */
-    SPI1_Exchange8bit(0xD8); /* send Block Erase command */
+    SPI1_Exchange8bit(SPIFLASH_BLOCKERASE_64K); /* send Block Erase command */
     SPI1_Exchange8bit(((Dst & 0xFFFFFF) >> 16)); /* send 3 address bytes */
     SPI1_Exchange8bit(((Dst & 0xFFFF) >> 8));
     SPI1_Exchange8bit(Dst & 0xFF);

@@ -17,11 +17,10 @@
 #define MAX_LOG2_N_WAVE     10     // log2(N_WAVE)   
 
 #elif defined (__PIC24FJ256GA702__)
-#define __FFT_TABLED
-//#define LOG2_N_WAVE     10     // log2(N_WAVE)   
-//#define N_WAVE          1024   // Signal & FFT points  
 
-#define MAX_LOG2_N_WAVE     10     // log2(N_WAVE)   
+#define __FFT_TABLED
+
+#define MAX_LOG2_N_WAVE       10     // log2(N_WAVE)   
 #define MAX_N_WAVE          1024   // Signal & FFT points  
 
 #endif
@@ -154,9 +153,9 @@ void fft_fix(fix14_t fr[], fix14_t fi[], int m) {
 }
 
 void fft_spectrum(fix14_t ptrPoints[]) {
-    static fix14_t const zero_point_4 = float2fix14(0.4);
+    fix14_t const zero_point_4 = float2fix14(0.4);
     //static int sx, y, ly;
-    static short i, nPoints;
+    short i, nPoints;
 
     nPoints = 1U << LOG2_N; // m = log2_N
 

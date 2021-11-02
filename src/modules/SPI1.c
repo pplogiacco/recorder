@@ -1,4 +1,5 @@
 // Recorder !!!
+
 #include "xc.h"
 #include "..\device.h"  // Pins definitions ( Hardware )
 #include "SPI1.h"
@@ -89,7 +90,6 @@ void SPI1_Enable(SPI_MODE mode, SPI_BRATE speed) {
     
     
 #if (0)
-
 
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
     TRISB = 0x4197; //for TX

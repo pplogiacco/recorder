@@ -131,7 +131,7 @@ bool sendMeasurement(uint16_t index) {
     ms = &g_measurement;
     ms->dtime = RTCC_GetTimeL();
     ms->ss = SSBUF;
-    ms->typeset = _SIG0;
+    ms->tset = _SIG0;
     // Single samples
     ms->ns = 2;
     ms->nss = 512;
@@ -158,7 +158,7 @@ bool sendMeasurement(uint16_t index) {
         offset += 2;
         memcpy(&buffer[offset], &ms.dtime, 4);
         offset += 4;
-        buffer[offset++] = ms.typeset;
+        buffer[offset++] = ms.tset;
         memcpy(&buffer[offset], &ms.ns, 2);
         offset += 2;
         memcpy(&buffer[offset], &ms.nss, 2);

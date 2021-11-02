@@ -1,11 +1,11 @@
 // UART2 Exchange - RECORDER
 
+#include "xc.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
-#include "xc.h"
+#include "../utils.h"
 #include "UART2.h"
-
 
 static uint8_t * volatile rxTail;
 static uint8_t *rxHead;
@@ -30,6 +30,196 @@ static uint8_t rxQueue[UART2_CONFIG_RX_BYTEQ_LENGTH];
 
 void (*UART2_TxDefaultInterruptHandler)(void);
 void (*UART2_RxDefaultInterruptHandler)(void);
+
+
+
+
+
+#if defined(__PIC24FJ256GA702__)
+
+void UART2_Enable(void) {
+    IEC1bits.U2TXIE = 0;
+    IEC1bits.U2RXIE = 0;
+    
+    // STSEL 1; IREN disabled; PDSEL 8N; UARTEN enabled; RTSMD disabled; 
+    // USIDL disabled; WAKE disabled; ABAUD disabled; LPBACK disabled; 
+    // BRGH enabled; URXINV disabled; UEN TX_RX; 
+    U2MODE = (0x8008 & ~(1 << 15)); // disabling UART ON bit
+    U2ADMD = 0x00;
+    U2STA = 0x00;
+    // BRGH: High Baud Rate Enable bit
+    // 1 = High-Speed mode ( 4 BRG clock cycles per bit)
+    // 0 = Standard Speed mode (16 BRG clock cycles per bit)
+    // FCO = 32Mhz; High-Speed mode; BaudRate = 115200
+#define BAUDRATE 115200U
+    U2BRG = (( SYS_CLK_FrequencyPeripheralGet() / 4 ) / BAUDRATE) - 1;
+
+
+    txHead = txQueue;
+    txTail = txQueue;
+    rxHead = rxQueue;
+    rxTail = rxQueue;
+
+    rxOverflowed = false;
+
+    UART2_SetTxInterruptHandler(&UART2_Transmit_CallBack);
+    UART2_SetRxInterruptHandler(&UART2_Receive_CallBack);
+
+     IEC1bits.U2RXIE = 1;    //Make sure to set TxPin LAT bit High !!
+     U2MODEbits.UARTEN = 1; // enabling UART ON bit
+     U2STAbits.UTXEN = 1;
+}
+
+
+void UART2_Disable(void) {
+   // IEC1bits.U2RXIE = 0;    //Make sure to set TxPin LAT bit High !!
+    U2MODEbits.UARTEN = 0;
+    U2STAbits.UTXEN = 0;
+}
+
+
+void UART2_SetTxInterruptHandler(void (* interruptHandler)(void)) {
+    if (interruptHandler == NULL) {
+        UART2_TxDefaultInterruptHandler = &UART2_Transmit_CallBack;
+    } else {
+        UART2_TxDefaultInterruptHandler = interruptHandler;
+    }
+}
+
+void __attribute__((interrupt, no_auto_psv)) _U2TXInterrupt(void) {
+    (*UART2_TxDefaultInterruptHandler)();
+
+    if (txHead == txTail) {
+        IEC1bits.U2TXIE = 0;
+    } else {
+        IFS1bits.U2TXIF = 0;
+
+        while (!(U2STAbits.UTXBF == 1)) {
+            U2TXREG = *txHead++;
+
+            if (txHead == (txQueue + UART2_CONFIG_TX_BYTEQ_LENGTH)) {
+                txHead = txQueue;
+            }
+
+            // Are we empty?
+            if (txHead == txTail) {
+                break;
+            }
+        }
+    }
+}
+
+void __attribute__((weak)) UART2_Transmit_CallBack(void) {
+}
+
+void UART2_SetRxInterruptHandler(void (* interruptHandler)(void)) {
+    if (interruptHandler == NULL) {
+        UART2_RxDefaultInterruptHandler = &UART2_Receive_CallBack;
+    } else {
+        UART2_RxDefaultInterruptHandler = interruptHandler;
+    }
+}
+
+void __attribute__((interrupt, no_auto_psv)) _U2RXInterrupt(void) {
+    (*UART2_RxDefaultInterruptHandler)();
+
+    IFS1bits.U2RXIF = 0;
+
+    while ((U2STAbits.URXDA == 1)) {
+        *rxTail = U2RXREG;
+
+        // Will the increment not result in a wrap and not result in a pure collision?
+        // This is most often condition so check first
+        if ((rxTail != (rxQueue + UART2_CONFIG_RX_BYTEQ_LENGTH - 1)) &&
+                ((rxTail + 1) != rxHead)) {
+            rxTail++;
+        } else if ((rxTail == (rxQueue + UART2_CONFIG_RX_BYTEQ_LENGTH - 1)) &&
+                (rxHead != rxQueue)) {
+            // Pure wrap no collision
+            rxTail = rxQueue;
+        } else // must be collision
+        {
+            rxOverflowed = true;
+        }
+    }
+}
+
+void __attribute__((weak)) UART2_Receive_CallBack(void) {
+
+}
+
+void __attribute__((interrupt, no_auto_psv)) _U2ErrInterrupt(void) {
+    if ((U2STAbits.OERR == 1)) {
+        U2STAbits.OERR = 0;
+    }
+
+    IFS4bits.U2ERIF = 0;
+}
+
+/**
+  Section: UART Driver Client Routines
+ */
+
+uint8_t UART2_Read(void) {
+    uint8_t data = 0;
+
+    while (rxHead == rxTail) {
+    }
+
+    data = *rxHead;
+
+    rxHead++;
+
+    if (rxHead == (rxQueue + UART2_CONFIG_RX_BYTEQ_LENGTH)) {
+        rxHead = rxQueue;
+    }
+    return data;
+}
+
+void UART2_Write(uint8_t byte) {
+    while (UART2_IsTxReady() == 0) {
+    }
+
+    *txTail = byte;
+
+    txTail++;
+
+    if (txTail == (txQueue + UART2_CONFIG_TX_BYTEQ_LENGTH)) {
+        txTail = txQueue;
+    }
+
+    IEC1bits.U2TXIE = 1;
+}
+
+bool UART2_IsRxReady(void) {
+    return !(rxHead == rxTail);
+}
+
+bool UART2_IsTxReady(void) {
+    uint16_t size;
+    uint8_t *snapshot_txHead = (uint8_t*) txHead;
+
+    if (txTail < snapshot_txHead) {
+        size = (snapshot_txHead - txTail - 1);
+    } else {
+        size = (UART2_CONFIG_TX_BYTEQ_LENGTH - (txTail - snapshot_txHead) - 1);
+    }
+
+    return (size != 0);
+}
+
+bool UART2_IsTxDone(void) {
+    if (txTail == txHead) {
+        return (bool) U2STAbits.TRMT;
+    }
+
+    return false;
+}
+
+
+
+#endif // __PIC24FJ256GA702__
+
 
 
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
@@ -250,189 +440,6 @@ void UART2_Disable(void) {
 #endif 
 
 
-
-#if defined(__PIC24FJ256GA702__)
-
-void UART2_Enable(void) {
-    IEC1bits.U2TXIE = 0;
-    IEC1bits.U2RXIE = 0;
-    
-    // STSEL 1; IREN disabled; PDSEL 8N; UARTEN enabled; RTSMD disabled; 
-    // USIDL disabled; WAKE disabled; ABAUD disabled; LPBACK disabled; 
-    // BRGH enabled; URXINV disabled; UEN TX_RX; 
-    U2MODE = (0x8008 & ~(1 << 15)); // disabling UART ON bit
-    // UTXISEL0 TX_ONE_CHAR; UTXINV disabled; URXEN disabled; OERR NO_ERROR_cleared;
-    // URXISEL RX_ONE_CHAR; UTXBRK COMPLETED; UTXEN disabled; ADDEN disabled; 
-    U2STA = 0x00;
-    // BaudRate = 115200; Frequency = 16000000 Hz;  U2BRG 34; 
-    U2BRG = 0x22;
-    // ADMADDR 0; ADMMASK 0; 
-    U2ADMD = 0x00;
-
-    txHead = txQueue;
-    txTail = txQueue;
-    rxHead = rxQueue;
-    rxTail = rxQueue;
-
-    rxOverflowed = false;
-
-    UART2_SetTxInterruptHandler(&UART2_Transmit_CallBack);
-    UART2_SetRxInterruptHandler(&UART2_Receive_CallBack);
-
-     IEC1bits.U2RXIE = 1;    //Make sure to set TxPin LAT bit High !!
-     U2MODEbits.UARTEN = 1; // enabling UART ON bit
-     U2STAbits.UTXEN = 1;
-}
-
-
-void UART2_Disable(void) {
-   // IEC1bits.U2RXIE = 0;    //Make sure to set TxPin LAT bit High !!
-    U2MODEbits.UARTEN = 0;
-    U2STAbits.UTXEN = 0;
-}
-
-
-void UART2_SetTxInterruptHandler(void (* interruptHandler)(void)) {
-    if (interruptHandler == NULL) {
-        UART2_TxDefaultInterruptHandler = &UART2_Transmit_CallBack;
-    } else {
-        UART2_TxDefaultInterruptHandler = interruptHandler;
-    }
-}
-
-void __attribute__((interrupt, no_auto_psv)) _U2TXInterrupt(void) {
-    (*UART2_TxDefaultInterruptHandler)();
-
-    if (txHead == txTail) {
-        IEC1bits.U2TXIE = 0;
-    } else {
-        IFS1bits.U2TXIF = 0;
-
-        while (!(U2STAbits.UTXBF == 1)) {
-            U2TXREG = *txHead++;
-
-            if (txHead == (txQueue + UART2_CONFIG_TX_BYTEQ_LENGTH)) {
-                txHead = txQueue;
-            }
-
-            // Are we empty?
-            if (txHead == txTail) {
-                break;
-            }
-        }
-    }
-}
-
-void __attribute__((weak)) UART2_Transmit_CallBack(void) {
-}
-
-void UART2_SetRxInterruptHandler(void (* interruptHandler)(void)) {
-    if (interruptHandler == NULL) {
-        UART2_RxDefaultInterruptHandler = &UART2_Receive_CallBack;
-    } else {
-        UART2_RxDefaultInterruptHandler = interruptHandler;
-    }
-}
-
-void __attribute__((interrupt, no_auto_psv)) _U2RXInterrupt(void) {
-    (*UART2_RxDefaultInterruptHandler)();
-
-    IFS1bits.U2RXIF = 0;
-
-    while ((U2STAbits.URXDA == 1)) {
-        *rxTail = U2RXREG;
-
-        // Will the increment not result in a wrap and not result in a pure collision?
-        // This is most often condition so check first
-        if ((rxTail != (rxQueue + UART2_CONFIG_RX_BYTEQ_LENGTH - 1)) &&
-                ((rxTail + 1) != rxHead)) {
-            rxTail++;
-        } else if ((rxTail == (rxQueue + UART2_CONFIG_RX_BYTEQ_LENGTH - 1)) &&
-                (rxHead != rxQueue)) {
-            // Pure wrap no collision
-            rxTail = rxQueue;
-        } else // must be collision
-        {
-            rxOverflowed = true;
-        }
-    }
-}
-
-void __attribute__((weak)) UART2_Receive_CallBack(void) {
-
-}
-
-void __attribute__((interrupt, no_auto_psv)) _U2ErrInterrupt(void) {
-    if ((U2STAbits.OERR == 1)) {
-        U2STAbits.OERR = 0;
-    }
-
-    IFS4bits.U2ERIF = 0;
-}
-
-/**
-  Section: UART Driver Client Routines
- */
-
-uint8_t UART2_Read(void) {
-    uint8_t data = 0;
-
-    while (rxHead == rxTail) {
-    }
-
-    data = *rxHead;
-
-    rxHead++;
-
-    if (rxHead == (rxQueue + UART2_CONFIG_RX_BYTEQ_LENGTH)) {
-        rxHead = rxQueue;
-    }
-    return data;
-}
-
-void UART2_Write(uint8_t byte) {
-    while (UART2_IsTxReady() == 0) {
-    }
-
-    *txTail = byte;
-
-    txTail++;
-
-    if (txTail == (txQueue + UART2_CONFIG_TX_BYTEQ_LENGTH)) {
-        txTail = txQueue;
-    }
-
-    IEC1bits.U2TXIE = 1;
-}
-
-bool UART2_IsRxReady(void) {
-    return !(rxHead == rxTail);
-}
-
-bool UART2_IsTxReady(void) {
-    uint16_t size;
-    uint8_t *snapshot_txHead = (uint8_t*) txHead;
-
-    if (txTail < snapshot_txHead) {
-        size = (snapshot_txHead - txTail - 1);
-    } else {
-        size = (UART2_CONFIG_TX_BYTEQ_LENGTH - (txTail - snapshot_txHead) - 1);
-    }
-
-    return (size != 0);
-}
-
-bool UART2_IsTxDone(void) {
-    if (txTail == txHead) {
-        return (bool) U2STAbits.TRMT;
-    }
-
-    return false;
-}
-
-
-
-#endif // __PIC24FJ256GA702__
 
 /* -------------------------------------------------------------------------- */
 

@@ -204,7 +204,7 @@ void RTCC_Grab() {
 
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
 
-void RTCC_2Timestamp(timestamp_t *t) {
+void RTCC_2LTime(timestamp_t *t) {
     //t->lstamp = 0; // Pack Date: year, month, day  ( 15 bits )
     t->year = bcd2i(_time.prt11 & 0x00FF);
     t->lstamp = t->year;
@@ -226,7 +226,7 @@ void RTCC_2Timestamp(timestamp_t *t) {
 
 #if  defined(__PIC24FJ256GA702__)
 
-void RTCC_2Timestamp(timestamp_t *t) {
+void RTCC_2LTime(timestamp_t *t) {
     // Populate timestamp_t object ! 
     //        DATEH = 0x2105; // Year/Month
     //        DATEL = 0x1102; // Date/Wday
@@ -255,7 +255,7 @@ void RTCC_2Timestamp(timestamp_t *t) {
 
 void RTCC_GetTime(timestamp_t *t) {
     RTCC_Grab();
-    RTCC_2Timestamp(t);
+    RTCC_2LTime(t);
 }
 
 void RTCC_SetTime(timestamp_t *t, unsigned char weekday) {
@@ -285,7 +285,7 @@ void RTCC_SetTime(timestamp_t *t, unsigned char weekday) {
 
 }
 
-void Timestamp2Time(timestamp_t *t) {
+void L2Time(timestamp_t *t) {
     uint32_t ctmp;
     // Unpack Date
     ctmp = t->lstamp >> 17; // 17 Bits
@@ -300,8 +300,8 @@ void Timestamp2Time(timestamp_t *t) {
     t->sec = ctmp & 0x3F;
 }
 
-void Time2Timestamp(timestamp_t *t) {
-    RTCC_2Timestamp(t);
+void Time2L(timestamp_t *t) {
+    RTCC_2LTime(t);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -342,20 +342,20 @@ uint32_t RTCC_GetTimeL() {
     return (ltime);
 }
 
-uint32_t RTCC_GetTimeL2() {
-    uint32_t ltime;
-    RTCC_Grab();
-    ltime = bcd2i(_time.yr); // year
-    ltime <<= 4; // 12 month ( 4 bit )
-    ltime |= (uint32_t) (_time.mth & 0xF); // month
-    ltime <<= 5; // 31 days ( 5 bit )
-    ltime |= (uint32_t) (bcd2i(_time.day) & 0x1F); // day
-    ltime <<= 17; // Pack Time: 60sec X 60min X 24h = 86400 sec ( 17 bits )
-    ltime |= (uint32_t) (bcd2i(_time.hr) << 12); // hour
-    ltime |= (uint32_t) (bcd2i(_time.min) << 6); // min
-    ltime |= bcd2i(_time.sec); // sec
-    return (ltime);
-}
+//uint32_t RTCC_GetTimeL2() {
+//    uint32_t ltime;
+//    RTCC_Grab();
+//    ltime = bcd2i(_time.yr); // year
+//    ltime <<= 4; // 12 month ( 4 bit )
+//    ltime |= (uint32_t) (_time.mth & 0xF); // month
+//    ltime <<= 5; // 31 days ( 5 bit )
+//    ltime |= (uint32_t) (bcd2i(_time.day) & 0x1F); // day
+//    ltime <<= 17; // Pack Time: 60sec X 60min X 24h = 86400 sec ( 17 bits )
+//    ltime |= (uint32_t) (bcd2i(_time.hr) << 12); // hour
+//    ltime |= (uint32_t) (bcd2i(_time.min) << 6); // min
+//    ltime |= bcd2i(_time.sec); // sec
+//    return (ltime);
+//}
 #endif
 
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))

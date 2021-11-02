@@ -6,18 +6,20 @@
 #include "dev-config.h"
 #include "modules/RTCC.h"
 
-#if defined(__PIC24FJ256GA702__)   
-#include "memory/flash702.h"
-#else
-#include "memory/flash302.h"
-#endif
+//#if defined(__PIC24FJ256GA702__)   
+//#include "memory/flash702.h"
+//#else
+//#include "memory/flash302.h"
+//#endif
+
+#include "memory/DEE/dee.h"
+
 #include "sampling/measurement.h"  // measurementCounter()
 
 
 #ifndef __NOFLASH
-//static __prog__ uint8_t nvmConfigDatas[FLASH_WRITE_ROW_SIZE_IN_INSTRUCTIONS *4] __attribute__((space(psv), aligned(FLASH_WRITE_ROW_SIZE_IN_INSTRUCTIONS * 4)));
-static __prog__ uint8_t nvmConfigDatas[FLASH_ERASE_PAGE_SIZE_IN_PC_UNITS] __attribute__((space(prog), aligned(FLASH_ERASE_PAGE_SIZE_IN_PC_UNITS)));
-const unsigned int ramConfigSize = sizeof (config_t);
+//static __prog__ uint8_t nvmConfigDatas[FLASH_ERASE_PAGE_SIZE_IN_PC_UNITS] __attribute__((space(prog), aligned(FLASH_ERASE_PAGE_SIZE_IN_PC_UNITS)));
+//const unsigned int ramConfigSize = sizeof (config_t);
 #endif
 
 
@@ -51,7 +53,7 @@ uint16_t computeCRC16(uint8_t *strtochk, uint16_t length) {
 
 void Device_ConfigDefaultSet(config_t * config) {
 #ifdef __VAMP1K_TEST_CONFIG
-    printf("Set Config Default!\n");
+    printf("Set Default Config !\n");
 #endif            
     memset(config, 0, sizeof (config_t));
     // General settings
@@ -72,6 +74,7 @@ void Device_ConfigDefaultSet(config_t * config) {
     config->exchange.handshake_timeout = 500; //1sec
     config->exchange.interchar_timeout = 100;
     config->exchange.SKEY = 0; // Fuori dal calcolo del CRC
+
     config->CRC16 = 0x00; // !
 }
 
@@ -101,111 +104,110 @@ void printConfig() {
     //    printf("handshake_timeout=%u", g_dev.cnf.exchange.handshake_timeout);
     //g_dev.cnf.exchange.interchar_timeout = 100;
     printf("SKEY=%lu\n", g_dev.cnf.exchange.SKEY);
-    printf("---CRC16=%lu\n", g_dev.cnf.CRC16);
+    printf("---CRC16=%u\n", g_dev.cnf.CRC16);
 }
 #endif
 
 bool Device_ConfigWrite(uint8_t * pSrc) {
-    bool result = true;
-
+    //////////    bool result = true;
+    DEE_RETURN_STATUS res = DEE_NO_ERROR;
+    uint16_t i, nbyte;
+    uint16_t * ptr;
     // Check consistency 
-    memcpy(&g_dev.cnf, pSrc, sizeof (config_t)); // Update active
-
-#ifndef __NOFLASH // Save config in Flash
-    uint32_t nvm_address; // 24 bit address
-    uint16_t iR, iF;
-
-#if defined( __PIC24FJ256GA702__)
-    uint32_t towrite[2U];
-    nvm_address = FLASH_GetErasePageAddress((uint32_t) & nvmConfigDatas);
-    FLASH_Unlock(FLASH_UNLOCK_KEY);
-
-    result = FLASH_ErasePage(nvm_address);
-#else
-    uint32_t towrite[FLASH_WRITE_ROW_SIZE_IN_INSTRUCTIONS];
-    nvm_address = __builtin_tbladdress(nvmConfigDatas); // Get address of reserved space
-    FLASH_Unlock(FLASH_UNLOCK_KEY);
-    result = FLASH_Erase1Row(nvm_address); // Erase flash page/row
-#endif
-
-    if (result) {
-        iR = 0; // Bytes
-        iF = iR; // Words
-
-#if defined( __PIC24FJ256GA702__)
-        while (iR < ramConfigSize) { //  Sizeof(config_t)
-            towrite[0] = *(pSrc + iR + 2);
-            towrite[0] <<= 8;
-            towrite[0] |= *(pSrc + iR + 1);
-            towrite[0] <<= 8;
-            towrite[0] |= *(pSrc + iR);
-            towrite[1] = *(pSrc + iR + 5);
-            towrite[1] <<= 8;
-            towrite[1] |= *(pSrc + iR + 4);
-            towrite[1] <<= 8;
-            towrite[1] |= *(pSrc + iR + 3);
-            iR += 6;
-
-            //            printf("%u %u \n", (uint16_t) (w0>>16)& 0xFFFF, (uint16_t)w0 & 0xFFFF);
-            //            printf("%u %u \n", (uint16_t) (w1>>16)& 0xFFFF , (uint16_t)w1 & 0xFFFF);         
-            result &= FLASH_WriteDoubleWord24(nvm_address + iF, towrite[0], towrite[1]);
-            iF += 4U;
-        }
-#else
-        while (iR < ramConfigSize) { //  Sizeof(config_t)
-            towrite[iF] = *(pSrc + iR + 2);
-            towrite[iF] <<= 8;
-            towrite[iF] |= *(pSrc + iR + 1);
-            towrite[iF] <<= 8;
-            towrite[iF] |= *(pSrc + iR);
-            iR += 3;
-            iF += 1U;
-        }
-        // Writes a single row of data from the location given in *data
-        result &= FLASH_WriteRow24(nvm_address, towrite);
-#endif
+    nbyte = sizeof (config_t);
+    memcpy(&g_dev.cnf, pSrc, nbyte); // Update active
+    nbyte = nbyte >> 1;
+    ptr = (uint16_t*) pSrc;
+    i = 0;
+    while (res == DEE_NO_ERROR && (i < nbyte)) {
+        res = DEE_Write(i, *( ptr + i));
+        i++;
     }
-    FLASH_Lock();
-    //_LATB2 = 1;
-#endif  // NoFLASH
-    return result;
+    
+#ifdef __VAMP1K_TEST_CONFIG
+    printf("Write:\n");
+    printConfig();
+    _LATB2 = 1; // Led on
+#endif
+    
+    return (i == nbyte);
+
+
+    ////////#ifndef __NOFLASH // Save config in Flash
+    ////////    uint32_t nvm_address; // 24 bit address
+    ////////    uint16_t iR, iF;
+    ////////
+    ////////#if defined( __PIC24FJ256GA702__)
+    ////////    uint32_t towrite[2U];
+    ////////    nvm_address = FLASH_GetErasePageAddress((uint32_t) & nvmConfigDatas);
+    ////////    FLASH_Unlock(FLASH_UNLOCK_KEY);
+    ////////
+    ////////    result = FLASH_ErasePage(nvm_address);
+    ////////#else
+    ////////    uint32_t towrite[FLASH_WRITE_ROW_SIZE_IN_INSTRUCTIONS];
+    ////////    nvm_address = __builtin_tbladdress(nvmConfigDatas); // Get address of reserved space
+    ////////    FLASH_Unlock(FLASH_UNLOCK_KEY);
+    ////////    result = FLASH_Erase1Row(nvm_address); // Erase flash page/row
+    ////////#endif
+    ////////
+    ////////    if (result) {
+    ////////        iR = 0; // Bytes
+    ////////        iF = iR; // Words
+    ////////
+    ////////#if defined( __PIC24FJ256GA702__)
+    ////////        while (iR < ramConfigSize) { //  Sizeof(config_t)
+    ////////            towrite[0] = *(pSrc + iR + 2);
+    ////////            towrite[0] <<= 8;
+    ////////            towrite[0] |= *(pSrc + iR + 1);
+    ////////            towrite[0] <<= 8;
+    ////////            towrite[0] |= *(pSrc + iR);
+    ////////            towrite[1] = *(pSrc + iR + 5);
+    ////////            towrite[1] <<= 8;
+    ////////            towrite[1] |= *(pSrc + iR + 4);
+    ////////            towrite[1] <<= 8;
+    ////////            towrite[1] |= *(pSrc + iR + 3);
+    ////////            iR += 6;
+    ////////
+    ////////            //            printf("%u %u \n", (uint16_t) (w0>>16)& 0xFFFF, (uint16_t)w0 & 0xFFFF);
+    ////////            //            printf("%u %u \n", (uint16_t) (w1>>16)& 0xFFFF , (uint16_t)w1 & 0xFFFF);         
+    ////////            result &= FLASH_WriteDoubleWord24(nvm_address + iF, towrite[0], towrite[1]);
+    ////////            iF += 4U;
+    ////////        }
+    ////////#else
+    ////////        while (iR < ramConfigSize) { //  Sizeof(config_t)
+    ////////            towrite[iF] = *(pSrc + iR + 2);
+    ////////            towrite[iF] <<= 8;
+    ////////            towrite[iF] |= *(pSrc + iR + 1);
+    ////////            towrite[iF] <<= 8;
+    ////////            towrite[iF] |= *(pSrc + iR);
+    ////////            iR += 3;
+    ////////            iF += 1U;
+    ////////        }
+    ////////        // Writes a single row of data from the location given in *data
+    ////////        result &= FLASH_WriteRow24(nvm_address, towrite);
+    ////////#endif
+    ////////    }
+    ////////    FLASH_Lock();
+    ////////    //_LATB2 = 1;
+    ////////#endif  // NoFLASH
+    ////////    return result;
 }
 
 bool Device_ConfigRead(config_t * config) {
     bool result = true;
 
-#ifdef __NOFLASH
-    Device_ConfigDefaultSet(config);
-#else    // Read flash/eeprom 
-    uint32_t rdata;
-    uint32_t nvm_address;
-    uint8_t * pDst;
-    uint16_t iR, i, iF;
+    DEE_RETURN_STATUS res = DEE_NO_ERROR;
+    uint16_t i, nbyte;
+    uint16_t* ptr;
+    ptr = (uint16_t*) config;
+    nbyte = sizeof (config_t) >> 1;
 
-    pDst = (uint8_t*) config;
-    nvm_address = FLASH_GetErasePageAddress((uint32_t) & nvmConfigDatas);
-
-    iR = 0;
-    iF = iR;
-    while (iR < ramConfigSize) { // && iF << flash page
-        rdata = FLASH_ReadWord24(nvm_address + iF);
-        //printf("%u %u \n", (uint16_t) (rdata>>16) & 0xFFFF , (uint16_t) rdata & 0xFFFF);
-        i = 0;
-        while ((i < 3) && (iR + i < ramConfigSize)) {
-            *(pDst + iR + i) = (rdata & 0xFF);
-            rdata >>= 8;
-            i++;
-        }
-        iR += i;
-        iF += 2U;
+    i = 0;
+    while (res == DEE_NO_ERROR && (i < nbyte)) {
+        res = DEE_Read(i, (ptr + i));
+        i++;
     }
-
-    if (config->CRC16 != computeCRC16((uint8_t *) config, sizeof (config_t) - 2)) { /// Check XOR checksum
-        Device_ConfigDefaultSet(config);
-        config->CRC16 = computeCRC16((uint8_t *) config, sizeof (config_t) - 2);
-        Device_ConfigWrite((uint8_t*) config); // Write EEprom/Flash
-    }
-#endif
+    result = (i == nbyte);
 
 #ifdef __VAMP1K_TEST_CONFIG
     printf("Read:\n");
@@ -213,22 +215,68 @@ bool Device_ConfigRead(config_t * config) {
     _LATB2 = 1; // Led on
 #endif
 
-    return result;
-}
+    if (config->CRC16 != computeCRC16((uint8_t *) config, sizeof (config_t) - 2)) { /// Check XOR checksum
+        Device_ConfigDefaultSet(config);
+        config->CRC16 = computeCRC16((uint8_t *) config, sizeof (config_t) - 2);
+        result = Device_ConfigWrite((uint8_t*) config); // Write EEprom/Flash
+    }
 
+    return (result);
+
+    //////////#ifdef __NOFLASH
+    //////////    Device_ConfigDefaultSet(config);
+    //////////#else    // Read flash/eeprom 
+    //////////    uint32_t rdata;
+    //////////    uint32_t nvm_address;
+    //////////    uint8_t * pDst;
+    //////////    uint16_t iR, i, iF;
+    //////////
+    //////////    pDst = (uint8_t*) config;
+    //////////    nvm_address = FLASH_GetErasePageAddress((uint32_t) & nvmConfigDatas);
+    //////////
+    //////////    iR = 0;
+    //////////    iF = iR;
+    //////////    while (iR < ramConfigSize) { // && iF << flash page
+    //////////        rdata = FLASH_ReadWord24(nvm_address + iF);
+    //////////        //printf("%u %u \n", (uint16_t) (rdata>>16) & 0xFFFF , (uint16_t) rdata & 0xFFFF);
+    //////////        i = 0;
+    //////////        while ((i < 3) && (iR + i < ramConfigSize)) {
+    //////////            *(pDst + iR + i) = (rdata & 0xFF);
+    //////////            rdata >>= 8;
+    //////////            i++;
+    //////////        }
+    //////////        iR += i;
+    //////////        iF += 2U;
+    //////////    }
+    //////////
+    //////////    if (config->CRC16 != computeCRC16((uint8_t *) config, sizeof (config_t) - 2)) { /// Check XOR checksum
+    //////////        Device_ConfigDefaultSet(config);
+    //////////        config->CRC16 = computeCRC16((uint8_t *) config, sizeof (config_t) - 2);
+    //////////        Device_ConfigWrite((uint8_t*) config); // Write EEprom/Flash
+    //////////    }
+    //////////#endif
+    //////////
+    //////////#ifdef __VAMP1K_TEST_CONFIG
+    //////////    printf("Read:\n");
+    //////////    printConfig();
+    //////////    _LATB2 = 1; // Led on
+    //////////#endif
+    //////////    
+    //////////    return result;
+}
 
 bool Device_StatusGet(status_t * status) {
     uint32_t lctime = RTCC_GetTimeL(); // time evaluation reference
 
     // Through the calls 
-    if (lctime - status->timestamp < STATUS_UPDATE_DELAY) { 
-       status->power_level = Device_GetBatteryLevel(); // battery/harvesting level/status
+    if (lctime - status->timestamp < STATUS_UPDATE_DELAY) {
+        status->power_level = Device_GetBatteryLevel(); // battery/harvesting level/status
     }
 
     // Every call
     status->timestamp = lctime;
     status->config_counter = g_dev.cnf.CRC16; // To evaluate VMS alignment
-    
+
     // Boot time... 
     status->alarm_counter = Device_CheckHwReset(); // Persistent: wdt, critical errors/reset
     status->DIN = __DEVICE_DIN;
@@ -244,7 +292,6 @@ bool Device_StatusGet(status_t * status) {
 
     return true;
 }
-
 
 void Device_SetLockSKEY(uint32_t skey) { // skey: >0 lock, =0 unlock 
 
