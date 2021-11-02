@@ -227,7 +227,7 @@ int main(void) {
     //SST26_ResetEn();
     //SST26_Reset();
     
-        SST26_WREN();
+    SST26_WREN();
     SST26_Global_Block_Protection_Unlock();
    SST26_Wait_Busy();
     SST26_WREN();
