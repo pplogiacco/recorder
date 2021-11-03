@@ -6,14 +6,7 @@
 #include "dev-config.h"
 #include "modules/RTCC.h"
 
-//#if defined(__PIC24FJ256GA702__)   
-//#include "memory/flash702.h"
-//#else
-//#include "memory/flash302.h"
-//#endif
-
 #include "memory/DEE/dee.h"
-
 #include "sampling/measurement.h"  // measurementCounter()
 
 
@@ -74,8 +67,13 @@ void Device_ConfigDefaultSet(config_t * config) {
     config->exchange.handshake_timeout = 500; //1sec
     config->exchange.interchar_timeout = 100;
     config->exchange.SKEY = 0; // Fuori dal calcolo del CRC
-
     config->CRC16 = 0x00; // !
+    
+    // Initialize Persistent Status Datas
+    DEE_Write(EEA_MEAS_COUNTER, 0); // (dee.h)  
+    DEE_Write(EEA_SST_SECTOR, 0); // (dee.h)  
+    DEE_Write(EEA_SST_OFFSET, 0); // (dee.h)  
+    
 }
 
 #ifdef __VAMP1K_TEST_CONFIG
@@ -269,7 +267,7 @@ bool Device_StatusGet(status_t * status) {
     uint32_t lctime = RTCC_GetTimeL(); // time evaluation reference
 
     // Through the calls 
-    if (lctime - status->timestamp < STATUS_UPDATE_DELAY) {
+    if (lctime - status->timestamp < STATUS_REFRESH_PERIOD) {
         status->power_level = Device_GetBatteryLevel(); // battery/harvesting level/status
     }
 
@@ -283,8 +281,11 @@ bool Device_StatusGet(status_t * status) {
     status->version = __DEVICE_VER;
 
     // Measurement
-    status->meas_counter = measurementCounter(); // Persistent: stored measurements
-    status->storage_space = 10; // available meas?s storage memory
+    
+    DEE_Write(EEA_MEAS_COUNTER, status->meas_counter); // Persistent: stored measurements (dee.h)  
+    DEE_Write(EEA_SST_SECTOR, 0); // (dee.h)  
+    DEE_Write(EEA_SST_OFFSET, 0); // (dee.h)  
+    status->storage_space = sstFreeSpaceKb(); // available meas storage memory (Kb)
 
     // Exchange
     status->link_status = Device_IsUsbConnected(); // Exchange: USB / RF-RSSI

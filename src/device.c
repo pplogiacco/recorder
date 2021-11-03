@@ -177,7 +177,7 @@ void Device_Initialize() { // INITIAL/DEFAULT SETTING
 
     DEE_RETURN_STATUS ddeStatus;
     ddeStatus = DEE_Init();
-
+       
 } // Initialize
 
 /* CLOCK Switching Settings

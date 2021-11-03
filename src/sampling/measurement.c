@@ -9,25 +9,14 @@
 
 #include "../utils.h"
 #include "../modules/RTCC.h"
-
 #include "../memory/SST26VF064B.h"  // Flash SPI
 #include "../memory/DEE/dee.h"
 
 //==============================================================================
-//extern sample_t SSBUF[];
-
-//static __prog__ sample_t measurement[FLASH_ERASE_PAGE_SIZE_IN_PC_UNITS] __attribute__((space(prog), aligned(FLASH_ERASE_PAGE_SIZE_IN_PC_UNITS)));
-
 static sample_t SSBUF[SS_BUF_SIZE]; // measurement's samples buffer
+//static sample_t msCounter = 0; // Use: g_dev.st.measurmanet_counter
 extern measurement_t g_measurement;
 extern device_t g_dev;
-
-//static sample_t msCounter = 0; // Use: g_dev.st.measurmanet_counter
-
-#ifdef __AV0NVM
-static __prog__ uint8_t nvmDepot[DEPOT_SIZE] __attribute__((space(psv), aligned(DEPOT_SIZE)));
-#endif
-
 //==============================================================================
 
 bool measurementInitialize(void) {
@@ -215,16 +204,7 @@ uint16_t measurementAcquire(measurement_t * ms) {
  
  ******************************************************************************/
 
-#define HEADER_SIZE_IN_BYTE     9U
-
-// DEE map
-#define EEA_CONFIG            000 // Config: 96 eeprom's byte to store config
-#define EEA_MEAS_COUNTER      100 // Status: meas_counter  
-#define EEA_RESET_COUNTER     101 // Status: reset counter / RCON map...
-#define EEA_SKEYL             102 // Status: skey LSW
-#define EEA_SKEYH             103 // Status: skey MSW
-#define EEA_SST_SECTOR        126
-#define EEA_SST_OFFSET        127
+#define HEADER_SIZE_IN_BYTE     10U
 //
 #define SST_SECTOR_SIZE      4096        // 4KBytes   
 #define SST_SIZE_KB          7812        // 8MBytes 
@@ -247,9 +227,11 @@ uint16_t sstBlockWrite(uint8_t* dPtr, uint16_t nBytes) { // return written bytes
 
     written = 0;
     SST26_Enable();
+    
+    SST26_WREN();    
     SST26_Global_Block_Protection_Unlock();
     SST26_Wait_Busy();
-    SST26_WREN();
+    SST26_WREN(); 
 
     while (nBytes > 0) {
         available = (SST_SECTOR_SIZE - Offset);
@@ -257,6 +239,7 @@ uint16_t sstBlockWrite(uint8_t* dPtr, uint16_t nBytes) { // return written bytes
             Sector++;
             Offset = 0;
             available = SST_SECTOR_SIZE;
+            SST26_WREN();         
             SST26_Sector_Erase(Sector * SST_SECTOR_SIZE); // Set 4K in 0xFF state
             SST26_Wait_Busy();
         }
@@ -265,6 +248,7 @@ uint16_t sstBlockWrite(uint8_t* dPtr, uint16_t nBytes) { // return written bytes
         if (nBytes < available) {
             available = nBytes;
         }
+            SST26_WREN(); 
         written = SST26_Write_Bytes(sst_addr, (dPtr + written), available);
         SST26_Wait_Busy();
         nBytes -= written;
@@ -297,6 +281,7 @@ uint16_t sstBlockRelease(uint16_t nBytes) {
 
     // Move in newSector and save newOffset
     SST26_Enable();
+    SST26_WREN();
     SST26_Global_Block_Protection_Unlock();
     SST26_Wait_Busy();
 
@@ -334,13 +319,14 @@ uint16_t sstBlockReadRev(uint8_t* dPtr, uint16_t displacement, uint16_t nBytes, 
         iOffset = (Offset - ((nBytes + displacement) % SST_SECTOR_SIZE));
     } else {
         iSector--;
-        iOffset = SST_SECTOR_SIZE - (((nBytes + displacement) % SST_SECTOR_SIZE) - Offset);
+        iOffset = (SST_SECTOR_SIZE - (((nBytes + displacement) % SST_SECTOR_SIZE) - Offset));
     }
 
     // Move in newSector and save newOffset
     SST26_Enable();
-    SST26_Global_Block_Protection_Unlock();
-    SST26_Wait_Busy();
+//    SST26_WREN();
+//    SST26_Global_Block_Protection_Unlock();
+//    SST26_Wait_Busy();
 
     // Move data to buffer !!! USES SSBUF !!!
     sst_addr = (iSector * SST_SECTOR_SIZE) + iOffset;

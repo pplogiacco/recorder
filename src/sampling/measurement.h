@@ -13,8 +13,8 @@
 #include "../device.h"              // Typeset defs / config params
 
 #define sample_t signed short       // fix14_t 
-
 //typedef unsigned short sample_t;  // ADC FormatAbsolute Integer Format
+
 #define FLOAT2INT_FACTOR 100000U
 #define SYNCO_FREQUENCY  38400U 
 #define SCALE_TOUNSIGNED 1024U      // 12 bit 4096
@@ -23,26 +23,26 @@
 #if ( defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__)) // Flash 32K, SRam 2K, EEprom 512
 
 #define SS_BUF_SIZE 512             // SRam
-#define SS_BUF_SIZE_NVM 1536        // Flash
 
 #elif defined(__PIC24FJ256GA702__)
 
 #define SS_BUF_SIZE 5120        // SRam
-//#define SS_BUF_SIZE_NVM 1536      // Flash
 
-
-#define NVM_INSTRUCTION_IN_BYTE     3      // 1Phantom+3
-#define NVM_INSTRUCTION_IN_ROW      128    // Instruction
-#define NVM_ROW_IN_PAGE             1024   // Rows
-
-#define PAGE_SPACE_IN_BYTE          NVM_INSTRUCTION_IN_BYTE*NVM_INSTRUCTION_IN_ROW*NVM_ROW_IN_PAGE
-
-#define OBJECT_SIZE_IN_BYTE         SS_BUF_SIZE*2
-#define OBJECT_PER_PAGE             PAGE_SPACE_IN_BYTE / OBJECT_SIZE_IN_BYTE
-
-#if OBJECT_PER_PAGE == 0
-#error !!!!!! Minimum data object per page is 1
-#endif
+////#define SS_BUF_SIZE_NVM 1536      // Flash
+//
+//
+//#define NVM_INSTRUCTION_IN_BYTE     3      // 1Phantom+3
+//#define NVM_INSTRUCTION_IN_ROW      128    // Instruction
+//#define NVM_ROW_IN_PAGE             1024   // Rows
+//
+//#define PAGE_SPACE_IN_BYTE          NVM_INSTRUCTION_IN_BYTE*NVM_INSTRUCTION_IN_ROW*NVM_ROW_IN_PAGE
+//
+//#define OBJECT_SIZE_IN_BYTE         SS_BUF_SIZE*2
+//#define OBJECT_PER_PAGE             PAGE_SPACE_IN_BYTE / OBJECT_SIZE_IN_BYTE
+//
+//#if OBJECT_PER_PAGE == 0
+//#error !!!!!! Minimum data object per page is 1
+//#endif
 
 
 
@@ -121,15 +121,7 @@ void measurementGetBlock(uint8_t *pbuf, uint16_t offset, uint16_t size); // Exch
 //uint16_t getRTMeasure(measureCmd_t cmd, measure_t mtype, sample_t *nsamp);
 
 // -------------------------------------------------------------------------
-
-//#define DEPOT_BLOCK_SIZE FLASH_WRITE_ROW_SIZE_IN_INSTRUCTIONS * 4 
-//#define DEPOT_BLOCKS  32  // ONE PAGE 32 ROWS (1024 INSTRUCTIONS * 3 Bytes phantom+data )
-//#define DEPOT_SIZE 0x1000 // 4096 - phantom bytes
-
-//#define  to24bit(t,v) ((((uint32_t)t)<<12) | (v && 0xFFF))
-//
-
-// Real Time Sampling
+uint16_t sstFreeSpaceKb();
 // -------------------------------------------------------------------------
 
 

@@ -7,9 +7,9 @@
 //#include "modules/RTCC.h"
 //#include "modules/UART2.h"
 //#include "exchange/exchange.h"      // DaaS-Ex Protocol 
-//#include "sampling/measurement.h"   // DaaS-Ex Protocol 
+#include "sampling/measurement.h"   // DaaS-Ex Protocol 
 #include "memory/SST26VF064B.h"     // Flash SPI
-
+#include "memory/DEE/dee.h"
 
 #ifdef __VAMP1K_TEST
 
@@ -103,7 +103,7 @@ int main(void) {
     } else if (RCONbits.DPSLP) { // Resume from Deep-sleep / DS Retention
         printf("D-S\n");
         RCONbits.DPSLP = 0;
-        if (RCONbits.RETEN) {
+    if (RCONbits.RETEN) {
             printf("RETEN\n");
             // RCONbits.RETEN = 0;
         }
@@ -120,7 +120,7 @@ int main(void) {
     
 #ifdef __VAMP1K_TEST_USB
     while (1) {
-        if (!Device_IsUsbConnected()) {
+    if (!Device_IsUsbConnected()) {
             printf("USB Waiting (RB7=%d)... \n", Device_IsUsbConnected());
         } else {
             printf("USB Connected (RB7=%d) !  \n", Device_IsUsbConnected());
@@ -172,7 +172,7 @@ int main(void) {
 
     tmr2trig = false;
     while (!tmr2trig) {
-        if (tmr2trig) {
+    if (tmr2trig) {
             printf("Tmr2 ok\n");
             //  tmr2trig = 0;
         }
@@ -203,7 +203,7 @@ int main(void) {
 
     tmr3trig = false;
     while (1) {
-        if (tmr3trig) {
+    if (tmr3trig) {
             printf("!");
             tmr3trig = 0;
         }
@@ -214,70 +214,7 @@ int main(void) {
 
 
 
-#ifdef __VAMP1K_TEST_SST26
 
-    // Device_SwitchSys(SYS_ON_EXCHANGE); // SPI
-
-    unsigned long sst_addr = 0;
-    uint8_t datas[32];
-
-    SST26_Enable();
-    // SST26_Chip_Erase();
-    //SST26_Switch_Power();
-    //SST26_ResetEn();
-    //SST26_Reset();
-    
-    SST26_WREN();
-    SST26_Global_Block_Protection_Unlock();
-   SST26_Wait_Busy();
-    SST26_WREN();
-    SST26_Block_Erase(sst_addr); // Set 4K in 0xFF state
-    SST26_Wait_Busy();
-
-
-    int man, typ, id;
-
-    while (1) {
-        printf("______SST26VF064B  Test: \n");
-        SST26_Jedec_ID_Read(&man, &typ, &id);
-        printf("manufacturer=%u  \n", man);
-        printf("device_type=%u  \n", typ);
-        printf("identifier=%u  \n", id);
-        printf("config_reg=%u  \n", SST26_Read_Configuration());
-        printf("status_reg=%u  \n", SST26_Read_Status());
-
-        //        SST26_WREN();
-        sst_addr = 0;
-        //
-        //        SST26_Wait_Busy();
-        for (i = 0; i < 16; i++) {
-            datas[i] = i;
-        }
-        //SST26_Page_Program(sst_addr, &datas[0]);
-        SST26_WREN();
-	     SST26_Wait_Busy();
-        SST26_Write_Bytes(sst_addr, datas, 16);
-        printf("status=%u  \n", SST26_Read_Status());
-        SST26_Wait_Busy();
-        printf("Write page ok !\n");
-        SST26_WRDI();
-
-        printf("status=%u  \n", SST26_Read_Status());
-
-        // RTCC_GetTimeL();
-        //SST26_Read_Cont(sst_addr, 16, (unsigned int*) datas);
-        SST26_Read_Bytes(sst_addr, 16, datas);
-        for (i = 0; i < 16; i++) {
-            //            printf("Read[%u]=%u \n", i, SST26_Read(sst_addr++));
-            printf("Read[%u]=%u \n", i, datas[i]);
-        }
-        __delay(5000);
-    }
-    SST26_Disable();
-//    Device_SwitchSys(SYS_DEFAULT); // SPI
-#endif    
-
-    
  
 
 
@@ -335,12 +272,12 @@ int main(void) {
         // Enable RTC Alarm Wake-Up
         RTCC_GetTime(&stime);
         stime.sec += g_dev.cnf.general.delaytime % 60;
-        if (stime.sec > 59) {
+    if (stime.sec > 59) {
             stime.sec -= 59;
             stime.min++;
         }
         stime.min += g_dev.cnf.general.delaytime / 60;
-        if (stime.min > 59) {
+    if (stime.min > 59) {
             stime.min -= 59;
         }
         RTCC_AlarmSet(&stime);
@@ -415,19 +352,114 @@ int main(void) {
 #endif
 
 
- #ifdef __VAMP1K_TEST_measurement_save 
+
+#ifdef __VAMP1K_TEST_SST26
+
+    #define SST_SECTOR_SIZE      4096        // 4KBytes 
+    // Device_SwitchSys(SYS_ON_EXCHANGE); // SPI
+
+    unsigned long sst_addr = SST_SECTOR_SIZE;
+    //uint16_t sector,offset;
+    uint8_t datas[32];
+
+    SST26_Enable();
+    // SST26_Chip_Erase();
+    //SST26_Switch_Power();
+    //SST26_ResetEn();
+    //SST26_Reset();
+    
+    
+    SST26_WREN(); // Necessaria ????
+    SST26_Global_Block_Protection_Unlock();
+    
+    
+    SST26_WREN();   // Nexwssarie ???
+    //SST26_Block_Erase(sst_addr);     
+    SST26_Sector_Erase(sst_addr); // Set 4K in 0xFF state
+    SST26_Wait_Busy();
+
+    int man, typ, id,j;
+
     while (1) {
-     g_measurement.tset = _SIG0;
-     RTCC_GetTime(&stime);
-     g_measurement.dtime =   stime.lstamp;
-     g_measurement.ns = 5;
-     g_measurement.nss = 0;
-      for (i = 0; i < g_measurement.ns; i++) {
-          *(g_measurement.ss + i) = i;
-      }; 
-     printf("Measurement Save...\n");
-     measurementSave(&g_measurement);
-             __delay(1000);
+        printf("______SST26VF064B:\n");
+        SST26_Jedec_ID_Read(&man, &typ, &id);
+        printf("manufacturer=%u  \n", man);
+        printf("device_type=%u  \n", typ);
+        printf("identifier=%u  \n", id);
+        printf("config_reg=%u  \n", SST26_Read_Configuration());
+	printf("address=%lu  \n\n", sst_addr);
+        printf("erase status=%u  \n", SST26_Read_Status());
+
+        for (i = 0; i < 16; i++) {
+            datas[i] = i;
+        }
+
+	for (i = 0; i < 5; i++) {
+	 sst_addr = SST_SECTOR_SIZE * i;
+         SST26_WREN();
+         SST26_Write_Bytes(sst_addr, datas, 16);
+         SST26_Wait_Busy();
+         printf("write status=%u  \n", SST26_Read_Status());
+         SST26_WRDI();
+	}
+
+	for (i = 0; i < 5; i++) {
+	
+	 sst_addr = SST_SECTOR_SIZE * i;	
+         SST26_Read_Bytes(sst_addr, 16, datas);
+	 printf("read status=%u  \n", SST26_Read_Status());
+         for (j = 0; j < 16; j++) {
+             printf("Read[%lu]=%u \n", sst_addr+ i, datas[j]);
+         }
+	} 
+	
+        __delay(5000);
+    }
+    SST26_Disable();
+    
+//    Device_SwitchSys(SYS_DEFAULT); // SPI
+#endif    
+
+        
+    
+    
+#ifdef __VAMP1K_TEST_measurement_save 
+    
+    
+#define ShowMem() {   printf("FreeSpace :%u\n", sstFreeSpaceKb());    \
+    uint16_t Sector, Offset;	\
+    DEE_Read(EEA_SST_SECTOR, &Sector);   \
+    DEE_Read(EEA_SST_OFFSET, &Offset);  \
+    printf("Sector :%u\n", Sector);	\
+    printf("Offset :%u\n", Offset);	\
+    printf("Meas_Counter :%u\n",measurementCounter() );	\
+    __delay(5000); \
+    }
+	 
+     printf("Start test... \n\n");
+#define NewMeasurement(n) { g_measurement.tset = _SIG0; \
+     RTCC_GetTime(&stime); \
+     g_measurement.dtime =   stime.lstamp; \
+     g_measurement.ns = n; \
+     g_measurement.nss = 0; \
+      for (i = 0; i < g_measurement.ns; i++) {  \
+          *(g_measurement.ss + i) = i;  \
+      }; \
+    }
+    
+      
+    while (1) {
+    //ShowMem();
+    
+   
+    printf("Save new measurement...\n");
+    NewMeasurement(5);
+    measurementSave(&g_measurement);
+    printf("--------------\n");
+    ShowMem();
+    printf("--------------\n\n");
+    
+    //__delay(5000);
      printf("Measurement Read...\n");
      measurementLoad(1, &g_measurement);
      printf("---------------\n");
@@ -436,10 +468,10 @@ int main(void) {
      L2Time(&stime);
      printf("timestamp: %d/%d/%d - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
      printf("ns:%u \n", g_measurement.ns);
-      for (i = 0; i < g_measurement.ns; i++) {
-          printf("%u,", *(g_measurement.ss + i));
-      };
-     printf("---------------\n\n");             
+    //  for (i = 0; i < g_measurement.ns; i++) {
+    //      printf("%u,", *(g_measurement.ss + i));
+    //  };
+     printf("---------------\n\n\n");             
      __delay(5000);
     }		
 #endif      
@@ -458,7 +490,7 @@ int main(void) {
                 //printf("Delay %u\n", g_dev.cnf.general.delaytime);
                 //printf("Cycle %u\n", g_dev.cnf.general.cycletime);
                 state = SAMPLING; // After start-up try to connect
-                break;
+    break;
 
             case SAMPLING:
                 lstate = state;
@@ -466,13 +498,13 @@ int main(void) {
                 //!! if ((stime.lstamp > g_config.general.startdate) && (stime.lstamp < g_config.general.stopdate)) {
                 g_dev.cnf.general.typeset = FORCED_TYPESET;
                 measurementAcquire(&g_measurement);
-		#ifdef __VAMP1K_TEST_measurement_save
+    #ifdef __VAMP1K_TEST_measurement_save
 		 measurementSave(&g_measurement);
-		#endif
+    #endif
                 
                 //!!};
                 state = (g_dev.cnf.exchange.attempt_mode == CNF_ATTEMPTMODE_EVERYCYCLE) ? EXCHANGE : TOSLEEP;
-                break;
+    break;
 
             case EXCHANGE:
                 lstate = state;
@@ -504,7 +536,7 @@ int main(void) {
                 //    _AV03 = 0x0E, // (14) FFT Real { <ET>,<WS>,<adc_fq>,<log2_n>,[<rH1>],...,[<rH((2^log2_n)/2)>]}
                 //    _AV05 = 0x0F  // (15) AVC { <ET>,<WS>,<adc_fq>,<res_scale>,<duration>,[ (<n>,<freq>,<amp>),...]}
 
-                if (( g_measurement.tset == _AV05) || (g_measurement.tset == _AV06)) {
+    if (( g_measurement.tset == _AV05) || (g_measurement.tset == _AV06)) {
                     for (i = 0; i < (g_measurement.nss / 3); i += 3) {
                         printf("%u,%u,%u\n", *(g_measurement.ss + i + g_measurement.ns), *(g_measurement.ss + (i + 1) + g_measurement.ns), *(g_measurement.ss + (i + 2) + g_measurement.ns));
                     };
@@ -544,12 +576,12 @@ int main(void) {
 		
                 state = TOSLEEP;
                 //state = SAMPLING;
-                break;
+    break;
 
             case EXCHANGE_RT:
                 lstate = state;
                 lstate = EXCHANGE_RT;
-                break;
+    break;
 
             case TOSLEEP:
                 lstate = state;
@@ -566,7 +598,7 @@ int main(void) {
                 __clearWDT();
                 // }
 
-                break;
+    break;
         }
         __clearWDT();
     } // End VAMP1K

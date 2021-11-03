@@ -8,6 +8,19 @@
 
 #include <stdint.h>
 
+
+// DEE map
+#define EEA_CONFIG            000 // Config: 94 eeprom's byte to store config
+#define EEA_MEAS_COUNTER      100 // Status: meas_counter  
+#define EEA_RESET_COUNTER     101 // Status: reset counter / RCON map...
+#define EEA_SKEYL             102 // Status: skey LSW
+#define EEA_SKEYH             103 // Status: skey MSW
+#define EEA_SST_SECTOR        102
+#define EEA_SST_OFFSET        104
+
+
+
+
 typedef enum{
     DEE_NO_ERROR = 0x00,
     DEE_EXPIRED_PAGE,

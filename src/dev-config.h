@@ -22,13 +22,13 @@ typedef enum { // Power sources
 } powermode_t;
 
 
-#define STATUS_UPDATE_DELAY   500  // Min. time heavy processing
+#define STATUS_REFRESH_PERIOD   500  // Min. time heavy processing
 
-#define Device_UpdStatus_Timer(x)  g_dev.st.timestamp = x 
-#define Device_UpdStatus_Alarm(x)  g_dev.st.alarm_counter = x 
-#define Device_UpdStatus_MeasC(x)  g_dev.st.meas_counter = x
-#define Device_UpdStatus_LinkS(x)  g_dev.st.link_status = x 
-#define Device_UpdStatus_LockS(x)  g_dev.st.locked = x 
+//#define Device_UpdStatus_Timer(x)  g_dev.st.timestamp = x 
+//#define Device_UpdStatus_Alarm(x)  g_dev.st.alarm_counter = x 
+//#define Device_UpdStatus_MeasC(x)  g_dev.st.meas_counter = x
+//#define Device_UpdStatus_LinkS(x)  g_dev.st.link_status = x 
+//#define Device_UpdStatus_LockS(x)  g_dev.st.locked = x 
 
 
 //----------------------------------------------------------------------------//

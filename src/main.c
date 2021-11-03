@@ -15,9 +15,6 @@
 #include "sampling/measurement.h"
 #include "exchange/exchange.h"
 //
-//
-//#include "memory/SST26VF064B.h"     // Flash SPI
-//#include "memory/storage.h"
 //------------------------------------------------------------------------------
 // Global Device 
 device_t g_dev;
