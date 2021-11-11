@@ -7,16 +7,10 @@
 #include "../device.h"   // Compiler defines
 
 #include "../modules/UART2.h" // Channel's drivers
-#include "MRF24J40.h"
-
 //#include "../modules/RTCC.h"  // Datetime resources
-
+#include "MRF24J40.h"
 #include "protocol.h"
 
-#define MRF24J40_DONGLE_ADDRESS 0x8888
-#define MRF24J40_DEVICE_ADDRESS 0xCCCC
-#define MRF24J40_RF_CHANNEL     11
-#define MRF24J40_MODULE_TYPE    MRF24J40MD
 
 #ifndef __DONGLE_PASSTHRU
 
@@ -34,7 +28,7 @@ static uint8_t rxDataOffset;
 static uint8_t txrx_buffer[PROT_BUF_SIZE];
 
 #define __ACK_RETRY 5
-#define __ACK_TIMEOUT_DEFAULT 3000
+#define __ACK_TIMEOUT_DEFAULT 5000
 //#define __APP_TIMEOUT_DEFAULT 10000
 #define __INCHAR_TIMEOUT_DEFAULT 1000
 //#define __HANDSHAKE_TIMEOUT_DEFAULT 3000

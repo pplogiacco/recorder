@@ -4,6 +4,7 @@
 #include <xc.h>        // processor files
 #include <stdbool.h>
 #include "../device.h"    // Typeset defs / config params
+#include "measurement.h"
 
 #define FLOAT2INT_FACTOR 100000U
 #define SYNCO_FREQUENCY  38400U 

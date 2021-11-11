@@ -1,6 +1,5 @@
 #include "xc.h"
 #include <stdbool.h>
-
 #include "test.h"
 #include "dev-config.h"
 
@@ -8,36 +7,19 @@
 #define	DEVICE_H
 
 //------------------------------------------------------------------------------
-#define __DEVICE_DIN  100200301    // HWVAMP1K (Paolo)
-//#define __DEVICE_DIN 333222111  // HWDONGLE (Marco)
-//#define __DEVICE_DIN 999888777  // HWDONGLE (Marcello)
-
-#define __DEVICE_VER    10101   // ver-rel-bld
+#define __DEVICE_DIN  100100102    // HWVAMP1K (Paolo)
+#define __DEVICE_VER    10102     // ver-rel-bld
 #define __DEVICE_USB_SR 0310      // Usb enumeration  
 //------------------------------------------------------------------------------
-
-// Hardware:
-//#define __HWDONGLE
-#define __HWDEVICE
-
-// #define __HWDEVICE_V1
-// Logic Board V1 + Sensor Board + RF Board
-// #define __BOARD_V2
-// Logic Board V2 + RF Board
-
-#define __USE_ADG715
-
-
-//------------------------------------------------------------------------------
 #include "hardware.h"
+//------------------------------------------------------------------------------
 
-#define SYS_CLK_FrequencySystemGet()        Device_FrequencySystemGet()    // _FOSC_
+#define SYS_CLK_FrequencySystemGet()         Device_FrequencySystemGet()    // _FOSC_
 #define SYS_CLK_FrequencyPeripheralGet()    (Device_FrequencySystemGet()/2)
 #define SYS_CLK_FrequencyInstructionGet()   (Device_FrequencySystemGet()/2)
 #define FCY                                 (SYS_CLK_FrequencyInstructionGet())
 
 #define Device_IsUsbConnected() USB_Status
-
 
 
 typedef enum { // 

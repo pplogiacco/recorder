@@ -1,8 +1,6 @@
 
-
 #include <stddef.h>
 #include "flash.h"
-
 
 FLASH_RETURN_STATUS FLASH_EraseBlock(uint32_t flashAddress, size_t count)
 {
@@ -66,5 +64,4 @@ uint32_t FLASH_GetEraseBlockAddress(uint32_t flashAddress)
 {
     return FLASH_GetErasePageAddress(flashAddress);
 }
-
 

@@ -10,6 +10,13 @@
 extern "C" {
 #endif /* __cplusplus */
 
+
+#define MRF24J40_DONGLE_ADDRESS 0x8888
+#define MRF24J40_DEVICE_ADDRESS 0xCCCC
+#define MRF24J40_RF_CHANNEL     11
+#define MRF24J40_MODULE_TYPE    MRF24J40MA
+
+    
 #define APPLICATION_SITE  EUROPE    
 // #define TURBO_MODE    
     
@@ -19,7 +26,6 @@ extern "C" {
         //        MRF24J40MC,
         MRF24J40MD // MRF24J40ME module with external PA/LNA
     } mrftype_t;
-
 
 
     void MRF24J40_Enable(mrftype_t type, uint8_t channel, uint16_t macaddr, uint16_t panid);

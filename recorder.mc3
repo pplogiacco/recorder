@@ -1,4 +1,4 @@
-<config configName="PIC24FJ256GA702" projectName="recorder" configVersion="1.1" device="PIC24FJ256GA702" deviceLibraryClass="com.microchip.mcc.mcu16.Mcu16PeripheralLibrary" coreVersion="5.3.0">
+<config configName="PIC24FJ256GA702" projectName="recorder" configVersion="1.1" device="PIC24FJ256GA702" deviceLibraryClass="com.microchip.mcc.mcu16.Mcu16PeripheralLibrary" coreVersion="5.3.3">
    <usedPackages class="java.util.ArrayList"/>
    <usedClasses class="java.util.TreeMap">
       <entry>
@@ -141,7 +141,7 @@
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="ADC1" name="tad"/>
-         <value>0.000000625</value>
+         <value>6.25000E-7</value>
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.OptionKey" moduleName="ADC1" registerAlias="ADCHITL" settingAlias="CHH0" alias="disabled"/>

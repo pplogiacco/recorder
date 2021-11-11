@@ -45,6 +45,16 @@ POWER   27  Vss
 #define	HARDWARE_H
 
 // Firmware / Hardware
+// Hardware:
+//#define __HWDONGLE
+#define __HWDEVICE
+
+// #define __HWDEVICE_V1
+// Logic Board V1 + Sensor Board + RF Board
+// #define __BOARD_V2
+// Logic Board V2 + RF Board
+
+#define __USE_ADG715
 
 #ifdef __HWDONGLE
 //
@@ -67,36 +77,45 @@ POWER   27  Vss
 #define __BOARD_V2
 
 #ifdef __BOARD_V2
-#define BAT_LV_SetAnalogInput()   { _TRISA3=1;  _ANSA3=1; }   // AN3
-#define BAT_LV_ADC_CH0SA          5    // S/H+ Input A3
 
-#define PW_SWC_SetDigitalOutputLow()   { _TRISB4=0;  _LATB4=0; } // LTC3127 On
-#define PW_SWC_SetHigh()               { _LATB4=1; }          // Off   
-#define PW_SWC_SetLow()                { _LATB4=0; }          // On   
+#define BAT_LV_SetAnalogInput()         { _TRISA3=1;  _ANSA3=1; }   // AN3
+#define BAT_LV_ADC_CH0SA                5    // S/H+ Input A3
 
-#define PW_ADP_SetDigitalOutputLow()   { _TRISB15=0;  _ANSB15=0; _LATB15=0; }   // AN3
-#define PW_ADP_SetHigh()               { _LATB4=1; }  // ADP151 On      
-#define PW_ADP_SetLow()                { _LATB4=0; }  // ADP151 Off
+// Default power LTC Buck/Booster
+#define PW_SWC_SetDigitalOutputLow()    { _TRISB4=0;  _LATB4=0; } // LTC3127 On
+#define PW_SWC_SetHigh()                { _LATB4=1; }          // Off   
+#define PW_SWC_SetLow()                 { _LATB4=0; }          // On   
 
-#define PW_Sleep()                     { PW_SWC_SetHigh(); PW_ADP_SetHigh(); }                       
-#define PW_Default()                   { PW_SWC_SetLow(); PW_ADP_SetLow(); }
+// Low power ADP LDO
+#define PW_ADP_SetDigitalOutputLow()    { _TRISB15=0;  _ANSB15=0; _LATB15=0; }   // AN3
+#define PW_ADP_SetHigh()                { _LATB4=1; }  // ADP151 On      
+#define PW_ADP_SetLow()                 { _LATB4=0; }  // ADP151 Off
 
-#define ADA_IN_SetAnalogInput()   { _TRISA1=1;  _ANSA1=1; }   // AN1 
-#define ADA_IN_ADC_CH0SA          1     // S/H+ Input A 
+#define Device_Power_Save()             { PW_SWC_SetHigh(); PW_ADP_SetHigh(); }                       
+#define Device_Power_Default()          { PW_SWC_SetLow(); PW_ADP_SetLow(); }
+
+#define ADA_IN_SetAnalogInput()         { _TRISA1=1;  _ANSA1=1; }   // AN1 
+#define ADA_IN_ADC_CH0SA                1     // S/H+ Input A 
 
 #else
+
 #define BAT_LV_SetAnalogInput()   { _TRISA1=1;  _ANSA1=1; }   // AN0
 #define BAT_LV_ADC_CH0SA          1    // S/H+ Input A (0=AN0,1=AN1)
 #define ADA_IN_SetAnalogInput()   { _TRISA0=1;  _ANSA0=1; }   // AN0 
 #define ADA_IN_ADC_CH0SA          0     // S/H+ Input A 
+
 #endif
 
 
 // Flash memory ( SPI )
-#define SST_SS_SetDigitalOutputHigh()  {  _TRISA4 = 0; _LATA4 = 1; }
+#define SST26_SS_SetDigitalOutputHigh()  {  _TRISA4 = 0; _LATA4 = 1; }
 #define SST26_SS_SetHigh()   (_LATA4 = 1)
 #define SST26_SS_SetLow()    (_LATA4 = 0)
-#endif  
+
+#endif  // __HWDEVICE
+
+
+
 
 
 #if defined(__SENSOR_BOARD) // ____________________________________SENSOR_BOARD 
@@ -104,7 +123,7 @@ POWER   27  Vss
 #define __SPI1  // Signal Bus
 #define __I2C1
 
-#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__)) || defined(__PIC24FJ256GA702__)
+#if defined(__PIC24FJ256GA702__)
 
 #define ADA_SS                      _RB12  // RB14 INT1/AN10
 #define ADA_SS_SetHigh()            _LATB12=1
@@ -163,24 +182,14 @@ POWER   27  Vss
 #define IO_SWC1_SetDigitalInput()
 #endif
 
+
 #ifdef __USB  // ___________________________________________________________USB
 
 #define __UART2
 #define USB_WK_SetDigitalInputLow() {  _TRISB7 = 1; _LATB7 = 0;  } // IOCPDBbits.CNPDB7 = 1;
 #define USB_Status _RB7 
+
 #endif // __USB
-
-
-#if defined(__MRF24) // __________________________________________________MRF24
-
-#define MRF24_INT             _RB7   // Shared USB_WK
-#define MRF24_SS             (_RA2)   // Chip select
-#define MRF24_SS_SetHigh()   (_LATA2 = 1)
-#define MRF24_SS_SetLow()    (_LATA2 = 0)
-#define MRF_SS_SetDigitalOutputHigh()  {_TRISA2 = 0; _ANSA2 = 0; _LATA2 = 1; } 
-#endif // __MRF24
-
-
 
 #ifdef __UART2     // __________________________________________________UART2
 
@@ -188,7 +197,21 @@ POWER   27  Vss
 #define UART2_RX_SetDigitalInput()      { _ANSB0 = 0; _TRISB0 = 0; _LATB0 = 1; }
 #endif
 
+
+#if defined(__MRF24) // __________________________________________________MRF24
+#define MRF24_INT             _RB7    // Shared USB_WK
+#define MRF24_SS             (_RA2)   // Chip select
+#define MRF24_SS_SetHigh()   (_LATA2 = 1)
+#define MRF24_SS_SetLow()    (_LATA2 = 0)
+#define MRF24_SS_SetDigitalOutputHigh()  {_TRISA2 = 0; _ANSA2 = 0; _LATA2 = 1; } 
+#endif // __MRF24
+
+
+
+
+
 #endif // HARDWARE_H
+
 
 
 /*******************************************************************************

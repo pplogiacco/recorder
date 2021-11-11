@@ -3,21 +3,22 @@
  * 
 */
 
+
+
 #ifndef DEE_H
 #define DEE_H
-
 #include <stdint.h>
 
 
+#include "dee_config.h"
 // DEE map
 #define EEA_CONFIG            000 // Config: 94 eeprom's byte to store config
 #define EEA_MEAS_COUNTER      100 // Status: meas_counter  
 #define EEA_RESET_COUNTER     101 // Status: reset counter / RCON map...
 #define EEA_SKEYL             102 // Status: skey LSW
 #define EEA_SKEYH             103 // Status: skey MSW
-#define EEA_SST_SECTOR        102
-#define EEA_SST_OFFSET        104
-
+#define EEA_SST26_SECTOR        102
+#define EEA_SST26_OFFSET        104
 
 
 

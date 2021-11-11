@@ -1,48 +1,7 @@
-/**
-  @Company
-    Microchip Technology Inc.
-
-  @Summary
-    Lower level peripheral API for the flash module using Code Configurator Library(CCL).
-
-  @Description
-    Lower level peripheral API for the flash module using Code Configurator Library(CCL).
-    The generated drivers are tested against the following:
-        Compiler          :  XC16 v1.61
-        MPLAB 	          :  MPLABX v5.45
-*/
 
 
 #ifndef FLASH_H
 #define FLASH_H
-
-
-// DDE
-#define DATA_EE_BANKS                     1  // 6
-#define DATA_EE_SIZE                      127 // 255
-#define DATA_EE_TOTAL_SIZE                (DATA_EE_BANKS * DATA_EE_SIZE)
-#define NUM_DATA_EE_PAGES                 2
-#define	NUMBER_OF_INSTRUCTIONS_IN_PAGE    1024
-#define	NUMBER_OF_INSTRUCTIONS_IN_ROW     128
-//#define DEE_STRUCTURE_FLASH_START_ADDRESS 0x4000  //
-
-// If the device has ECC
-#define __HAS_ECC	                      1
-#define ERASE_WRITE_CYCLE_MAX             10000
-#define NUMBER_OF_ROWS_IN_PAGE            (_FLASH_PAGE / _FLASH_ROW)
-#define PAGE_AVAILABLE                    1
-#define PAGE_CURRENT                      0
-#define PAGE_EXPIRED                      0
-#define PAGE_NOT_AVAILABLE                0
-#define PAGE_NOT_CURRENT                  1
-#define PAGE_NOT_EXPIRED                  1
-#define STATUS_AVAILABLE                  18
-#define STATUS_CURRENT                    19
-#define STATUS_EXPIRED                    20
-#define ERASE_STATE                       0xFFFFFF
-
-
-
 
 
 #include <stdint.h>

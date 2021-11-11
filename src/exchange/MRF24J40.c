@@ -121,7 +121,7 @@ void MRF24J40_Enable(mrftype_t type, uint8_t channel, uint16_t macaddr, uint16_t
 
     module_type = type;
 
-    MRF_SS_SetDigitalOutputHigh();
+    MRF24_SS_SetDigitalOutputHigh();
     SPI1_Enable(MODE0,SPI_2MHZ);
 
     uint16_t chk;

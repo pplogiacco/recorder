@@ -15,9 +15,9 @@
 #define sample_t signed short       // fix14_t 
 //typedef unsigned short sample_t;  // ADC FormatAbsolute Integer Format
 
-#define FLOAT2INT_FACTOR 100000U
-#define SYNCO_FREQUENCY  38400U 
-#define SCALE_TOUNSIGNED 1024U      // 12 bit 4096
+//#define FLOAT2INT_FACTOR 100000U
+//#define SYNCO_FREQUENCY  38400U 
+//#define SCALE_TOUNSIGNED 1024U      // 12 bit 4096
 
 //------------------------------------------------------------------------------
 #if ( defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__)) // Flash 32K, SRam 2K, EEprom 512
@@ -26,7 +26,7 @@
 
 #elif defined(__PIC24FJ256GA702__)
 
-#define SS_BUF_SIZE 5120        // SRam
+#define SS_BUF_SIZE 4096 // 5120        // SRam
 
 ////#define SS_BUF_SIZE_NVM 1536      // Flash
 //
@@ -62,11 +62,11 @@ typedef enum e_typeset {
     _AV00 = 0x0A, // (10) Aeolian Vibration, RAW { <ET>,<WS>,<adc_fq> <res_scale>,[<dT>,<s>],...}
     _AV01 = 0x0D, // (13) Aeolian Vibration, P-P { <ET>,<WS>,<adc_fq> <res_scale,[<dT>,<sp>],...}
     _AV02 = 0x0C, // (12) Aeolian Vibration, FFT Real { <ET>,<WS>,<adc_fq>,<log2_n>,[<rH1>],...,[<rH((2^log2_n)/2)>]}
-    _AV03 = 0x0E, // (14) FFT Real { <ET>,<WS>,<adc_fq>,<log2_n>,[<rH1>],...,[<rH((2^log2_n)/2)>]}
+  //  _AV03 = 0x0E, // (14) FFT Complex { <ET>,<WS>,<adc_fq>,<log2_n>,[<rH1>],...,[<rH((2^log2_n)/2)>]}
     _AV04 = 0x04, // (04) Aeolian Vibration, RAW without dT ! { <ET>,<WS>,<adc_fq> <res_scale>,<s1>,...,<sn>} 
     _AV05 = 0x0F, // (15) AVC-P2P { <ET>,<WS>,<adc_fq>,<res_scale>,<duration>,[ (<n>,<freq>,<amp>),...]}
     _AV06 = 0x08, // (08) AVC-DFT { <ET>,<WS>,<adc_fq>,<res_scale>,<duration>,[ (<n>,<nc>,<pw>),...]}
-    _SS00 = 0x0B // (11) Sub-Span, raw         
+    _SS00 = 0x0B  // (11) Sub-Span, raw         
 } typeset_t;
 
 typedef struct {
@@ -107,20 +107,22 @@ typedef struct {
     
  */
 // 
-uint16_t measurementAcquire(measurement_t *ms); // ret: nSamples
+void measurementInitialize();
+uint16_t measurementCounterGet();
 //
-//uint16_t measurementCounter(); 
-#define measurementCounter() g_dev.st.meas_counter  // ret: number of stored measurements
+uint16_t measurementAcquire(); // ret: nsamples
+//
+uint16_t measurementSave(); // ret: measurementCounter()
+uint16_t measurementLoad(uint16_t index, measurement_t *ms); // ret: measurementCounter()
+uint16_t measurementLoadSamples(uint8_t *pbuf, uint8_t offset, uint8_t size); // Exchange needs !!!
+uint16_t measurementDelete(uint16_t index); // ret: measurementCounter()
+//
 
-uint16_t measurementSave(measurement_t *ms); // ret: 0/Counter
-uint16_t measurementLoad(uint16_t index, measurement_t *ms); // ret: -1 error or Index ( ONLY LAST ??? FIFO ???)
-uint16_t measurementDelete(uint16_t index); // ret: -1 error or Index
-
-void measurementGetBlock(uint8_t *pbuf, uint16_t offset, uint16_t size); // Exchange needs !!!
 
 //uint16_t getRTMeasure(measureCmd_t cmd, measure_t mtype, sample_t *nsamp);
 
 // -------------------------------------------------------------------------
+void sstInitialize();
 uint16_t sstFreeSpaceKb();
 // -------------------------------------------------------------------------
 

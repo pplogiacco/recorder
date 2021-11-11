@@ -11,6 +11,8 @@
 #include "memory/SST26VF064B.h"     // Flash SPI
 #include "memory/DEE/dee.h"
 
+#define g_measurement tmpM
+    
 #ifdef __VAMP1K_TEST
 
 
@@ -68,12 +70,19 @@ int main(void) {
 
     Device_SwitchSys(SYS_BOOT); // Eval RCON, rtcc, pins, read config
     Device_SwitchSys(SYS_DEFAULT);
+    
+    Device_SwitchSys(SYS_BOOT); // Eval RCON, rtcc, pins, read config
+    DEE_Init();
+//    if (DEE_Init() != DEE_NO_ERROR) {
+//    }
+    
+    
     state = STARTUP; // System startup
     lstate = state;
 
     //    _TRISB2 = 0; // Out
 
-    int i;
+    uint16_t i;
 
     UART2_Enable(); // printf()...)
 
@@ -224,8 +233,8 @@ int main(void) {
         __delay(5000);
     }
 #else    
-    Device_ConfigRead(&g_dev.cnf); // Read from EEprom/Flash
-    //    Device_ConfigDefaultSet(&g_dev.cnf);
+     Device_ConfigRead(&g_dev.cnf); // Read from EEprom/Flash
+    //  Device_ConfigDefaultSet(&g_dev.cnf);
     //    Device_ConfigWrite((uint8_t*) & g_dev.cnf); // Write EEprom/Flash
 #endif
 
@@ -352,6 +361,9 @@ int main(void) {
 #endif
 
 
+    
+    
+    
 
 #ifdef __VAMP1K_TEST_SST26
 
@@ -369,13 +381,13 @@ int main(void) {
     //SST26_Reset();
     
     
-    SST26_WREN(); // Necessaria ????
+    //SST26_WREN(); // Necessaria ????
     SST26_Global_Block_Protection_Unlock();
     
     
-    SST26_WREN();   // Nexwssarie ???
+    //SST26_WREN();   // Nexwssarie ???
     //SST26_Block_Erase(sst_addr);     
-    SST26_Sector_Erase(sst_addr); // Set 4K in 0xFF state
+    SST26_Erase_Sector(sst_addr); // Set 4K in 0xFF state
     SST26_Wait_Busy();
 
     int man, typ, id,j;
@@ -421,10 +433,103 @@ int main(void) {
 #endif    
 
         
+
     
+    
+#ifdef __VAMP1K_TEST_DDE
+    
+    #define DDE_START	150
+    #define DDE_STOP	160
+    #define DDE_COUNTER DDE_STOP - DDE_START
+    
+    uint16_t value;
+    int ncycle =0;
+    printf("______DDE:\n");
+    
+    while (1) {
+        printf("Write... %u, %u \n",DDE_COUNTER, ncycle );
+        for (i = 0; i < DDE_COUNTER; i++) {
+            DEE_Write(DDE_START+ i, ncycle*i); // (dee.h)  
+        }
+	
+	printf("Read...%u, %u \n",DDE_COUNTER, ncycle  );
+	printf("values: ");
+	for (i = 0; i < DDE_COUNTER; i++) {
+	 DEE_Read(DDE_START+ i, &value); // (dee.h)  
+         printf(" %u,", value);
+	}
+	printf("\n");
+        __delay(5000);
+	ncycle++;
+    }
+   
+#endif  
+    
+    
+    
+
+
     
 #ifdef __VAMP1K_TEST_measurement_save 
     
+measurementInitialize(&g_measurement);    
+   
+    
+#define ShowMem() {   printf("FreeSpace :%u\n", sstFreeSpaceKb());    \
+    uint16_t Sector, Offset;	\
+    DEE_Read(EEA_SST26_SECTOR, &Sector);   \
+    DEE_Read(EEA_SST26_OFFSET, &Offset);  \
+    printf("Sector :%u\n", Sector);	\
+    printf("Offset :%u\n", Offset);	\
+    printf("Meas_Counter :%u\n",measurementCounter() ); \
+    }
+	 
+    
+#define NewMeasurement(n) { g_measurement.tset = _SIG0; \
+     RTCC_GetTime(&stime); \
+     g_measurement.dtime =   stime.lstamp; \
+     g_measurement.ns = n; \
+     g_measurement.nss = 0; \
+      for (i = 0; i < g_measurement.ns; i++) {  \
+          *(g_measurement.ss + i) = i;  \
+      } \
+    }
+    
+    
+    printf("Start test... \n\n");
+    while (1) {
+    //ShowMem();
+    
+    printf("Save new measurement...\n");
+    NewMeasurement(128);
+    measurementSave(&g_measurement);
+    ShowMem();
+    printf("--------------\n\n");
+    g_measurement.tset = 0;
+    g_measurement.ns = 0;
+    
+    //__delay(5000);
+     printf("Measurement Read...\n");
+     measurementLoad(1, &g_measurement);
+     printf("tset:%u\n", g_measurement.tset);
+     stime.lstamp = g_measurement.dtime;
+     L2Time(&stime);
+     printf("timestamp: %d/%d/%d - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
+     printf("ns:%u \n", g_measurement.ns);
+     printf("nss:%u \n", g_measurement.nss);
+      for (i = 0; i < g_measurement.ns; i++) {
+          printf("%u,", *(g_measurement.ss + i));
+      };
+     printf("\n---------------\n\n");             
+     __delay(2000);
+    }		
+#endif      
+
+
+    #ifdef __VAMP1K_TEST_measurement_delete 
+    
+measurementInitialize(&g_measurement);    
+   
     
 #define ShowMem() {   printf("FreeSpace :%u\n", sstFreeSpaceKb());    \
     uint16_t Sector, Offset;	\
@@ -433,10 +538,11 @@ int main(void) {
     printf("Sector :%u\n", Sector);	\
     printf("Offset :%u\n", Offset);	\
     printf("Meas_Counter :%u\n",measurementCounter() );	\
-    __delay(5000); \
+    __delay(2000); \
     }
 	 
-     printf("Start test... \n\n");
+    printf("Start test... \n\n");
+    
 #define NewMeasurement(n) { g_measurement.tset = _SIG0; \
      RTCC_GetTime(&stime); \
      g_measurement.dtime =   stime.lstamp; \
@@ -444,22 +550,30 @@ int main(void) {
      g_measurement.nss = 0; \
       for (i = 0; i < g_measurement.ns; i++) {  \
           *(g_measurement.ss + i) = i;  \
-      }; \
+      } \
     }
     
-      
-    while (1) {
-    //ShowMem();
     
-   
-    printf("Save new measurement...\n");
+    while (1) {
+
+    int j=0;
+    printf("Save 3 new measurement...\n");
+    
+    while (j< 3 ) {
     NewMeasurement(5);
     measurementSave(&g_measurement);
-    printf("--------------\n");
+    printf("Measurement Save...\n");
     ShowMem();
     printf("--------------\n\n");
+    g_measurement.tset = 0;
+    g_measurement.ns = 0;
+    j++;
+    }
+    printf("Measurement Delete...\n");
+    measurementDelete(1);
+    ShowMem();
+    printf("--------------\n\n");    
     
-    //__delay(5000);
      printf("Measurement Read...\n");
      measurementLoad(1, &g_measurement);
      printf("---------------\n");
@@ -468,15 +582,17 @@ int main(void) {
      L2Time(&stime);
      printf("timestamp: %d/%d/%d - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
      printf("ns:%u \n", g_measurement.ns);
-    //  for (i = 0; i < g_measurement.ns; i++) {
-    //      printf("%u,", *(g_measurement.ss + i));
-    //  };
+     printf("nss:%u \n", g_measurement.nss);
+      for (i = 0; i < g_measurement.ns; i++) {
+          printf("%u,", *(g_measurement.ss + i));
+      };
      printf("---------------\n\n\n");             
-     __delay(5000);
+     __delay(2000);
     }		
 #endif      
-
-
+    
+    
+    
 
     while (1) {
         switch (state) {
