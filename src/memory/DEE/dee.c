@@ -4,31 +4,7 @@
 #include "dee.h"
 #include "dee_config.h"
 
-#undef DDE_OK
-
-////#define DATA_EE_BANKS                     1  // 6
-////#define DATA_EE_SIZE                      127 // 255
-////#define DATA_EE_TOTAL_SIZE                (DATA_EE_BANKS * DATA_EE_SIZE)
-////
-////#define NUM_DATA_EE_PAGES                 2
-////#define	NUMBER_OF_INSTRUCTIONS_IN_PAGE    1024
-////#define	NUMBER_OF_INSTRUCTIONS_IN_ROW     128
-////#define DEE_STRUCTURE_FLASH_START_ADDRESS 0x4000  //
-////
-////// If the device has ECC
-////#define __HAS_ECC	                      1
-////#define ERASE_WRITE_CYCLE_MAX             10000
-////#define NUMBER_OF_ROWS_IN_PAGE            (_FLASH_PAGE / _FLASH_ROW)
-////#define PAGE_AVAILABLE                    1
-////#define PAGE_CURRENT                      0
-////#define PAGE_EXPIRED                      0
-////#define PAGE_NOT_AVAILABLE                0
-////#define PAGE_NOT_CURRENT                  1
-////#define PAGE_NOT_EXPIRED                  1
-////#define STATUS_AVAILABLE                  18
-////#define STATUS_CURRENT                    19
-////#define STATUS_EXPIRED                    20
-////#define ERASE_STATE                       0xFFFFFF
+#define DDE_OK
 
 /*Data EE info stored in PM in following format
   Status in first two locations of PM page,
@@ -37,9 +13,7 @@
 #define BYTES_PER_DATA_EE                  2
 #define DEE_DATA_SIZE_IN_BYTES            (DATA_EE_BANKS * NUM_DATA_EE_PAGES * NUMBER_OF_INSTRUCTIONS_IN_PAGE * BYTES_PER_DATA_EE)
 
-uint8_t emulationPages[DEE_DATA_SIZE_IN_BYTES]
-//__attribute__ ((space(psv), aligned(NUMBER_OF_INSTRUCTIONS_IN_PAGE * 2), noload));
-__attribute__((space(psv), address(DEE_STRUCTURE_FLASH_START_ADDRESS), aligned(NUMBER_OF_INSTRUCTIONS_IN_PAGE * 2), noload));
+uint8_t emulationPages[DEE_DATA_SIZE_IN_BYTES] __attribute__((space(psv), address(DEE_STRUCTURE_FLASH_START_ADDRESS), aligned(NUMBER_OF_INSTRUCTIONS_IN_PAGE * 2), noload));
 #define DEE_BANK_SIZE                     (NUMBER_OF_INSTRUCTIONS_IN_PAGE * BYTES_PER_DATA_EE * NUM_DATA_EE_PAGES)
 #define DEE_PAGE_SIZE                     (NUMBER_OF_INSTRUCTIONS_IN_PAGE * BYTES_PER_DATA_EE)
 #define DEE_PAGE_ADDRESS(bank, page)      ((__builtin_tbladdress(&emulationPages) + (DEE_BANK_SIZE * (bank)) + (DEE_PAGE_SIZE * (page))) & 0xFFFFFF)
@@ -104,7 +78,7 @@ static DEE_RETURN_STATUS DEE_Pack(uint8_t bank);
 
 DEE_RETURN_STATUS DEE_Init(void)
 {
-#if (DDE_OK)
+#ifdef DDE_OK
     uint8_t pageCnt;
     uint16_t erasePage;
     uint16_t currentPage;
@@ -190,7 +164,7 @@ DEE_RETURN_STATUS DEE_Init(void)
 
 DEE_RETURN_STATUS DEE_Read(uint16_t addr, uint16_t* dataRead)
 {
-#if (DDE_OK)
+#ifdef DDE_OK
     uint16_t currentPage;
     uint32_t pageAddress;
     uint8_t latchAddr;
@@ -245,7 +219,7 @@ DEE_RETURN_STATUS DEE_Read(uint16_t addr, uint16_t* dataRead)
 
 DEE_RETURN_STATUS DEE_Write(uint16_t addr, uint16_t data)
 {
-#if (DDE_OK)
+#ifdef DDE_OK
     uint16_t currentPage;
     uint32_t pageAddress; //Current array (page) offset of selected element (PM 16-bit word)
     uint16_t nextLoc;

@@ -2,18 +2,16 @@
 
 #include "../modules/SPI1.h"
 #include "../device.h"
+#include "../utils.h"   // delay_us
 
+static bool disable_spi1; // Shared SPI1
 
-static bool disable_spi1;       // Shared SPI1
-
-void SST26_Enable()
-{
+void SST26_Enable() {
     SST26_SS_SetDigitalOutputHigh();
     disable_spi1 = SPI1_Enable(MODE0, SPI_2MHZ); // Shared SPI1
 }
 
-void SST26_Disable()
-{
+void SST26_Disable() {
     SST26_SS_SetHigh();
     if (disable_spi1) { // Shared SPI1
         SPI1_Disable();
@@ -24,8 +22,7 @@ void SST26_Disable()
 void SST26_WREN();
 void SST26_WRDI();
 
-void SST26_Switch_Power()
-{
+void SST26_Switch_Power() {
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(0xAB); // send RDSR command 
     //byte = SPI1_Exchange8bit(0xFF); /* receive byte */
@@ -51,6 +48,7 @@ void SST26_Switch_Power()
         1 = WP# enabled
         0 = WP# disabled	
  ************************************************************************/
+
 /*************************************************************************
  *  Status Register
  * 
@@ -63,8 +61,7 @@ void SST26_Switch_Power()
  * 6  Reserved
  * 7  BUSY Write operation status ( 1=in progress) 
  *************************************************************************/
-unsigned char SST26_Read_Status()
-{
+unsigned char SST26_Read_Status() {
     unsigned char byte = 0;
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(SST26_CMD_READ_STATUS_REG); /* send RDSR command */
@@ -73,8 +70,7 @@ unsigned char SST26_Read_Status()
     return byte;
 }
 
-unsigned char SST26_Read_Configuration()
-{
+unsigned char SST26_Read_Configuration() {
     unsigned char byte = 0;
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(0x35); /* send RDSR command */
@@ -83,8 +79,7 @@ unsigned char SST26_Read_Configuration()
     return byte;
 }
 
-void SST26_Write_Status_Register(unsigned int data1, unsigned char datalen)
-{
+void SST26_Write_Status_Register(unsigned int data1, unsigned char datalen) {
     //For data1 - top 8 bits are status reg bits , lower 8 bits are configuration reg bits
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(SST26_CMD_WRITE_STATUS_REG);
@@ -101,8 +96,7 @@ void SST26_Write_Status_Register(unsigned int data1, unsigned char datalen)
  * Byte-Program, Page-Program, Sector-Erase, Block-Erase and Chip-Erase).
  * 0x80 -> bit 7 "BUSY Write operation status ( 1=in progress)"
  ************************************************************************/
-void SST26_Wait_Busy()
-{
+void SST26_Wait_Busy() {
     while ((SST26_Read_Status() & 0x80) == 0x80) // waste time until not busy
         SST26_Read_Status();
 }
@@ -110,24 +104,22 @@ void SST26_Wait_Busy()
 
 /************************************************************************/
 /* Reset                                                                */
+
 /************************************************************************/
-void SST26_ResetEn()
-{
+void SST26_ResetEn() {
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(SST26_CMD_RESET_ENABLE);
     SST26_SS_SetHigh(); /* disable device */
 }
 
-void SST26_Reset()
-{
+void SST26_Reset() {
     SST26_ResetEn();
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(SST26_CMD_RESET);
     SST26_SS_SetHigh(); /* disable device */
 }
 
-void SST26_NoOp()
-{
+void SST26_NoOp() {
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(SST26_CMD_NOOP);
     SST26_SS_SetHigh(); /* disable device */
@@ -136,6 +128,7 @@ void SST26_NoOp()
 
 /************************************************************************/
 /* Erase                						*/
+
 /************************************************************************/
 void SST26_Erase_Chip() // Erases the entire Chip !!!
 {
@@ -144,8 +137,7 @@ void SST26_Erase_Chip() // Erases the entire Chip !!!
     SST26_SS_SetHigh();
 }
 
-void SST26_Erase_Sector(unsigned long Dst)
-{
+void SST26_Erase_Sector(unsigned long Dst) {
     // Sector Addresses: Use AMS - A12, remaining address are don?t care, but must be set to VIL or VIH.
     SST26_WREN();
     SST26_SS_SetLow();
@@ -154,6 +146,7 @@ void SST26_Erase_Sector(unsigned long Dst)
     SPI1_Exchange8bit(((Dst & 0xFFFF) >> 8));
     SPI1_Exchange8bit(Dst & 0xFF);
     SST26_SS_SetHigh();
+    _delay_us(2);
     SST26_Wait_Busy();
 }
 
@@ -170,31 +163,28 @@ void SST26_Erase_Block(unsigned long Dst) // 8Kbyte, 32 KByte or 64 KByte
 
 /************************************************************************/
 /* Write                                                        	*/
+
 /************************************************************************/
 
-void SST26_WREN()
-{
+void SST26_WREN() {
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(SST26_CMD_WRITE_ENABLE); /* send WREN command */
     SST26_SS_SetHigh(); /* disable device */
 }
 
-void SST26_WRDI()
-{
+void SST26_WRDI() {
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(SST26_CMD_WRITE_DISABLE); /* send WRDI command */
     SST26_SS_SetHigh(); /* disable device */
 }
 
-void SST26_Write_Suspend()
-{
+void SST26_Write_Suspend() {
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(SST26_CMD_WRITE_SUSPEND);
     SST26_SS_SetHigh(); /* disable device */
 }
 
-void SST26_Write_Resume()
-{
+void SST26_Write_Resume() {
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(SST26_CMD_WRITE_RESUME);
     SST26_SS_SetHigh(); /* disable device */
@@ -203,48 +193,61 @@ void SST26_Write_Resume()
 
 #include <stdio.h>      // printf x debug
 
-uint16_t SST26_Write(uint32_t addr, uint8_t *dbuf, uint16_t dlen)
-{
-    uint16_t ret = dlen;
-    uint16_t available, poffs;
-    //    uint32_t page;
+/*
+If the target address for the Page-Program instruction is not the beginning of 
+the page boundary (A[7:0] are not all zero), and the number of bytes of data
+input exceeds or overlaps the end of the address of the page boundary,
+the excess data inputs wrap around and will be programmed at the start of that
+target page.
+ */
+uint16_t SST26_Write(uint32_t addr, uint8_t *dbuf, uint16_t dlen) {
 
-    poffs = (addr & 0xFF);
+    uint16_t available, written;
+    uint16_t index;
 
-    // read page buffer
+    index = (addr & 0xFF); // set to page offset 
+    addr = addr & 0xFFFFFF00; // Sector/Page Address
 
+
+    printf("__Write: %u bytes (addr:%lu, offs: %u) \n", dlen, addr >> 8, index);
+
+    written = 0;
     SST26_WREN();
+    while (written < dlen) {
 
-    while (dlen > 0) {
+        available = (SST26_PAGE_SIZE - index);
+        printf("DISPONIBILI %u \n", available);
 
-        available = (256 - poffs);
-        //           printf("DISPONIBILI NELLA PAGINA %u \n", available );
-        if (available == 0) {
-            addr = addr + 256;
-            poffs = 0x0;
-            //            printf("CAMBIO PAGINA \n");
-            //printf("CAMBIO PAGINA (Addr= %lu) ! \n",addr);
+        if (index == SST26_PAGE_SIZE) {
+            addr = addr + SST26_PAGE_SIZE; // Next Page
+            printf("CAMBIO PAGINA...");
+            printf("(Addr= %lu), DISPONIBILI 256 ! \n", addr >> 8);
+            index = 0x0;
         }
+        //available = (255 - poffs);
         SST26_SS_SetLow(); // Select device
-
         SPI1_Exchange8bit(SST26_CMD_WRITE_PAGE); // send command "Page Program"  
         SPI1_Exchange8bit((addr >> 16) & 0xFF); // send msb first
         SPI1_Exchange8bit((addr >> 8) & 0xFF); // 24-bit page address
-        SPI1_Exchange8bit(poffs);
+        SPI1_Exchange8bit(index); // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        printf("W: ");
 
-        while ((poffs < 256) && (dlen > 0)) {
-            SPI1_Exchange8bit(*dbuf); // send bytes to be programmed 
-            //            printf(" %u,", *dbuf);
+        while ((index < SST26_PAGE_SIZE) && (written < dlen)) {
+            SPI1_Exchange8bit(*dbuf); // send bytes 
+            printf("%u,", *dbuf);
             dbuf++;
-            poffs++;
-            dlen--;
+            index++;
+            written++;
         }
-        //        printf("\n");
+        printf("\n");
+
+        printf("SCRITTI %u \n", written);
         SST26_SS_SetHigh(); // unselect device 
         SST26_Wait_Busy();
     }
+
     SST26_WRDI();
-    return (ret);
+    return (written);
 }
 
 
@@ -252,27 +255,34 @@ uint16_t SST26_Write(uint32_t addr, uint8_t *dbuf, uint16_t dlen)
 /* Read                                                             	*/
 /* The Read instruction, 03H, is supported in SPI bus protocol          */
 /* only with clock frequencies up to 40 MHz.                            */
+
 /************************************************************************/
-uint16_t SST26_Read(uint32_t addr, uint16_t nbytes, uint8_t *dbuf)
-{
+uint16_t SST26_Read(uint32_t addr, uint16_t dlen, uint8_t *dbuf) {
     uint16_t i = 0;
+
+
+    printf("__Read: %u bytes (addr:%lu, offs: %lu) \n", dlen, addr >> 8, (addr & 0xFF));
     SST26_SS_SetLow();
-    SPI1_Exchange8bit(SST26_CMD_READ); // Command  + 3 Address bytes 
-    SPI1_Exchange8bit(((addr & 0xFFFFFF) >> 16));
-    SPI1_Exchange8bit(((addr & 0xFFFF) >> 8));
-    SPI1_Exchange8bit(addr & 0xFF);
-    while (i < nbytes) {
+    //SPI1_Exchange8bit(SST26_CMD_READ); // Command  + 3 Address bytes 
+    SPI1_Exchange8bit(SST26_CMD_HS_READ); // Command  + 3 Address bytes 
+    SPI1_Exchange8bit((addr >> 16) & 0xFF); // send msb first
+    SPI1_Exchange8bit((addr >> 8) & 0xFF); // 24-bit page address
+    SPI1_Exchange8bit(addr & 0xFF); //  8bit page offset
+    SPI1_Exchange8bit(0xFF); //  Dummy char
+    printf("R: ");
+    while (i < dlen) {
 
         *dbuf = SPI1_Exchange8bit(0xFF); // receive byte 
+        printf("%u,", *dbuf);
         dbuf++;
         i++;
     }
+    printf("\n");
     SST26_SS_SetHigh(); // disable device 
     return (i);
 }
 
-void SST26_HSRead(uint32_t addr, uint16_t nbytes, uint8_t * dbuf)
-{
+void SST26_HSRead(uint32_t addr, uint16_t nbytes, uint8_t * dbuf) {
     uint16_t i;
     SST26_SS_SetLow();
     SPI1_Exchange8bit(SST26_CMD_HS_READ); // Command + 3 address bytes + Dummy
@@ -296,8 +306,7 @@ void SST26_HSRead(uint32_t addr, uint16_t nbytes, uint8_t * dbuf)
  *  2)user-programmable, program as desired (0008H ? 07FFH)
  * The Lockout Security ID instruction prevents any future changes to the Security ID. 
  ***********************************************************************/
-void SST26_ReadSID(unsigned char *security_ID, unsigned long Dst, unsigned long security_length)
-{
+void SST26_ReadSID(unsigned char *security_ID, unsigned long Dst, unsigned long security_length) {
     unsigned long i;
     i = 0;
     if (security_length > 2048) {
@@ -317,8 +326,7 @@ void SST26_ReadSID(unsigned char *security_ID, unsigned long Dst, unsigned long 
     SST26_SS_SetHigh();
 }
 
-void SST26_ProgSID(unsigned char *security_ID, unsigned long Dst, unsigned long security_length)
-{
+void SST26_ProgSID(unsigned char *security_ID, unsigned long Dst, unsigned long security_length) {
     unsigned long i = 0;
     if (security_length > 256) {
         security_length = 256;
@@ -335,8 +343,7 @@ void SST26_ProgSID(unsigned char *security_ID, unsigned long Dst, unsigned long 
     SST26_SS_SetHigh(); /* disable device */
 }
 
-void SST26_LockSID()
-{
+void SST26_LockSID() {
 
     /* Prior to the operation execute WREN.
      * To execute a Lockout SID, the host drives CE# low, sends the Lockout Security ID command (85H),
@@ -356,8 +363,7 @@ void SST26_LockSID()
 
 /************************************************************************/
 
-void SST26_Global_Protection_Unlock()
-{
+void SST26_Global_Protection_Unlock() {
 
     SST26_WREN();
     SST26_SS_SetLow(); /* enable device */
@@ -365,16 +371,14 @@ void SST26_Global_Protection_Unlock()
     SST26_SS_SetHigh(); /* disable device */
 }
 
-void SST26_LockBlockProtection()
-{
+void SST26_LockBlockProtection() {
 
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(0x8d); /* read command */
     SST26_SS_SetHigh(); /* disable device */
 }
 
-void SST26_ReadBlockProtection(unsigned int *block_protection_data)
-{
+void SST26_ReadBlockProtection(unsigned int *block_protection_data) {
 
     unsigned char i;
     i = 0;
@@ -390,8 +394,7 @@ void SST26_ReadBlockProtection(unsigned int *block_protection_data)
     SST26_SS_SetHigh(); /* disable device */
 }
 
-void SST26_WriteBlockProtection(unsigned int *block_protection_data)
-{
+void SST26_WriteBlockProtection(unsigned int *block_protection_data) {
 
     unsigned char i;
     i = 0;
@@ -407,8 +410,7 @@ void SST26_WriteBlockProtection(unsigned int *block_protection_data)
     SST26_SS_SetHigh(); /* disable device */
 }
 
-void SST26_NonVolWriteLockProtection(unsigned int *block_protection_data)
-{
+void SST26_NonVolWriteLockProtection(unsigned int *block_protection_data) {
 
     unsigned char i;
     i = 0;
@@ -431,8 +433,7 @@ void SST26_NonVolWriteLockProtection(unsigned int *block_protection_data)
 /* PROCEDURE:	SPI_SFDP_Read						*/
 
 /************************************************************************/
-unsigned char SST26_SFDP_Read(unsigned long Dst)
-{
+unsigned char SST26_SFDP_Read(unsigned long Dst) {
 
     unsigned char byte = 0;
 
@@ -461,8 +462,7 @@ unsigned char SST26_SFDP_Read(unsigned long Dst)
 
 /************************************************************************/
 
-void SST26_Jedec_ID_Read(int *Manufacturer_Id, int *Device_Type, int *Device_Id)
-{
+void SST26_Jedec_ID_Read(int *Manufacturer_Id, int *Device_Type, int *Device_Id) {
 
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(0x9F); /* send JEDEC ID command (9Fh) */

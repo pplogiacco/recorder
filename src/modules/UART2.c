@@ -28,11 +28,8 @@ static bool volatile rxOverflowed;
 static uint8_t txQueue[UART2_CONFIG_TX_BYTEQ_LENGTH];
 static uint8_t rxQueue[UART2_CONFIG_RX_BYTEQ_LENGTH];
 
-void (*UART2_TxDefaultInterruptHandler)(void);
-void (*UART2_RxDefaultInterruptHandler)(void);
-
-
-
+//void (*UART2_TxDefaultInterruptHandler)(void);
+//void (*UART2_RxDefaultInterruptHandler)(void);
 
 
 #if defined(__PIC24FJ256GA702__)
@@ -51,9 +48,9 @@ void UART2_Enable(void) {
     // 1 = High-Speed mode ( 4 BRG clock cycles per bit)
     // 0 = Standard Speed mode (16 BRG clock cycles per bit)
     // FCO = 32Mhz; High-Speed mode; BaudRate = 115200
-#define BAUDRATE 115200U
+    
+    #define BAUDRATE 115200U
     U2BRG = (( SYS_CLK_FrequencyPeripheralGet() / 4 ) / BAUDRATE) - 1;
-
 
     txHead = txQueue;
     txTail = txQueue;
@@ -62,8 +59,8 @@ void UART2_Enable(void) {
 
     rxOverflowed = false;
 
-    UART2_SetTxInterruptHandler(&UART2_Transmit_CallBack);
-    UART2_SetRxInterruptHandler(&UART2_Receive_CallBack);
+//    UART2_SetTxInterruptHandler(&UART2_Transmit_CallBack);
+//    UART2_SetRxInterruptHandler(&UART2_Receive_CallBack);
 
      IEC1bits.U2RXIE = 1;    //Make sure to set TxPin LAT bit High !!
      U2MODEbits.UARTEN = 1; // enabling UART ON bit
@@ -78,16 +75,16 @@ void UART2_Disable(void) {
 }
 
 
-void UART2_SetTxInterruptHandler(void (* interruptHandler)(void)) {
-    if (interruptHandler == NULL) {
-        UART2_TxDefaultInterruptHandler = &UART2_Transmit_CallBack;
-    } else {
-        UART2_TxDefaultInterruptHandler = interruptHandler;
-    }
-}
+//void UART2_SetTxInterruptHandler(void (* interruptHandler)(void)) {
+//    if (interruptHandler == NULL) {
+//        UART2_TxDefaultInterruptHandler = &UART2_Transmit_CallBack;
+//    } else {
+//        UART2_TxDefaultInterruptHandler = interruptHandler;
+//    }
+//}
 
 void __attribute__((interrupt, no_auto_psv)) _U2TXInterrupt(void) {
-    (*UART2_TxDefaultInterruptHandler)();
+//    (*UART2_TxDefaultInterruptHandler)();
 
     if (txHead == txTail) {
         IEC1bits.U2TXIE = 0;
@@ -112,16 +109,16 @@ void __attribute__((interrupt, no_auto_psv)) _U2TXInterrupt(void) {
 void __attribute__((weak)) UART2_Transmit_CallBack(void) {
 }
 
-void UART2_SetRxInterruptHandler(void (* interruptHandler)(void)) {
-    if (interruptHandler == NULL) {
-        UART2_RxDefaultInterruptHandler = &UART2_Receive_CallBack;
-    } else {
-        UART2_RxDefaultInterruptHandler = interruptHandler;
-    }
-}
+//void UART2_SetRxInterruptHandler(void (* interruptHandler)(void)) {
+//    if (interruptHandler == NULL) {
+//        UART2_RxDefaultInterruptHandler = &UART2_Receive_CallBack;
+//    } else {
+//        UART2_RxDefaultInterruptHandler = interruptHandler;
+//    }
+//}
 
 void __attribute__((interrupt, no_auto_psv)) _U2RXInterrupt(void) {
-    (*UART2_RxDefaultInterruptHandler)();
+//    (*UART2_RxDefaultInterruptHandler)();
 
     IFS1bits.U2RXIF = 0;
 
@@ -458,3 +455,52 @@ int __attribute__((__section__(".libc.write"))) write(int handle, void *buffer, 
     
     return (len);
 }
+
+/* -------------------------------------------------------------------------- */
+// Exchange driver 
+
+uint16_t UART2_RxBuffer(uint8_t *buff, uint16_t maxSize) {
+    uint8_t rxByte = 0;
+    uint16_t rxSize = 0;
+    uint16_t lTimeOut = 250;
+
+    //    setTimeout(0, 250);
+    do {
+        if (UART2_IsRxReady()) {
+            rxByte = UART2_Read();
+            buff[rxSize++] = rxByte;
+            if (rxSize == maxSize) {
+                break;
+            }
+        }
+        _delay_ms(1);
+    } while (lTimeOut--);
+    //   } while (!isTimeout());
+    return rxSize;
+}
+
+bool UART2_TxBuffer(uint8_t *buff, uint16_t size) {
+    int i;
+    for (i = 0; i < size; i++) {
+        UART2_Write(buff[i]);
+    }
+    while (!UART2_IsTxDone());
+    return true;
+}
+
+void UART2_Flush() {
+    uint8_t rxByte;
+    uint16_t lTimeOut = 100;
+
+    do {
+        if (UART2_IsRxReady()) {
+            if (UART2_RxBuffer(&rxByte, 1) > 0) {
+                lTimeOut = 1;
+            }
+        }
+        _delay_ms(1);
+    } while (lTimeOut--);
+
+}
+
+/* -------------------------------------------------------------------------- */

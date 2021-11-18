@@ -23,6 +23,7 @@ typedef union tagRTCC {
     };
 } rtcc_t;
 
+
 #elif   defined(__PIC24FJ256GA702__)
 
 typedef union tagRTCC {
@@ -102,6 +103,7 @@ void RTCC_Enable(void) {
     RCFGCALbits.RTCWREN = 0; // Lock 
 
 #elif defined(  __PIC24FJ256GA702__ )
+    
     RTCCON1Lbits.RTCEN = 0;
     __builtin_write_RTCC_WRLOCK();
     //    if (!RTCCTimeInitialized()) {
@@ -138,13 +140,13 @@ void RTCC_AlarmSet(timestamp_t *t) {
 #if  defined(__PIC24FJ256GA702__)
     // To avoid a false alarm event, the timer and alarm values should only 
     // be changed while the alarm is disabled (ALRMEN = 0).        
-    //__builtin_write_RTCC_WRLOCK();
+//    __builtin_write_RTCC_WRLOCK();
     RTCCON1Hbits.ALRMEN = 0; // Disable to modify alarm settings
     RTCSTATLbits.ALMEVT = 0x0;
     while (RTCSTATLbits.ALMSYNC); // 0 = Alarm registers may be written/modified safely
-    
-    RTCCON1Hbits.AMASK = 0b0101; // Every hour mm:ss
-    
+
+    RTCCON1Hbits.AMASK = 0b0101; // Every hour hh:mm:ss
+
     ALMDATEH = (i2bcd(t->year) << 8) | i2bcd(t->month); // Year/Month
     ALMDATEL = (i2bcd(t->day) << 8); // | i2bcd(weekday); // Date/Wday
     ALMTIMEH = (i2bcd(t->hour) << 8) | i2bcd(t->min); // hours/minutes
@@ -155,6 +157,7 @@ void RTCC_AlarmSet(timestamp_t *t) {
     IFS3bits.RTCIF = 0;
     IEC3bits.RTCIE = 1;
     // RTCCON1H = 0x8000; // AMASK Every Half Second; ALMRPT 0; CHIME disabled; ALRMEN enabled; 
+
 #endif
 }
 
@@ -162,7 +165,7 @@ void RTCC_AlarmSet(timestamp_t *t) {
 void RTCC_AlarmUnset() {
 #if  defined(__PIC24FJ256GA702__)
     __builtin_write_RTCC_WRLOCK();
-    RTCCON1H = 0x0; // ALRMEN disabled 
+    RTCCON1Hbits.ALRMEN = 0; // Disable to modify alarm settings
     RTCC_Lock();
     IEC3bits.RTCIE = 0;
 #endif

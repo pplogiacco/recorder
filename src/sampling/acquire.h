@@ -6,13 +6,13 @@
 #include "../device.h"    // Typeset defs / config params
 #include "measurement.h"
 
-#define FLOAT2INT_FACTOR 100000U
-#define SYNCO_FREQUENCY  38400U 
-#define SCALE_TOUNSIGNED 1024U  // 12 bit 4096
-
-#define PR3_FQ_24Khz   3200U
-#define PR3_FQ_1Khz    8000U
-#define PR3_FQ_05Khz  16000U
+//#define FLOAT2INT_FACTOR 100000U
+//#define SYNCO_FREQUENCY  38400U 
+//#define SCALE_TOUNSIGNED 1024U  // 12 bit 4096
+//
+//#define PR3_FQ_24Khz   3200U
+//#define PR3_FQ_1Khz    8000U
+//#define PR3_FQ_05Khz  16000U
 
 // Dimensions Acquiring Routines
 // -------------------------------------------------------------------------

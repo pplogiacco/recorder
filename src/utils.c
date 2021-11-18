@@ -36,7 +36,7 @@ void Timeout_Set(uint16_t nsec, uint16_t nms) {
         if (nsec > 0) { // Scount sec and ignore ms
             T1CONbits.TCKPS = 0b01; // Select 1:8 Prescaler   
             //PR1 = (nsec * 0xF22) >> 1; // Tick = 1s 
-            PR1 = (SYS_CLK_FrequencyPeripheralGet() / 60) - 1;
+            PR1 = (uint16_t)((SYS_CLK_FrequencyPeripheralGet() / 60) - 1);
         } else { // count ms
             T1CONbits.TCKPS = 0b00; // Select 1:1 (LPRC 1/31Khz * 0x1E = )
             PR1 = (nms * 0x1E); // ( 0x1E = 125 = 1ms period )

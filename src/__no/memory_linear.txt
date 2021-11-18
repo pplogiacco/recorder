@@ -1,0 +1,198 @@
+void sstInitialize()
+{
+    uint16_t Sector = 10;
+    // Initialize Persistent Status Datas
+    DEE_Write(EEA_MEAS_COUNTER, 0); // (dee.h)  
+    DEE_Write(EEA_SST_SECTOR, Sector); // (dee.h)  
+    DEE_Write(EEA_SST_OFFSET, 0); // (dee.h)  
+    // Initialize flash ( Erase chip ) )
+    SST26_Enable();
+    //    SST26_WREN();
+    SST26_Global_Protection_Unlock();
+    SST26_Erase_Sector(Sector * SST_SECTOR_SIZE); // Set 4K in 0xFF state
+    SST26_Disable();
+}
+
+uint16_t sstFreeSpaceKb()
+{ // return 
+    uint16_t Sector, Offset;
+    DEE_Read(EEA_SST_SECTOR, &Sector); // (dee.h)  
+    DEE_Read(EEA_SST_OFFSET, &Offset); // (dee.h)  
+    return ( SST26_SIZE_KB - (((Sector * SST_SECTOR_SIZE) + Offset) / 1024));
+}
+
+uint16_t sstBlockWrite(uint8_t* dPtr, uint16_t nBytes)
+{ // return written bytes
+    uint32_t sst_addr;
+    uint16_t written, available;
+    uint16_t Sector, Offset;
+
+    DEE_Read(EEA_SST_SECTOR, &Sector); // (dee.h)  
+    DEE_Read(EEA_SST_OFFSET, &Offset); // (dee.h)  
+
+    written = 0;
+    SST26_Enable();
+    SST26_Global_Protection_Unlock();
+
+    while (nBytes > 0) {
+        available = (SST_SECTOR_SIZE - Offset);
+        if (available == 0) { // Format new sector
+            Sector++;
+            Offset = 0;
+            available = SST_SECTOR_SIZE;
+            SST26_Erase_Sector(Sector * SST_SECTOR_SIZE); // Set 4K in 0xFF state
+        }
+        sst_addr = (Sector * SST_SECTOR_SIZE) + Offset;
+
+        if (nBytes <= available) {
+            written = SST26_Write(sst_addr, (dPtr + written), nBytes);
+        }
+        else {
+            written = SST26_Write(sst_addr, (dPtr + written), available);
+        }
+        nBytes -= written;
+        Offset += written;
+    }
+    //    SST26_WRDI();
+    SST26_Disable();
+
+    DEE_Write(EEA_SST_SECTOR, Sector); // (dee.h)  
+    DEE_Write(EEA_SST_OFFSET, Offset); // (dee.h)  
+    return (written);
+}
+
+/* -------------------------------------------------------------------------- */
+uint16_t sstBlockRelease(uint16_t nBytes)
+{
+    uint16_t newSector, newOffset;
+    uint16_t Sector, Offset;
+    uint32_t sst_addr;
+    //
+    DEE_Read(EEA_SST_SECTOR, &Sector); // (dee.h)  
+    DEE_Read(EEA_SST_OFFSET, &Offset); // (dee.h) 
+
+
+    //    newSector = Sector - (nBytes / SST_SECTOR_SIZE);
+    //    if ((nBytes % SST_SECTOR_SIZE) >= Offset) {
+    //        newOffset = (Offset - (nBytes % SST_SECTOR_SIZE));
+    //    }
+    //    else {
+    //        newSector--;
+    //        newOffset = SST_SECTOR_SIZE - ((nBytes % SST_SECTOR_SIZE) - Offset);
+    //    }
+
+    if (nBytes <= Offset) {
+        newOffset = (Offset - nBytes);
+        newSector = Sector;
+    }
+    else {
+        newSector = Sector - (nBytes / SST_SECTOR_SIZE);
+        newOffset = Offset - (nBytes % SST_SECTOR_SIZE);
+    }
+
+    // Move in newSector and save newOffset
+    SST26_Enable();
+    //    SST26_WREN();
+    SST26_Global_Protection_Unlock();
+    //    SST26_Wait_Busy();
+
+    // Move data to buffer !!! USES SSBUF !!!
+    sst_addr = (newSector * SST_SECTOR_SIZE);
+    SST26_Read(sst_addr, newOffset, (uint8_t *) SSBUF);
+    // Initialize Sector
+    SST26_Erase_Sector(sst_addr); // Set 4K in 0xFF state
+
+    // Move buffer to flash !!! USES SSBUF !!!
+
+    SST26_Write(sst_addr, (uint8_t *) SSBUF, newOffset);
+    SST26_Disable();
+
+    DEE_Write(EEA_SST_SECTOR, newSector); // (dee.h)  
+    DEE_Write(EEA_SST_OFFSET, newOffset); // (dee.h)  
+    return (nBytes);
+}
+
+/* -------------------------------------------------------------------------- */
+uint16_t sstBlockReadRev(uint8_t* dPtr, uint16_t displacement, uint16_t nBytes, bool release)
+{ // return readed bytes
+
+    uint16_t iSector, iOffset;
+    uint16_t Sector, Offset;
+    uint32_t sst_addr;
+    //
+    DEE_Read(EEA_SST_SECTOR, &Sector); // (dee.h)  
+    DEE_Read(EEA_SST_OFFSET, &Offset); // (dee.h) 
+
+    iSector = Sector - ((nBytes + displacement) / SST_SECTOR_SIZE);
+    if (((nBytes + displacement) % SST_SECTOR_SIZE) >= Offset) {
+        iOffset = (Offset - ((nBytes + displacement) % SST_SECTOR_SIZE));
+    }
+    else {
+
+        iSector--;
+        iOffset = (SST_SECTOR_SIZE - (((nBytes + displacement) % SST_SECTOR_SIZE) - Offset));
+    }
+
+    // Move in newSector and save newOffset
+    SST26_Enable();
+    //    SST26_WREN();
+    //    SST26_Global_Block_Protection_Unlock();
+    //    SST26_Wait_Busy();
+
+    // Move data to buffer !!! USES SSBUF !!!
+    sst_addr = (iSector * SST_SECTOR_SIZE) + iOffset;
+
+    nBytes = SST26_Read(sst_addr, nBytes, dPtr);
+    return (nBytes);
+}
+
+/* -------------------------------------------------------------------------- */
+
+//#define SAMPLES_SIZE_IN_BYTE 
+
+uint16_t measurementSave(measurement_t * ms)
+{
+    if ((ms->ns + ms->nss) > 0) {
+
+        DEE_Read(EEA_MEAS_COUNTER, &g_dev.st.meas_counter);
+        sstBlockWrite((uint8_t*) ms->ss, ((ms->ns + ms->nss) << 1)); // Save samples
+        sstBlockWrite((uint8_t*) ms, HEADER_SIZE_IN_BYTE);
+        g_dev.st.meas_counter++;
+        DEE_Write(EEA_MEAS_COUNTER, g_dev.st.meas_counter);
+    };
+    return (g_dev.st.meas_counter);
+}
+
+/* -------------------------------------------------------------------------- */
+//#define measurementCounter() g_dev.st.meas_counter
+
+/* -------------------------------------------------------------------------- */
+uint16_t measurementLoad(uint16_t index, measurement_t * ms)
+{
+    int16_t msIndex = 0;
+    if (g_dev.st.meas_counter > 0) {
+        sstBlockReadRev((uint8_t*) ms, 0, HEADER_SIZE_IN_BYTE, false); // ok
+        sstBlockReadRev((uint8_t*) ms->ss, HEADER_SIZE_IN_BYTE, ((ms->ns + ms->nss) << 1), false);
+        msIndex = index;
+        //memcpy(ms, &g_measurement, sizeof (measurement_t));
+    }
+    return (msIndex);
+}
+
+/* -------------------------------------------------------------------------- */
+uint16_t measurementDelete(uint16_t index)
+{
+    if (g_dev.st.meas_counter > 0) {
+        sstBlockReadRev((uint8_t*) & g_measurement, 0, HEADER_SIZE_IN_BYTE, false); // ok
+        sstBlockRelease(HEADER_SIZE_IN_BYTE + ((g_measurement.ns + g_measurement.nss) << 1));
+        g_dev.st.meas_counter--;
+        DEE_Write(EEA_MEAS_COUNTER, g_dev.st.meas_counter);
+    }
+    return (g_dev.st.meas_counter);
+}
+
+/* -------------------------------------------------------------------------- */
+void inline measurementGetBlock(uint8_t *pbuf, uint16_t offset, uint16_t size)
+{
+    memcpy(pbuf, &g_measurement.ss[offset], size);
+}

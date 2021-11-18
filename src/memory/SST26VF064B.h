@@ -15,6 +15,9 @@
 //#define SST26_PAGE_SHIFT    8     /* Page size 1 << 8 = 256 */
 //#define SST26_NPAGES        32768
 
+#define SST26_SECTOR_SIZE    4096
+#define SST26_PAGE_SIZE      256
+
 // Status Register Bits
 #define SST26_WIP              (1 << 0)                /* Bit 0: Write in progress */
 #define SST26_WEL              (1 << 1)                /* Bit 1: Write enable latch */
@@ -53,7 +56,7 @@ typedef enum {  // SST26 Commands
     SST26_CMD_WRITE_PAGE = 0x02,    // Page Program 256Bytes (000000H - 7FFFFFH)
                                     // (0x32) SQI Quad Page Program
     // Read
-    SST26_CMD_READ = 0x03, // Read data (000000H - 7FFFFFH)
+    SST26_CMD_READ = 0x03, // SPI Only Read data (000000H - 7FFFFFH)
     SST26_CMD_HS_READ = 0x0B, // High Speed Read data (000000H - 7FFFFFH)
 
     // Protection

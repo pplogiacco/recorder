@@ -4,7 +4,7 @@
 
 // DDE
 #define DATA_EE_BANKS                     4 // 6
-#define DATA_EE_SIZE                      255
+#define DATA_EE_SIZE                      128 // 255
 #define DATA_EE_TOTAL_SIZE                (DATA_EE_BANKS * DATA_EE_SIZE)
 #define NUM_DATA_EE_PAGES                 2
 #define	NUMBER_OF_INSTRUCTIONS_IN_PAGE    1024
@@ -26,6 +26,15 @@
 #define STATUS_EXPIRED                    20
 #define ERASE_STATE                       0xFFFFFF
 
+
+// DEE map for Device Vamp1K
+#define EEA_CONFIG              000 // Config: 94 eeprom's byte to store config
+#define EEA_MEAS_COUNTER        100 // Status: meas_counter  
+#define EEA_RESET_COUNTER       101 // Status: reset counter / RCON map...
+#define EEA_SKEYL               102 // Status: skey LSW
+#define EEA_SKEYH               103 // Status: skey MSW
+#define EEA_SST26_SECTOR        110
+#define EEA_SST26_OFFSET        111
 
 
 #endif	// DDE_CONFIG

@@ -7,6 +7,7 @@
 inline __attribute__((__always_inline__)) SPI1_TRANSFER_MODE SPI1_TransferModeGet(void);
 void SPI1_Exchange(uint8_t *pTransmitData, uint8_t *pReceiveData);
 uint16_t SPI1_ExchangeBuffer(uint8_t *pTransmitData, uint16_t byteCount, uint8_t *pReceiveData);
+
 static bool spi1_enabled = false;
 
 bool SPI1_Enable(SPI_MODE mode, SPI_BRATE speed)
@@ -24,8 +25,8 @@ bool SPI1_Enable(SPI_MODE mode, SPI_BRATE speed)
         SPI1STATL = 0x00; // SPIROV disabled; FRMERR disabled; 
 
         //SPI1BRGL = speed;
-        //SPI1BRGL = 0x03; // Baud Rate 2Mhz (32Mhz)
-        SPI1BRGL = 0x4F; // Baud Rate 100Khz (32Mhz)
+        SPI1BRGL = 0x03; // Baud Rate 2Mhz (32Mhz)
+        //SPI1BRGL = 0x4F; // Baud Rate 100Khz (32Mhz)
 
         // SPITBFEN disabled; SPITUREN disabled; FRMERREN disabled; SRMTEN disabled; 
         // SPIRBEN disabled; BUSYEN disabled; SPITBEN disabled; SPIROVEN disabled; SPIRBFEN disabled; 

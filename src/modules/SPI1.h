@@ -59,5 +59,16 @@ SPI1_STATUS SPI1_StatusGet(void);
 void SPI1_Disable();
 
 
+/************************ MIWI FUNCTION CALLS **********************/
+//#define HARDWARE_SPI
+//
+//void SPIPut(uint8_t v);
+//uint8_t SPIGet(void);
+//
+//#define SPIInit() SPI1_Enable(MODE0,SPI_2MHZ)
+
+/************************ MACROS ***********************************/
+
+
 #endif //SPI1_H
 
