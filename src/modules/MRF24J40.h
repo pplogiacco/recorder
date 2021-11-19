@@ -1,10 +1,9 @@
 // Recorder !
+// Libex 0.0.17
 #ifndef MRF24J40_HEADER_H
 #define	MRF24J40_HEADER_H
 
 #include <xc.h> // include processor files - each processor file is guarded.
-//#define  FCY  CLOCK_SystemFrequencyGet()     // Instruction cycle frequency, Hz - required for __delayXXX() to work
-//#include <libpic30.h>
 
 #ifdef	__cplusplus
 extern "C" {

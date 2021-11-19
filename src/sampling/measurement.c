@@ -13,7 +13,7 @@
 #include "../memory/DEE/dee.h"
 #include "../memory/SST26VF064B.h"  // Flash SPI
 
-#include "../memory/depot.h"
+#include "../memory/libdpt.h"
 
 
 //==============================================================================

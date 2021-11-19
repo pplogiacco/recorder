@@ -16,7 +16,7 @@
 
 #include "../sampling/measurement.h"
 
-#include "depot.h"
+#include "libdpt.h"
 
 extern device_t device;
 extern sample_t SSBUF[SS_BUF_SIZE]; // global buffer

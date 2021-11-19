@@ -1,7 +1,7 @@
 /******************************************************************************\
 |                                                                              |
 | V A M P -  R E C O R D E R                                                   |
-| Ver. 0.0.20                                                  (@)2021 DTeam ! |
+| Ver. 0.0.27                                                  (@)2021 DTeam ! |
 |                                                                              |
 \******************************************************************************/
 
@@ -43,8 +43,8 @@ int main(void) {
             case STARTUP: // Executed only after Power-On/Reset
                 Device_SwitchSys(SYS_BOOT); // Initialize Hardware & Services
                 if (!Device_ConfigRead()) { // Read persistent config
-                    // Factory default
-                    depotDefaultSet(); // Memory     
+                    // if error... Factory default
+                    depotDefaultSet(); // Memory   
                 }
                 Device_StatusRead();
                 state = EXCHANGE; // After start-up always try to connect
@@ -165,7 +165,7 @@ int main(void) {
                 if (Device_IsWiredLinked()) {
                     __delay(5000); // wait 5 secs and restart cycle
                 } else { //  
-                    
+
                     RTCC_GetTime(&stime);
                     stime.sec += device.cnf.general.delaytime % 60; // secs
                     stime.min += device.cnf.general.delaytime / 60; // minutes

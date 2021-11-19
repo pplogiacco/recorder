@@ -1,4 +1,10 @@
-
+/******************************************************************************
+ * L I B F F T                                               (@) DaaS Project *
+ *                                                                            *
+ *                                                                            *
+ ******************************************************************************
+ * Rel.0.0.3 - 15/11/21 - Latest !    
+ */
 #ifndef LIBFFT_H
 #define	LIBFFT_H
 
@@ -15,5 +21,5 @@ void fft_window(fix14_t fr[], fix14_t fi[]);
 
 void fft_spectrum(fix14_t ptrPoints[]);
 
-#endif	// FOURIER_H
+#endif	// LIBFFT_H
 

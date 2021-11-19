@@ -1,5 +1,5 @@
-// recorder !!!
-
+// Recorder !!!
+// Libex 0.0.17
 #include <string.h>
 #include "../device.h"
 #include "../utils.h"

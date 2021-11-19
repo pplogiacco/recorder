@@ -30,16 +30,16 @@
 // FWDT
 #pragma config WDTPS = PS32768          // Watchdog Timer Postscaler bits (1:32,768)
 #pragma config FWPSA = PR128            // Watchdog Timer Prescaler bit (1:128)
-#pragma config FWDTEN = ON_DIS_SLEEP    // Watchdog Timer Enable bits (WDT Enabled only while device is active (disabled in sleep, SWDTEN disabled))
+#pragma config FWDTEN = OFF // ON_DIS_SLEEP    // Watchdog Timer Enable bits (WDT Enabled only while device is active (disabled in sleep, SWDTEN disabled))
 #pragma config WINDIS = OFF             // Watchdog Timer Window Enable bit (Watchdog Timer in Non-Window mode)
 #pragma config WDTWIN = WIN25           // Watchdog Timer Window Select bits (WDT Window is 25% of WDT period)
 #pragma config WDTCMX = WDTCLK          // WDT MUX Source Select bits (WDT clock source is determined by the WDTCLK Configuration bits)
 #pragma config WDTCLK = LPRC            // WDT Clock Source Select bits (WDT uses LPRC)
 
 // FPOR
-#pragma config BOREN = ON               // Brown Out Enable bit (Brown Out Enable Bit)
-#pragma config LPCFG = OFF              // Low power regulator control (No Retention Sleep)
-#pragma config DNVPEN = ENABLE          // Downside Voltage Protection Enable bit (Downside protection enabled using ZPBOR when BOR is inactive)
+#pragma config BOREN = OFF // NO_SLEEP         // Brown Out Enable bit (Brown Out Enable Bit)
+#pragma config LPCFG = OFF     // OFF = RETENTION Enabled
+#pragma config DNVPEN = DISABLE // ENABLE          // Downside Voltage Protection Enable bit (Downside protection enabled using ZPBOR when BOR is inactive)
 
 // FICD
 #pragma config ICS = PGD3               // ICD Communication Channel Select bits (Communicate on PGEC3 and PGED3)

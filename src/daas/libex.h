@@ -1,11 +1,9 @@
 /******************************************************************************
- * L I B E X c h a n g e 
- * 
- * Rel.0.0.17 - 15/11/21 - NO MEASUREMENT !
- * Rel.0.0.16 - 14/11/21 - MRF24ME OK !
- * Rel 0.0.15 - 03/09/21
+ * L I B E X c h a n g e                                     (@) DaaS Project *
+ *                                                                            *
+ *                                                                            *
  ******************************************************************************
- * 
+ * Rel.0.0.17 - 15/11/21 - Latest !    
  */
 
 #ifndef LIBEX_H
@@ -13,33 +11,39 @@
 
 #define LIBEX_VER 0017
 
+// Exchange managed channels
+//
 typedef enum {
     CNL_NONE = 0x00,
     CNL_WIRED,          // Serial AT commands / USB OTG Device / others
     CNL_WIRELESS        // Radio Transceiver SPI/I2C/Serial
 } channel_t;
 
-
-typedef enum {
-    RTCMD_NONE = 0, // Exit
-    RTCMD_RESET = 10, // Reset
-    RTCMD_SYNC_DATETIME = 20,
-    RTCMD_START_MEASUREMENT = 30,
-    RTCMD_TEST = 99,
-} RealTimeCommandType;
-
-
+// Exchange mode
+//
 typedef enum {
     MODE_SLEEP = 0x01,
     MODE_REALTIME,
     MODE_RESET,
 } ExchangeModeType;
 
+// Exchange MODE_REALTIME:cmds
+//
+typedef enum {
+    RTCMD_NONE = 0,                 // Exit
+    RTCMD_RESET = 10,               // Reset request
+    RTCMD_SYNC_DATETIME = 20,       // Sync date-time request
+    RTCMD_SAMPLING = 30,            // Start sampling cycle
+    RTCMD_TEST = 99,                // Test request
+} RealTimeCommandType;
 
-#define EX_OK          0 // - Connected
-#define EX_ERR_CHANNEL 1 // - channel unavailable 
-#define EX_ERR_PARAMS  2//  - parameters unavailable
-#define EX_ERR_SKEY    3 // - identity unknow (skey)
+
+// Exchange_Connect():return
+//
+#define EX_OK          0 // connected
+#define EX_ERR_CHANNEL 1 // channel unavailable 
+#define EX_ERR_PARAMS  2//  parameters unavailable
+#define EX_ERR_SKEY    3 // security error  (skey unknow)
 
 
 /* Function
@@ -73,6 +77,7 @@ void __attribute__((weak)) cb_SetDeviceConfig(uint8_t *dobj);
 uint8_t __attribute__((weak)) cb_GetDeviceConfig(uint8_t *dobj);
 
 // Generic Transfer
+
 // Measurements Transfer
 bool __attribute__((weak)) cb_GetMeasurementCounter(uint16_t *nobj);
 bool __attribute__((weak)) cb_GetMeasurement(uint16_t index, uint32_t * dtime, uint16_t * tset, uint16_t * ns, uint16_t * nss);

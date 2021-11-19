@@ -2,7 +2,7 @@
 /*----------------------------------------------------------------------------*
  *  TEST !!!!!!!                                                              *              
  *----------------------------------------------------------------------------*/
-
+#include "xc.h"
 //#include "utils.h"
 //#include "modules/RTCC.h"
 //#include "modules/UART2.h"
@@ -60,12 +60,26 @@ void Alarm(void) {
 //    }
 //}
 
+
+#define ShowRCON() {   printf("[PIC24FJ:");    \
+                if (RCONbits.WDTO) {  printf(" WDT");  } \
+                if (RCONbits.BOR) { printf(" BoR"); } \
+                if (RCONbits.SLEEP) { printf(" SLP"); } \
+                if (RCONbits.RETEN) { printf("-RETEN"); } \
+                if (RCONbits.POR) {  printf(" PoR"); } \
+                if (RCONbits.SWR) { printf(" SwR"); } \
+                if (RCONbits.EXTR) { printf(" MCLR"); } \
+                if (RCONbits.IOPUWR) { printf(" IopR"); } \
+                if (RCONbits.TRAPR) { printf(" TrpR"); } \
+                if (RCONbits.SBOREN) { printf(" BoR-On"); } \
+                printf("]\n"); }
+
 int main(void) {
 
     devicestate_t state, lstate; // Main cycle controls
 
     Device_SwitchSys(SYS_BOOT);
-    
+
     UART2_Enable(); // printf()...)
 
     state = STARTUP; // System startup
@@ -73,9 +87,107 @@ int main(void) {
     //    _TRISB2 = 0; // Out
     uint16_t i;
 
-       RTCC_GetTime(&stime);
-       printf("[%u:%u:%u]Reset!\n#:", stime.hour, stime.min, stime.sec);
+    if (1) {
+        stime.day = 14;
+        stime.month = 06;
+        stime.year = 21;
+        stime.hour = 12;
+        stime.min = 25;
+        stime.sec = 1;
+        RTCC_SetTime(&stime, 1);
+    }
 
+    RTCC_GetTime(&stime);
+    printf("[%u:%u:%u]\n", stime.hour, stime.min, stime.sec);
+
+    
+/*----------------------------------------------------------------------------*/
+#ifdef  __VAMP1K_TEST_RESET    
+    ShowRCON();
+    RCON = 0x0;
+    //    RCONbits.SBOREN = 0; // Disable BoR
+    //    RCONbits.BOR = 0; // Clear flag
+    //    RCONbits.EXTR =0; // Clear flag
+    ShowRCON();
+    __delay(1000);
+#endif 
+
+
+/*----------------------------------------------------------------------------*/
+#ifdef __VAMP1K_TEST_SLEEP
+    // RTCC Settings
+    g_dev.cnf.general.delaytime = 20;
+    if (1) {
+        stime.day = 14;
+        stime.month = 06;
+        stime.year = 21;
+
+        stime.hour = 12;
+        stime.min = 25;
+        stime.sec = 1;
+        RTCC_SetTime(&stime, 1);
+    }
+    // Enable USB Wake-Up
+    // Device_IsUsbConnected()
+
+    //RTCC_SetCallBack(Alarm);
+
+    while (1) {
+
+        printf("Running... \n");
+        __delay(1000);
+
+        // Enable RTC Alarm Wake-Up
+        RTCC_GetTime(&stime);
+
+        stime.sec += 10;
+
+        //        stime.sec += g_dev.cnf.general.delaytime % 60;
+        //        if (stime.sec > 59) {
+        //            stime.sec -= 59;
+        //            stime.min++;
+        //        }
+        //        stime.min += g_dev.cnf.general.delaytime / 60;
+        //        if (stime.min > 59) {
+        //            stime.min -= 59;
+        //        }
+
+
+        RTCC_AlarmSet(&stime);
+        printf("Wakeup set: %u:%u:%u \n", stime.hour, stime.min, stime.sec);
+        printf("Sleep mode: waiting event... (RTTC/INT0 Wake) \n");
+        __delay(100); // Wait to complete printf
+
+
+        //Device_SwitchSys(SYS_SLEEP);
+
+        RCON = 0x0;
+        //        RCONbits.SBOREN = 0; // Disable BoR
+
+        RCONbits.RETEN = 1;
+        RCONbits.VREGS = 0; // 
+        //////////    // __builtin_disable_interrupts();
+
+        //   Device_Power_Save();
+
+        // Enable INT0 event (connect by wire) Wake-Up
+        // __builtin_disable_interrupts();
+        //        IFS0bits.INT0IF = 0;
+        //        IEC0bits.INT0IE = 1; // enables INT0 
+        Nop();
+        Nop();
+        Sleep(); // enter in sleep mode....
+        Nop();
+        //IEC0bits.INT0IE = 0; // Disable INT0 (No change detection) 
+        //   Device_Power_Default();
+
+        RTCC_GetTime(&stime);
+        printf("Wake-up: %u/%u/%u - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
+    }
+#endif
+
+
+/*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_CONFIG
     //  Device_ConfigDefaultSet(&g_dev.cnf);
     //  Device_ConfigWrite((uint8_t*) & g_dev.cnf); // Write EEprom/Flash
@@ -88,13 +200,12 @@ int main(void) {
     if (!Device_ConfigRead()) { // Eval RCON, rtcc, pins, read config
         // Factory default
         printf("RESET TO FACTORY DEFAULT !");
-        depotDefaultSet(); // Memory    
+        // depotDefaultSet(); // Memory    
     }
 #endif
 
 
-
-
+/*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_BATLEV   
     //    Device_SwitchADG(0xFF);
     while (1) {
@@ -104,34 +215,8 @@ int main(void) {
 #endif 
 
 
-#ifdef  __VAMP1K_TEST_RESET    
 
-    if (RCONbits.WDTO) { // WDT Overflow Reset
-        printf("WDT\n");
-        RCONbits.WDTO = 0;
-        // Increment "alarm_counter"
-    } else if (RCONbits.BOR) { // Brown-out Reset
-        printf("Bor\n");
-        RCONbits.BOR = 0;
-        // Increment "alarm_counter"
-    } else if (RCONbits.DPSLP) { // Resume from Deep-sleep / DS Retention
-        printf("D-S\n");
-        RCONbits.DPSLP = 0;
-        if (RCONbits.RETEN) {
-            printf("RETEN\n");
-            // RCONbits.RETEN = 0;
-        }
-    } else if (RCONbits.POR) { // Power Reset
-        printf("POR\n");
-        RCONbits.POR = 0;
-    } else if (RCONbits.SWR) { // Power Reset
-        printf("SwR\n");
-        RCONbits.SWR = 0;
-    }
-    __delay(2000);
-#endif 
-
-
+/*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_USB
     while (1) {
         if (!Device_IsUsbConnected()) {
@@ -143,7 +228,7 @@ int main(void) {
     }
 #endif
 
-
+/*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_ADG
     Device_SwitchSys(SYS_DEFAULT);
 
@@ -159,7 +244,7 @@ int main(void) {
     Device_SwitchADG(0xFF); //_bs8(PW_WST) | _bs8(PW_ADA));
 #endif      
 
-
+/*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_TIMERS
 
     /// _______________TEST TMR1 TIMEOUT
@@ -227,7 +312,7 @@ int main(void) {
 
 
 
-
+/*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_BATTERY
     Device_SwitchSys(SYS_DEFAULT);
 
@@ -239,6 +324,8 @@ int main(void) {
     }
 #endif
 
+    
+/*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_RTCC
     if (1) {
         stime.day = 14;
@@ -286,64 +373,7 @@ int main(void) {
     }
 #endif
 
-    
-#ifdef __VAMP1K_TEST_SLEEP
-    // RTCC Settings
-    g_dev.cnf.general.delaytime = 20;
-    if (1) {
-        stime.day = 14;
-        stime.month = 06;
-        stime.year = 21;
-
-        stime.hour = 12;
-        stime.min = 25;
-        stime.sec = 1;
-        RTCC_SetTime(&stime, 1);
-    }
-    // Enable USB Wake-Up
-    // Device_IsUsbConnected()
-    
-    //RTCC_SetCallBack(Alarm);
-
-    while (1) {
-
-        printf("Running... \n");
-        __delay(1000);
-
-        // Enable RTC Alarm Wake-Up
-        RTCC_GetTime(&stime);
-        
-        stime.sec +=10;
-        
-//        stime.sec += g_dev.cnf.general.delaytime % 60;
-//        if (stime.sec > 59) {
-//            stime.sec -= 59;
-//            stime.min++;
-//        }
-//        stime.min += g_dev.cnf.general.delaytime / 60;
-//        if (stime.min > 59) {
-//            stime.min -= 59;
-//        }
-        
-        RTCC_AlarmSet(&stime);
-        
-        printf("Wakeup set: %u:%u:%u \n", stime.hour, stime.min, stime.sec);
-        printf("Sleep mode: waiting event... (RTTC/INT0 Wake) \n");
-        __delay(100); // Wait to complete printf
-        Device_SwitchSys(SYS_SLEEP);
-        //  wait wake-up event...        
-        Device_SwitchSys(SYS_DEFAULT);
-        
-        RTCC_GetTime(&stime);
-        printf("Wake-up: %u/%u/%u - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
-    }
-#endif
-
-
-
-
-
-
+/*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_SST26
 
 #define SST_SECTOR_SIZE      4096        // 4KBytes 
@@ -412,9 +442,7 @@ int main(void) {
 #endif    
 
 
-
-
-
+/*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_DDE
 
 #define DDE_START	150
@@ -441,14 +469,11 @@ int main(void) {
         __delay(5000);
         ncycle++;
     }
-
 #endif  
 
 
 
-
-
-
+/*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_measurement_save 
 
     //    DEE_Init(); // Emulated Data Eprom 
@@ -507,7 +532,7 @@ int main(void) {
     }
 #endif      
 
-
+/*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_measurement_delete 
 
     measurementInitialize(&g_measurement);

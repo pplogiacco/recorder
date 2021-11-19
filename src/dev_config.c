@@ -41,6 +41,8 @@ uint16_t computeCRC16(uint8_t *strtochk, uint16_t length) {
     return (~crc); //The crc value for DNP it is obtained by NOT operation
 }
 
+
+//------------------------------------------------------------------------------
 void Device_StatusRefresh() { // Every call
     device.sts.timestamp = RTCC_GetTimeL(); // time evaluation reference
     // Through the calls 
@@ -53,17 +55,17 @@ void Device_StatusRefresh() { // Every call
 
 void Device_StatusRead() {
     // Start-up 
-    device.sts.alarm_counter = Device_CheckHwReset(); // Persistent: wdt, critical errors/reset
-    device.sts.DIN = __DEVICE_DIN;
+    Device_CheckHwReset(); // critical errors/reset (device.sts.alarm_counter)
+    device.sts.DIN = __DEVICE_DIN;  // Read from OTP
     device.sts.version = __DEVICE_VER;
     device.sts.config_counter = device.cnf.CRC16; // To evaluate VMS alignment
+    
     // Memory & Measurement
     DEE_Read(EEA_MEAS_COUNTER, &device.sts.meas_counter); // Persistent: stored measurements (dee.h)   
     device.sts.storage_space = depotFreeSpaceKb(); // available meas storage memory (Kb)
     device.sts.locked = (device.cnf.exchange.SKEY > 0); // Locked/not locked !!!
     Device_StatusRefresh();
 }
-
 
 //
 //void Device_StatusDefaultSet() {

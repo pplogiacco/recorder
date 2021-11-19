@@ -168,10 +168,10 @@ void Device_SysBoot() { // Initialize system
     SST26_SS_SetDigitalOutputHigh(); // SST Memory Bank
 
     // _____________ADA Synco / Sampling timing
-//    RPINR3bits.T3CKR = 0x000F; //RB15->TMR3:T3CK (Synco/TMR3))
-//    AV_SYN_SetDigital(); // Input T3CK/RB15 (SYNCO)
-//    AV_SYN_SetDigitalInput();
-    
+    //    RPINR3bits.T3CKR = 0x000F; //RB15->TMR3:T3CK (Synco/TMR3))
+    //    AV_SYN_SetDigital(); // Input T3CK/RB15 (SYNCO)
+    //    AV_SYN_SetDigitalInput();
+
     AV_IN_SetAnalogInput();
 
     // _____________TMR2:T2CK (Wind Speed)
@@ -273,18 +273,7 @@ void Device_SysSleep() {
 
     Device_SwitchADG(PW_OFF);
 
-#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
-    //  RETEN/LVREN bit to control the regulator?s operation
-    asm(";Put the device into Sleep mode \
-                 PWRSAV#SLEEP_MODE; ");
-    //            Low-Voltage Sleep Mode
-    //            Uses a low-voltage regulator to power the core. 
-    //            This mode uses less power than the Sleep mode but takes longer to wake up from sleep due to the voltage regulator.
-    //            The low-voltage regulator is controlled by the LPCFG/LVRCFG configuration bit (also designated as LVRCFG in some 
-    //            devices) and the Low-Voltage Enable bit (RETEN/LVREN), and Reset and System Control register (RCON). 
-    //            The LPCFG/LVRCF configuration bit makes the low-voltage regulator available to be controlled by RCON.
-    //           RCONbits.LVREN = 1;
-#elif defined(__PIC24FJ256GA702__)
+#if defined(__PIC24FJ256GA702__)
     PMD1 = 0xFF;
     PMD2 = 0xFF; // IC3MD enabled; OC1MD enabled; IC2MD enabled; OC2MD enabled; IC1MD enabled; OC3MD enabled; 
     PMD3 = 0b1111110111111111; // RTCC
@@ -293,39 +282,38 @@ void Device_SysSleep() {
     PMD6 = 0xFF; // SPI3MD enabled; 
     PMD7 = 0xFF; // DMA1MD enabled; DMA0MD disabled; 
     PMD8 = 0xFF; // CLC1MD enabled; CLC2MD enabled; 
-
+    //
     //
     // RETEN VREGS MODE
     // -----+-----+----------------------
     //   0     1   Fast Wake-up   (4)
     //   1     0   Retention Sleep (1)
-    //   0     0   Sleep (3)
+    //   0     0   Sleep           (3)
     //   1     1   Fast Retention (2)
     // -----+-----+-------------------------
     //
+    //RCON = 0x0; 
+    //RCONbits.SBOREN = 0; // Disable BoR
     RCONbits.RETEN = 1;
-    RCONbits.VREGS = 0;
+    RCONbits.VREGS = 0; // 
 
+    //////////    // __builtin_disable_interrupts();
+    //////////
+    //////////
+    //////////    // Device_Power_Save();
+    //////////
+    ////////////    Sleep(); // enter in sleep mode
+    ////////////    Nop();
+    //////////    //     PW_SWC_SetLow(); 
+    //////////    //     
+    //////////    //     int i;
+    //////////    //     for(i=0;i<2000;i++) {
+    //////////    //         Nop(); 
+    //////////    //     }
+    //////////    //     
+    //////////    //     PW_ADP_SetLow();
+    //////////    //  Device_Power_Default();
 
-    // Enable INT0 event (connect by wire) Wake-Up
-    //        __builtin_disable_interrupts();
-    IFS0bits.INT0IF = 0;
-    IEC0bits.INT0IE = 1; // enables INT0 
-
-
-    Device_Power_Save();
-    Sleep(); // enter in sleep mode
-//     PW_SWC_SetLow(); 
-//     
-//     int i;
-//     for(i=0;i<2000;i++) {
-//         Nop(); 
-//     }
-//     
-//     PW_ADP_SetLow();
-    Device_Power_Default();
-
-    IEC0bits.INT0IE = 0; // Disable INT0 (No change detection)          
 #endif
 }
 
@@ -486,63 +474,42 @@ runlevel_t Device_SwitchSys(runlevel_t lv) {
     return (lv);
 }
 
-uint16_t Device_CheckHwReset(void) {
-    uint16_t rreason = (RCON & 0b1010010); // SWR (6), WDTO (4), BOR (1) 
 
-#ifdef __VAMP1K_TEST_RESET
-    if (RCONbits.WDTO) { // WDT Overflow Reset
-        printf("WDT\n");
-        RCONbits.WDTO = 0;
-        // Increment "alarm_counter"
-    } else if (RCONbits.BOR) { // Brown-out Reset
-        printf("Bor\n");
-        RCONbits.BOR = 0;
-        // Increment "alarm_counter"
-    } else if (RCONbits.DPSLP) { // Resume from Deep-sleep / DS Retention
-        printf("D-S\n");
-        RCONbits.DPSLP = 0;
-        if (RCONbits.RETEN) {
-            printf("RETEN\n");
-            // RCONbits.RETEN = 0;
-        }
-    } else if (RCONbits.POR) { // Power Reset
-        printf("POR\n");
-        RCONbits.POR = 0;
-    } else if (RCONbits.SWR) { // Power Reset
-        printf("SwR\n");
-        RCONbits.SWR = 0;
-    }
-    __delay(2000);
-#endif
+/*******************************************************************************
+  
+      PIC24FJ256GA705 - RCON:
+      ---+------------------------------------
+       15 TRAPR: Trap Conflict Reset 
+       14 IOPUWR: Illegal Opcode Reset
+        9 CM: Configuration Mismatch Reset
+        7 MCLR: Master Clear Pin Reset
+        6 SWR: RESET Instruction
+        4 WDT: Watchdog Timer Reset
+        1 BOR: Brown-out Reset
+        0 POR: Power-on Reset
+  
+        Return:        
 
-    RCON &= ~(0b1010010); // reset flags
+        WdR BoR IoR TpR SwR McR  Err
+       +---+---+---+---+---+---+----+
+       |7-6|5-4|3-2|1-0|7-6|5-4|3..0|
+       +---+---+---+---+---+---+----+
+  
+  To differentiate a POR from a VBAT wake-up, check the VBAT bit (RCON2<0>).
+  If the bit is set on a POR, then the device has returned from VBAT mode.
+  RCONbits.SWDTEN ( Only PICs with VBAT pin !)
+  
+ */
+#define RCON_RESET_MASK 0b1100001011010010
 
+
+void Device_CheckHwReset(void) {
 #if defined(__PIC24FJ256GA702__)    
-
-    // To differentiate a POR from a VBAT wake-up, check the VBAT bit (RCON2<0>).
-    // If the bit is set on a POR, then the device has returned from VBAT mode.
-    // RCONbits.SWDTEN
-
-    /* 
-    ? POR: Power-on Reset
-    ? MCLR: Master Clear Pin Reset
-    ? SWR: RESET Instruction
-    ? WDT: Watchdog Timer Reset
-    ? BOR: Brown-out Reset
-    ? CM: Configuration Mismatch Reset
-    ? TRAPR: Trap Conflict Reset
-    ? IOPUWR: Illegal Opcode Reset
-    ? UWR: Uninitialized W Register Reset
-     */
-#elif (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
-    // SWR Software Reset 
-    // WDTO Watch-dog Overflow 
-    // BOR Brown-out Reset 
-    // Resume from Deep-sleep/Retention 
-    // Power-on     
+    if (RCON & RCON_RESET_MASK) {
+        device.sts.alarm_counter++;
+    }
+    RCON = RCON & RCON_RESET_MASK;    
 #endif
-
-    return rreason;
 }
 
 

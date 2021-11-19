@@ -93,7 +93,7 @@ POWER   27  Vss
 #define PW_SWC_SetLow()                 { _LATB4=0; }          // On   
 
 // Low power ADP LDO
-#define PW_ADP_SetDigitalOutputLow()    {  _ANSB15=0; _TRISB15=0; _LATB15=0; }   // AN3
+#define PW_ADP_SetDigitalOutputLow()    { _ANSB15=0; _TRISB15=0; _LATB15=0; }
 #define PW_ADP_SetHigh()                { _LATB15=1; }  // ADP151 On      
 #define PW_ADP_SetLow()                 { _LATB15=0; }  // ADP151 Off
 
@@ -245,7 +245,7 @@ runlevel_t Device_SwitchSys(runlevel_t lv);
 //
 //void Device_Initialize();
 
-uint16_t Device_CheckHwReset(void); // Cheack reason of reboot 
+void Device_CheckHwReset(void); // Cheack reason of reboot 
 
 
 void Device_SwitchClock(sysclock_t ck);

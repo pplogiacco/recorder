@@ -15,7 +15,7 @@
 
 // Test HW
 //#define __VAMP1K_TEST_HW                    
-//#define __VAMP1K_TEST_RESET
+#define __VAMP1K_TEST_RESET
 //#define __VAMP1K_TEST_TIMERS
 //#define __VAMP1K_TEST_CONFIG 
 //#define __VAMP1K_TEST_ADG
