@@ -449,16 +449,16 @@ while (1) {
     printf("#Global Unlock\n");
     SST26_Global_Protection_Unlock();
     printf("#Erase sector (%lu)... ", sst_addr.a32);
-    SST26_Erase_Sector(sst_addr); // Set 4K in 0xFF state
+    SST26_Erase_Sector(sst_addr.a32); // Set 4K in 0xFF state
     ShowSST();
 
     while (1) {
 
-        printf("#Write (addr=%lu,dsize=%u)...", sst_addr.a32, DSIZE);
+        printf("#Write (addr=%lu,dsize=%u)...\n", sst_addr.a32, DSIZE);
         tmp_addr = sst_addr;
         SST26_Write(&sst_addr, (uint8_t*) datas, DSIZE);
 //        ShowSST();
-        printf("#Read (addr=%lu,dsize=%u )...", tmp_addr, DSIZE);
+        printf("#Read (addr=%lu,dsize=%u )...\n", tmp_addr, DSIZE);
         SST26_Read(tmp_addr, DSIZE, datas);
 //        ShowSST();
 

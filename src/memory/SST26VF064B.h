@@ -20,13 +20,19 @@
 
 typedef union {
     uint32_t a32; //the full address
-    struct {
-        uint32_t offset : 8; //offset within a page
-        uint32_t page : 4; //page within a sector
+    struct {        // Aligned !!!
         uint32_t sector : 20; //sector within the memory
+        uint32_t page : 4; //page within a sector
+        uint32_t offset : 8; //offset within a page
     };
-
 } flash_address_t;
+
+#define sector(a)       (uint16_t)((a>>12) & 0xFFFF)  //page within a sector 20 bit
+#define page(a)         (uint8_t)((a>>16) & 0xF)    //offset within a page 8 bit
+#define page_off(a)     (uint8_t)(a & 0xFF)    //offset within a page   4 bit
+
+#define nxt_sector(a)   a+=SST26_SECTOR_SIZE 
+#define nxt_page(a)     a+=SST26_PAGE_SIZE 
 
 
 // Status Register Bits

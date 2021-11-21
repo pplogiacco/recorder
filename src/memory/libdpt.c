@@ -29,10 +29,10 @@ static flash_address_t addr;
                            DEE_Read(EEA_SST26_LA, &aw);  \
                            addr.a32 << 16; \
                            addr.a32 | aw; 
-                           
+
 
 #define dee_save_address() DEE_Write(EEA_SST26_HA, (uint16_t) (addr.a32 >> 16)); \ 
-                           DEE_Write(EEA_SST26_LA, (uint16_t) (addr.a32 & 0xFFFF));
+DEE_Write(EEA_SST26_LA, (uint16_t) (addr.a32 & 0xFFFF));
 
 void depotInitialize() {
 
@@ -43,7 +43,7 @@ void depotDefaultSet() {
     DEE_Write(EEA_MEAS_COUNTER, 0); // (dee.h)  
     DEE_Write(EEA_SST26_HA, 0); // (dee.h)  
     DEE_Write(EEA_SST26_LA, 0); // (dee.h)  
-    addr.a32=0;
+    addr.a32 = 0;
     //
     // Initialize flash memory ( Erase First Sector ) )
     SST26_Enable();
@@ -58,7 +58,6 @@ uint16_t depotFreeSpaceKb() { // return
     DEE_Read(EEA_SST26_LA, &Offset); // (dee.h)  
     return ( SST26_SIZE_KB - (((Sector * SST26_SECTOR_SIZE) + Offset) / 1024));
 }
-
 
 uint16_t depotPush(uint8_t* dPtr, uint16_t nBytes) { // return written bytes
     //    uint32_t sst_addr;
@@ -105,40 +104,40 @@ uint16_t depotPush(uint8_t* dPtr, uint16_t nBytes) { // return written bytes
 
 /* -------------------------------------------------------------------------- */
 uint16_t depotDrop(uint16_t nBytes) {
-    
-//    flash_address_t tmp;
-//
-//    dee_load_address(); // Load address from DDE
-//
-//
-//    if (nBytes <= SECTOR_OFFSET(addr)) {
-//        tmp. = (Offset - nBytes);
-//        newSector = Sector;
-//    } else {
-//        newSector = Sector - (nBytes / SST26_SECTOR_SIZE);
-//        newOffset = Offset - (nBytes % SST26_SECTOR_SIZE);
-//    }
-//
-//    // Move in newSector and save newOffset
-//    SST26_Enable();
-//    //    SST26_WREN();
-//    SST26_Global_Protection_Unlock();
-//    //    SST26_Wait_Busy();
-//
-//    // Move data to buffer !!! USES SSBUF !!!
-//    sst_addr = (newSector * SST26_SECTOR_SIZE);
-//    SST26_Read(sst_addr, newOffset, (uint8_t *) SSBUF);
-//    // Initialize Sector
-//    SST26_Erase_Sector(sst_addr); // Set 4K in 0xFF state
-//
-//    // Move buffer to flash !!! USES SSBUF !!!
-//    SST26_Write(&sst_addr, (uint8_t *) SSBUF, newOffset);
-//    SST26_Disable();
-//
-//    // Recompute Sector & Offset
-//
-//    DEE_Write(EEA_SST26_HA, newSector); // (dee.h)  
-//    DEE_Write(EEA_SST26_LA, newOffset); // (dee.h)  
+
+    //    flash_address_t tmp;
+    //
+    //    dee_load_address(); // Load address from DDE
+    //
+    //
+    //    if (nBytes <= SECTOR_OFFSET(addr)) {
+    //        tmp. = (Offset - nBytes);
+    //        newSector = Sector;
+    //    } else {
+    //        newSector = Sector - (nBytes / SST26_SECTOR_SIZE);
+    //        newOffset = Offset - (nBytes % SST26_SECTOR_SIZE);
+    //    }
+    //
+    //    // Move in newSector and save newOffset
+    //    SST26_Enable();
+    //    //    SST26_WREN();
+    //    SST26_Global_Protection_Unlock();
+    //    //    SST26_Wait_Busy();
+    //
+    //    // Move data to buffer !!! USES SSBUF !!!
+    //    sst_addr = (newSector * SST26_SECTOR_SIZE);
+    //    SST26_Read(sst_addr, newOffset, (uint8_t *) SSBUF);
+    //    // Initialize Sector
+    //    SST26_Erase_Sector(sst_addr); // Set 4K in 0xFF state
+    //
+    //    // Move buffer to flash !!! USES SSBUF !!!
+    //    SST26_Write(&sst_addr, (uint8_t *) SSBUF, newOffset);
+    //    SST26_Disable();
+    //
+    //    // Recompute Sector & Offset
+    //
+    //    DEE_Write(EEA_SST26_HA, newSector); // (dee.h)  
+    //    DEE_Write(EEA_SST26_LA, newOffset); // (dee.h)  
 
     return (nBytes);
 }
@@ -146,27 +145,26 @@ uint16_t depotDrop(uint16_t nBytes) {
 /* -------------------------------------------------------------------------- */
 uint16_t depotPull(uint8_t* dPtr, uint16_t displacement, uint16_t nBytes, bool release) { // return readed bytes
 
-    uint16_t iSector, iOffset;
-    uint16_t Sector, Offset;
-    uint32_t sst_addr;
-    //
-    DEE_Read(EEA_SST26_HA, &Sector); // (dee.h)  
-    DEE_Read(EEA_SST26_LA, &Offset); // (dee.h) 
-
-    iSector = Sector - ((nBytes + displacement) / SST26_SECTOR_SIZE);
-
-    if (((nBytes + displacement) % SST26_SECTOR_SIZE) >= Offset) {
-        iOffset = (Offset - ((nBytes + displacement) % SST26_SECTOR_SIZE));
-    } else {
-        iSector--;
-        iOffset = (SST26_SECTOR_SIZE - (((nBytes + displacement) % SST26_SECTOR_SIZE) - Offset));
-    }
-
-    SST26_Enable();
-
-    // sst_addr = ((iSector << 16 ) & (iOffset<<8));
-    sst_addr = (iSector * SST26_SECTOR_SIZE) + iOffset;
-
-    nBytes = SST26_Read(sst_addr, nBytes, dPtr);
+//    uint16_t iSector, iOffset;
+//    uint16_t Sector, Offset;
+//
+//    dee_load_address(); // Load address from DDE
+//
+//     
+//    iSector = Sector - ((nBytes + displacement) / SST26_SECTOR_SIZE);
+//
+//    if (((nBytes + displacement) % SST26_SECTOR_SIZE) >= Offset) {
+//        iOffset = (Offset - ((nBytes + displacement) % SST26_SECTOR_SIZE));
+//    } else {
+//        iSector--;
+//        iOffset = (SST26_SECTOR_SIZE - (((nBytes + displacement) % SST26_SECTOR_SIZE) - Offset));
+//    }
+//
+//    SST26_Enable();
+//
+//    // sst_addr = ((iSector << 16 ) & (iOffset<<8));
+//    sst_addr = (iSector * SST26_SECTOR_SIZE) + iOffset;
+//
+//    nBytes = SST26_Read(sst_addr, nBytes, dPtr);
     return (nBytes);
 }

@@ -212,8 +212,7 @@ uint16_t SST26_Write(flash_address_t* addr, uint8_t *dbuf, uint16_t dlen) {
 //    index = (*addr & 0xFF); // page offset 
 //    *addr = *addr & 0xFFFFFF00; // sector/page address
 
-
-    printf("-->Write: %u bytes (Page:%lu, Index: %u) \n", dlen, addr->page, addr->offset);
+    printf("-->Write: %u bytes (Sector:%lu Page:%lu, Index: %lu) \n", dlen, addr->sector, addr->page, addr->offset);
 
     written = 0;
     SST26_WREN();
@@ -221,15 +220,17 @@ uint16_t SST26_Write(flash_address_t* addr, uint8_t *dbuf, uint16_t dlen) {
 
         if (index == SST26_PAGE_SIZE) { // Page boundary
             addr->page++; // Next Page
+            // Check Sector Boundary
             addr->offset = 0x0;
+            
         }
-        printf("   DISPONIBILI %u (Page=%lu,Index=%lu) !\n",SST26_PAGE_SIZE - addr->offset, addr->page, addr->offset );
+        printf("   DISPONIBILI %u (Page=%lu,Index=%u) !\n",(SST26_PAGE_SIZE - addr->offset), addr->page, addr->offset );
         
         SST26_SS_SetLow(); // Select device
         SPI1_Exchange8bit(SST26_CMD_WRITE_PAGE); // send command "Page Program"  
         SPI1_Exchange8bit((addr->a32 >> 16) & 0xFF); // send msb first
         SPI1_Exchange8bit((addr->a32 >> 8) & 0xFF); // 24-bit page address
-        SPI1_Exchange8bit(addr->offset); // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        SPI1_Exchange8bit(addr->a32 & 0xFF); // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 //          printf("W: ");
 
         while ((addr->offset < SST26_PAGE_SIZE) && (written < dlen)) {
@@ -262,13 +263,13 @@ uint16_t SST26_Read(flash_address_t addr, uint16_t dlen, uint8_t *dbuf) {
     uint16_t i = 0;
 
 
-    printf("-->Read: %u bytes (Page:%lu, Index: %lu) \n", dlen, addr->page, addr->offset);
+    printf("-->Read: %u bytes (Page:%lu, Index: %lu) \n", dlen, addr.page, addr.offset);
     SST26_SS_SetLow();
     SPI1_Exchange8bit(SST26_CMD_READ); // Command  + 3 Address bytes 
 //    SPI1_Exchange8bit(SST26_CMD_HS_READ); // Command  + 3 Address bytes 
-    SPI1_Exchange8bit((addr->a32 >> 16) & 0xFF); // send msb first
-    SPI1_Exchange8bit((addr->a32 >> 8) & 0xFF); // 24-bit page address
-    SPI1_Exchange8bit(addr->a32 & 0xFF); //  8bit page offset
+    SPI1_Exchange8bit((addr.a32 >> 16) & 0xFF); // send msb first
+    SPI1_Exchange8bit((addr.a32 >> 8) & 0xFF); // 24-bit page address
+    SPI1_Exchange8bit(addr.a32 & 0xFF); //  8bit page offset
 //    SPI1_Exchange8bit(0xFF); //  Dummy char
 //    printf("R: ");
     while (i < dlen) {
