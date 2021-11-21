@@ -18,6 +18,17 @@
 #define SST26_SECTOR_SIZE    4096
 #define SST26_PAGE_SIZE      256
 
+typedef union {
+    uint32_t a32; //the full address
+    struct {
+        uint32_t offset : 8; //offset within a page
+        uint32_t page : 4; //page within a sector
+        uint32_t sector : 20; //sector within the memory
+    };
+
+} flash_address_t;
+
+
 // Status Register Bits
 #define SST26_WIP              (1 << 0)                /* Bit 0: Write in progress */
 #define SST26_WEL              (1 << 1)                /* Bit 1: Write enable latch */
@@ -30,9 +41,8 @@
 
 //#define SST26_DUMMY     0xa5
 
+typedef enum { // SST26 Commands
 
-typedef enum {  // SST26 Commands
-    
     // Status & Configuration
     SST26_CMD_READ_STATUS_REG = 0x05, // Command to read the Flash status register (RDSR)
     SST26_CMD_WRITE_STATUS_REG = 0x01, // Command Write-Status Register (WRSR)
@@ -46,15 +56,15 @@ typedef enum {  // SST26 Commands
     SST26_CMD_CHIP_ERASE = 0xC7, // Command to perform Chip erase 
     SST26_CMD_SECTOR_ERASE = 0x20, // erase one 4K of flash memory
     SST26_CMD_BULK_ERASE_32K = 0x52, // Command to perform Bulk erase 32K
-    SST26_CMD_BULK_ERASE_64K = 0xD8,    // Command to perform Bulk erase 64K
+    SST26_CMD_BULK_ERASE_64K = 0xD8, // Command to perform Bulk erase 64K
 
     // Write (Program)
-    SST26_CMD_WRITE_ENABLE = 0x06,  // Write enable command (WREN)
+    SST26_CMD_WRITE_ENABLE = 0x06, // Write enable command (WREN)
     SST26_CMD_WRITE_DISABLE = 0x04, // Write
     SST26_CMD_WRITE_SUSPEND = 0xb0, // Write enable command (WREN)
-    SST26_CMD_WRITE_RESUME = 0x30,  // Write enable command (WREN)
-    SST26_CMD_WRITE_PAGE = 0x02,    // Page Program 256Bytes (000000H - 7FFFFFH)
-                                    // (0x32) SQI Quad Page Program
+    SST26_CMD_WRITE_RESUME = 0x30, // Write enable command (WREN)
+    SST26_CMD_WRITE_PAGE = 0x02, // Page Program 256Bytes (000000H - 7FFFFFH)
+    // (0x32) SQI Quad Page Program
     // Read
     SST26_CMD_READ = 0x03, // SPI Only Read data (000000H - 7FFFFFH)
     SST26_CMD_HS_READ = 0x0B, // High Speed Read data (000000H - 7FFFFFH)
@@ -76,14 +86,14 @@ typedef enum {  // SST26 Commands
     SST26_CMD_RESET_QUAD_IO = 0xFF, // Command to Reset QUAD IO 
 
     // Others        
-    SST26_CMD_JEDEC_ID_READ = 0x9F,     /* Command to read JEDEC-ID of the flash device. */
-    SST26_CMD_QUAD_JEDEC_ID_READ = 0xAF,     /* QUAD Command to read JEDEC-ID of the flash device. */
+    SST26_CMD_JEDEC_ID_READ = 0x9F, /* Command to read JEDEC-ID of the flash device. */
+    SST26_CMD_QUAD_JEDEC_ID_READ = 0xAF, /* QUAD Command to read JEDEC-ID of the flash device. */
 
 } SST26_CMD;
 
 
-void SST26_Enable();    // Uses shared SPI1 in MODE0
-void SST26_Disable();
+void SST26_Enable(void); // Uses shared SPI1 in MODE0
+void SST26_Disable(void);
 
 // Reset 
 void SST26_Reset();
@@ -96,17 +106,17 @@ unsigned char SST26_Read_Configuration();
 void SST26_Write_Status_Register(unsigned int data1, unsigned char datalen);
 
 // Erase
-void SST26_Erase_Chip();    // Erases the entire Chip !!!
-void SST26_Erase_Sector(unsigned long Dst); // Erase 4 KBytes (000000H-7FFFFFH)
-void SST26_Erase_Block(unsigned long Dst); // 8Kbyte, 32 KByte or 64 KByte 
+void SST26_Erase_Chip(); // Erases the entire Chip !!!
+void SST26_Erase_Sector(uint32_t addr); // Erase 4 KBytes (000000H-7FFFFFH)
+void SST26_Erase_Block(flash_address_t addr); // 8Kbyte, 32 KByte or 64 KByte 
 
 // Write (Program)
 void SST26_Write_Suspend();
 void SST26_Write_Resume();
-uint16_t SST26_Write(uint32_t addr, uint8_t *dbuf, uint16_t dlen);
+uint16_t SST26_Write(flash_address_t* addr, uint8_t *dbuf, uint16_t dlen);
 
 // Read
-uint16_t SST26_Read(uint32_t addr, uint16_t nbytes, uint8_t *dbuf);
+uint16_t SST26_Read(flash_address_t addr, uint16_t nbytes, uint8_t *dbuf);
 void SST26_HSRead(uint32_t addr, uint16_t nbytes, uint8_t *dbuf);
 
 

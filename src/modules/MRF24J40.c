@@ -101,6 +101,7 @@ uint8_t MRF24J40_readShort(uint8_t addr);
 uint8_t MRF24J40_readLong(uint16_t addr);
 
 // Locals
+static bool disable_spi1; // Shared SPI1
 //static mrftype_t module_type;
 static uint16_t net_pan; // Network ID
 static uint16_t net_addr; // Local mac
@@ -129,7 +130,7 @@ void MRF24J40_Enable(uint16_t macaddr) {
     seqNumber = 0;
 
     MRF24_SS_SetDigitalOutputHigh();
-    SPI1_Enable(MODE0, SPI_2MHZ);
+    disable_spi1 = SPI1_Enable(MODE0, SPI_2MHZ); // Shared SPI1
 
     // MRF24J40 module configuration
 
@@ -257,7 +258,9 @@ void MRF24J40_Disable() {
     MRF24J40_writeShort(MRF_WAKECON, 0b10000000); // Enable Immediate Wake-up Mode (IMMWAKE = 1)
     MRF24J40_writeShort(MRF_SLPACK, 0b10000000); // Put the module to sleep (SLPACK = 1)
 
-    SPI1_Disable(); // Disable SPI1    
+    if (disable_spi1) { // Shared SPI1
+        SPI1_Disable();
+    }
     MRF24_SS_SetLow(); // CS low !
 }
 
@@ -391,12 +394,12 @@ uint8_t MRF24J40_RxBuffer(uint8_t* data, int size) {
     return maxSize;
 }
 
-bool  MRF24J40_IsRxReady() {
-         if ( !( (rxSize - rxCount) == 0) ) {
-            return true;
-        } else {
-            return MRF24J40_receivePacket();
-        }
+bool MRF24J40_IsRxReady() {
+    if (!((rxSize - rxCount) == 0)) {
+        return true;
+    } else {
+        return MRF24J40_receivePacket();
+    }
 }
 
 bool MRF24J40_transmissionDone() {

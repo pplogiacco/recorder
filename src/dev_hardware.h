@@ -49,7 +49,45 @@
 
 #define __BOARD_V2
 /*******************************************************************************
- * PIC24FJ256GA702 (28 Pins) ( 705 Family )                                    *
+ * PIC24FJ256GA702 (QFN, UQFN) (Board V2 )                                   *
+ *******************************************************************************
+    PIN Signal                      BUS Function
+
+    1 PGD1/AN2/CTCMP/C2INB/RP0/RB0 
+    2 PGC1/AN1-/AN3/C2INA/RP1/
+      CTED12/RB1 
+    3 AN4/C1INB/RP2/SDA2/CTED13/RB2 
+    4 AN5/C1INA/RP3/SCL2/CTED8/RB3 
+    5 Vss 
+    6 OSCI/CLKI/C1IND/RA2 
+    7 OSCO/CLKO/C2IND/RA3 
+    8 SOSCI/RP4/RB4                     High=SHUTDOWN LTC3127 (main power)
+    9 SOSCO/PWRLCLK/RA4 
+    10 VDD 
+    11 PGD3/RP5/ASDA1/OCM1E/RB5 
+    12 PGC3/RP6/ASCL1/OCM1F/RB6 
+    13 RP7/OCM1A/CTED3/INT0/RB7 
+    14 TCK/RP8/SCL1/OCM1B/CTED10/RB8 
+    15 TDO/C1INC/C2INC/C3INC/TMPRN/
+       RP9/SDA1/T1CK/CTED4/RB9
+    16 Vss
+    17 VCAP
+    18 PGD2/TDI/RP10/OCM1C/CTED11/RB10
+    19 PGC2/TMS/REFI1/RP11/CTED9/RB11
+    20 AN8/LVDIN/RP12/RB12
+    21 AN7/C1INC/RP13/OCM1D/CTPLS/RB13
+    22 CVREF/AN6/C3INB/RP14/CTED5/RB14
+    23 AN9/C3INA/RP15/CTED6/RB15        Low=SHUTDOWN LDO AD151
+    24 AVSS/VSS
+    25 AVDD/VDD
+    26 MCLR
+    27 VREF+/CVREF+/AN0/C3INC/RP26/CTED1/RA0
+    28 VREF-/CVREF-/AN1/C3IND/RP27/CTED2/RA1
+*/
+
+#undef __BOARD_V1
+/*******************************************************************************
+ * PIC24FJ256GA702 (SOIC, SSOP, SPDIP) (Board V1 )                                    *
  *******************************************************************************
 Module  PIN Signal                      BUS Function
   
@@ -63,7 +101,7 @@ USART2	 4	U2RX/RB0/PGD1/RP0               MCP2221
 POWER	 8	Vss
          9	OSCI/AN13/CLKI/CN30/RA2     (S) MRF Chip Select
         10  OSCO/RA3                    (S) ??
-        11  SOSCI/AN15/U2RTS/CN1/RB4    (A) High SHUTDOWN LTC3127 (main power)
+        11  SOSCI/AN15/U2RTS/CN1/RB4    (A) High=SHUTDOWN LTC3127 (main power)
         12  SOSCO/SCLKI/U2CTS/CN0/RA4   (S) CS Flash ( SST26VF064B )
 POWER   13  Vdd
         14  RB5 Programming
@@ -71,39 +109,46 @@ POWER   13  Vdd
         16  INT0/CN23/RB7/OC1           (S)  Wake-up USB / (diode) MRF Int
 I2C1    17  SCL1/C3OUT/CTED10/CN22/RB8
         18  SDA1/T1CK/IC2/CN21/RB9
-        19  SDI2/IC1/CTED3/CN9/RA7           POWER ENA 3127 ( verif. Hi/VCAP )*
+        19  SDI2/IC1/CTED3/CN9/RA7           
         20  VCAP
         23  RB12                        (S)  ADA2200 Chip Select
 SPI1    21  SDI/RP10                    (S) 
         22  SCLK (S)
         24  SDO
         25  AN10/INT1/RB14              (S) Encoder B
-        26  AN9/C3INA/T3CK/T2CK/SS1     (S) High Enable LDO AD151
+        26  AN9/C3INA/T3CK/T2CK/SS1     (S) 
 POWER   27  Vss
         28  Vdd
  *******************************************************************************/
-#ifdef __BOARD_V2
+
+
+
+#ifdef __BOARD_V2 // (QFN, UQFN)
 
 #define BAT_LV_SetAnalogInput()         { _TRISA3=1;  _ANSA3=1; }   // AN3
 #define BAT_LV_ADC_CH0SA                5    // S/H+ Input A3
 
+#define ADA_IN_SetAnalogInput()         { _TRISA1=1;  _ANSA1=1; }   // AN1 
+#define ADA_IN_ADC_CH0SA                1     // S/H+ Input A 
+
 // Default power LTC Buck/Booster
-#define PW_SWC_SetDigitalOutputLow()    { _TRISB4=0;  _LATB4=0; } // LTC3127 On
-#define PW_SWC_SetHigh()                { _LATB4=1; }          // Off   
-#define PW_SWC_SetLow()                 { _LATB4=0; }          // On   
+#define PW_LTC_SetDigitalOutputLow()    { _TRISB4=0;  _LATB4=0; } // LTC3127 On
+#define PW_LTC_SetHigh()                { _LATB4=1; }          // Off   
+#define PW_LTC_SetLow()                 { _LATB4=0; }          // On   
 
 // Low power ADP LDO
 #define PW_ADP_SetDigitalOutputLow()    { _ANSB15=0; _TRISB15=0; _LATB15=0; }
 #define PW_ADP_SetHigh()                { _LATB15=1; }  // ADP151 On      
 #define PW_ADP_SetLow()                 { _LATB15=0; }  // ADP151 Off
 
-#define Device_Power_Save()             {  PW_ADP_SetHigh(); PW_SWC_SetHigh(); }                       
-#define Device_Power_Default()          {  PW_SWC_SetLow(); PW_ADP_SetLow(); }
+// Power Managment
+#define Device_Power_Save()             {  PW_ADP_SetHigh(); PW_LTC_SetHigh(); }                       
+#define Device_Power_Default()          {  PW_LTC_SetLow(); PW_ADP_SetLow(); }
 
-#define ADA_IN_SetAnalogInput()         { _TRISA1=1;  _ANSA1=1; }   // AN1 
-#define ADA_IN_ADC_CH0SA                1     // S/H+ Input A 
 
-#else
+#endif
+
+#ifdef __BOARD_V1   // Board V1 (SOIC, SSOP, SPDIP)
 
 #define BAT_LV_SetAnalogInput()   { _TRISA1=1;  _ANSA1=1; }   // AN0
 #define BAT_LV_ADC_CH0SA          1    // S/H+ Input A (0=AN0,1=AN1)
@@ -130,8 +175,8 @@ POWER   27  Vss
 #define ADA_SS_SetHigh()            _LATB12=1
 #define ADA_SS_SetLow()             _LATB12=0
 #define ADA_SS_SetDigitalOutput()   _TRISB12=0
-#define AV_SYN_SetDigital()         _ANSB15=0  // Digital
-#define AV_SYN_SetDigitalInput()    _TRISB15=1 // Input T3CK/RB15 (SYNCO)
+//#define AV_SYN_SetDigital()         _ANSB15=0  // Digital
+//#define AV_SYN_SetDigitalInput()    _TRISB15=1 // Input T3CK/RB15 (SYNCO)
 #define AV_IN_SetAnalogInput()      ADA_IN_SetAnalogInput()
 #define ET_IN                       _RB3  // AN5/C1INA/C2INC/SCL2/CN7/RB3 (7)
 #define ET_IN_SetAnalogInput()      {_TRISB3 = 1; _ANSB3 = 1; }
@@ -177,7 +222,6 @@ POWER   27  Vss
 #define IO_SWC1_SetDigitalInput()
 #endif
 
-
 #ifdef __USB  // ___________________________________________________________USB
 #define __UART2
 #define USB_WK_SetDigitalInputLow() {  _TRISB7 = 1; _LATB7 = 0;  }
@@ -188,7 +232,6 @@ POWER   27  Vss
 #define UART2_TX_SetDigitalOutputHigh() { _ANSB1 = 0; _TRISB1 = 1; }
 #define UART2_RX_SetDigitalInput()      { _ANSB0 = 0; _TRISB0 = 0; _LATB0 = 1; }
 #endif // __UART2 
-
 
 #if defined(__MRF24) // __________________________________________________MRF24
 #define MRF24_INT             _RB7    // Shared USB_WK

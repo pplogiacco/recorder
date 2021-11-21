@@ -10,6 +10,7 @@
 #include "sampling/measurement.h"   // DaaS-Ex Protocol 
 #include "memory/SST26VF064B.h"     // Flash SPI
 #include "memory/DEE/dee.h"
+#include "memory/libdpt.h"
 
 #define g_measurement lmeas
 #define g_dev device
@@ -100,8 +101,37 @@ int main(void) {
     RTCC_GetTime(&stime);
     printf("[%u:%u:%u]\n", stime.hour, stime.min, stime.sec);
 
-    
-/*----------------------------------------------------------------------------*/
+
+
+
+
+    /*----------------------------------------------------------------------------*/
+#ifdef __VAMP1K_TEST_POWER    
+    RCON = 0x0;
+    while (1) {
+
+        while (0) {
+            _LATB15 = 1; // ADP151 On  PW_ADP_SetHigh()         
+            __delay(1000);
+            printf("Switch RB15... \n");
+            _LATB15 = 0; // ADP151 Off PW_ADP_SetLow()                 { 
+            __delay(1000);
+        }
+
+        printf("Power-Save... \n");
+        Device_Power_Save();
+        ShowRCON();
+        __delay(2000);
+        printf("Power-Default... \n");
+        Device_Power_Default();
+        ShowRCON();
+        __delay(2000);
+    }
+#endif    
+
+
+
+    /*----------------------------------------------------------------------------*/
 #ifdef  __VAMP1K_TEST_RESET    
     ShowRCON();
     RCON = 0x0;
@@ -113,7 +143,7 @@ int main(void) {
 #endif 
 
 
-/*----------------------------------------------------------------------------*/
+    /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_SLEEP
     // RTCC Settings
     g_dev.cnf.general.delaytime = 20;
@@ -158,28 +188,26 @@ int main(void) {
         printf("Sleep mode: waiting event... (RTTC/INT0 Wake) \n");
         __delay(100); // Wait to complete printf
 
+        Device_SwitchSys(SYS_SLEEP);
 
-        //Device_SwitchSys(SYS_SLEEP);
-
-        RCON = 0x0;
+        //RCON = 0x0;
         //        RCONbits.SBOREN = 0; // Disable BoR
 
         RCONbits.RETEN = 1;
-        RCONbits.VREGS = 0; // 
+        RCONbits.VREGS = 1; // 
         //////////    // __builtin_disable_interrupts();
 
-        //   Device_Power_Save();
-
+        Device_Power_Save();
         // Enable INT0 event (connect by wire) Wake-Up
         // __builtin_disable_interrupts();
         //        IFS0bits.INT0IF = 0;
         //        IEC0bits.INT0IE = 1; // enables INT0 
-        Nop();
+        //
         Nop();
         Sleep(); // enter in sleep mode....
         Nop();
         //IEC0bits.INT0IE = 0; // Disable INT0 (No change detection) 
-        //   Device_Power_Default();
+        Device_Power_Default();
 
         RTCC_GetTime(&stime);
         printf("Wake-up: %u/%u/%u - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
@@ -187,7 +215,7 @@ int main(void) {
 #endif
 
 
-/*----------------------------------------------------------------------------*/
+    /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_CONFIG
     //  Device_ConfigDefaultSet(&g_dev.cnf);
     //  Device_ConfigWrite((uint8_t*) & g_dev.cnf); // Write EEprom/Flash
@@ -205,7 +233,7 @@ int main(void) {
 #endif
 
 
-/*----------------------------------------------------------------------------*/
+    /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_BATLEV   
     //    Device_SwitchADG(0xFF);
     while (1) {
@@ -216,7 +244,7 @@ int main(void) {
 
 
 
-/*----------------------------------------------------------------------------*/
+    /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_USB
     while (1) {
         if (!Device_IsUsbConnected()) {
@@ -228,7 +256,7 @@ int main(void) {
     }
 #endif
 
-/*----------------------------------------------------------------------------*/
+    /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_ADG
     Device_SwitchSys(SYS_DEFAULT);
 
@@ -244,7 +272,7 @@ int main(void) {
     Device_SwitchADG(0xFF); //_bs8(PW_WST) | _bs8(PW_ADA));
 #endif      
 
-/*----------------------------------------------------------------------------*/
+    /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_TIMERS
 
     /// _______________TEST TMR1 TIMEOUT
@@ -312,7 +340,7 @@ int main(void) {
 
 
 
-/*----------------------------------------------------------------------------*/
+    /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_BATTERY
     Device_SwitchSys(SYS_DEFAULT);
 
@@ -324,8 +352,8 @@ int main(void) {
     }
 #endif
 
-    
-/*----------------------------------------------------------------------------*/
+
+    /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_RTCC
     if (1) {
         stime.day = 14;
@@ -373,72 +401,86 @@ int main(void) {
     }
 #endif
 
-/*----------------------------------------------------------------------------*/
+
+    /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_SST26
 
-#define SST_SECTOR_SIZE      4096        // 4KBytes 
-    // Device_SwitchSys(SYS_ON_EXCHANGE); // SPI
 
-    unsigned long sst_addr = SST_SECTOR_SIZE;
-    //uint16_t sector,offset;
-    uint8_t datas[32];
+#define ShowSST() { printf("[SST26:");  \
+                    printf("%u", SST26_Read_Status() ); \
+                    printf("]\n"); }
 
-    SST26_Enable();
-    // SST26_Chip_Erase();
-    //SST26_Switch_Power();
-    //SST26_ResetEn();
-    //SST26_Reset();
+//             if (RCONbits.WDTO) {  printf(" WDT");  } 
+//                if (RCONbits.BOR) { printf(" BoR"); } 
+
+#define SST_SECTOR_SIZE   4096        // 4KBytes 
+#define SST_PAGE_SIZE      256
+#define DSIZE 96
+
+flash_address_t sst_addr,tmp_addr;
+uint8_t datas[DSIZE];
+
+int man, typ, id, err;
 
 
-    //SST26_WREN(); // Necessaria ????
-    SST26_Global_Block_Protection_Unlock();
+SST26_Enable();
+//SST26_Chip_Erase();
+//SST26_Switch_Power();
+//SST26_ResetEn();
+//SST26_Reset();
 
 
-    //SST26_WREN();   // Nexwssarie ???
-    //SST26_Block_Erase(sst_addr);     
+while (1) {
+    printf("______SST26VF064B:\n");
+    SST26_Jedec_ID_Read(&man, &typ, &id);
+    printf("manufacturer=%u\n", man);
+    printf("device_type=%u\n", typ);
+    printf("identifier=%u\n", id);
+    printf("config_reg=%u\n", SST26_Read_Configuration());
+
+    ShowSST();
+    __delay(1000);
+
+    sst_addr.a32 = 0;
+    for (i = 0; i < DSIZE; i++) {
+        datas[i] = i;
+    }
+
+    printf("#Global Unlock\n");
+    SST26_Global_Protection_Unlock();
+    printf("#Erase sector (%lu)... ", sst_addr.a32);
     SST26_Erase_Sector(sst_addr); // Set 4K in 0xFF state
-    SST26_Wait_Busy();
-
-    int man, typ, id, j;
+    ShowSST();
 
     while (1) {
-        printf("______SST26VF064B:\n");
-        SST26_Jedec_ID_Read(&man, &typ, &id);
-        printf("manufacturer=%u  \n", man);
-        printf("device_type=%u  \n", typ);
-        printf("identifier=%u  \n", id);
-        printf("config_reg=%u  \n", SST26_Read_Configuration());
-        printf("address=%lu  \n\n", sst_addr);
-        printf("erase status=%u  \n", SST26_Read_Status());
 
-        for (i = 0; i < 16; i++) {
-            datas[i] = i;
-        }
+        printf("#Write (addr=%lu,dsize=%u)...", sst_addr.a32, DSIZE);
+        tmp_addr = sst_addr;
+        SST26_Write(&sst_addr, (uint8_t*) datas, DSIZE);
+//        ShowSST();
+        printf("#Read (addr=%lu,dsize=%u )...", tmp_addr, DSIZE);
+        SST26_Read(tmp_addr, DSIZE, datas);
+//        ShowSST();
 
-        for (i = 0; i < 5; i++) {
-            sst_addr = SST_SECTOR_SIZE * i;
-            SST26_WREN();
-            SST26_Write_Bytes(sst_addr, datas, 16);
-            SST26_Wait_Busy();
-            printf("write status=%u  \n", SST26_Read_Status());
-            SST26_WRDI();
-        }
-
-        for (i = 0; i < 5; i++) {
-
-            sst_addr = SST_SECTOR_SIZE * i;
-            SST26_Read_Bytes(sst_addr, 16, datas);
-            printf("read status=%u  \n", SST26_Read_Status());
-            for (j = 0; j < 16; j++) {
-                printf("Read[%lu]=%u \n", sst_addr + i, datas[j]);
+        err = 0;
+        for (i = 0; i < DSIZE; i++) {
+            if (datas[i] != i) {
+                err++;
             }
         }
+        printf("#Error: %u\n", err);
 
-        __delay(5000);
+        //        printf("R: ");
+        //        for (i = 0; i < DSIZE; i++) {
+        //            printf(" %u", datas[i]);
+        //        }
+        //        printf("\n");
+        __delay(2000);
     }
-    SST26_Disable();
+}
+SST26_Disable();
 
-    //    Device_SwitchSys(SYS_DEFAULT); // SPI
+//    Device_SwitchSys(SYS_DEFAULT); // SPI
 #endif    
 
 
@@ -449,26 +491,26 @@ int main(void) {
 #define DDE_STOP	160
 #define DDE_COUNTER DDE_STOP - DDE_START
 
-    uint16_t value;
-    int ncycle = 0;
-    printf("______DDE:\n");
+uint16_t value;
+int ncycle = 0;
+printf("______DDE:\n");
 
-    while (1) {
-        printf("Write... %u, %u \n", DDE_COUNTER, ncycle);
-        for (i = 0; i < DDE_COUNTER; i++) {
-            DEE_Write(DDE_START + i, ncycle * i); // (dee.h)  
-        }
-
-        printf("Read...%u, %u \n", DDE_COUNTER, ncycle);
-        printf("values: ");
-        for (i = 0; i < DDE_COUNTER; i++) {
-            DEE_Read(DDE_START + i, &value); // (dee.h)  
-            printf(" %u,", value);
-        }
-        printf("\n");
-        __delay(5000);
-        ncycle++;
+while (1) {
+    printf("Write... %u, %u \n", DDE_COUNTER, ncycle);
+    for (i = 0; i < DDE_COUNTER; i++) {
+        DEE_Write(DDE_START + i, ncycle * i); // (dee.h)  
     }
+
+    printf("Read...%u, %u \n", DDE_COUNTER, ncycle);
+    printf("values: ");
+    for (i = 0; i < DDE_COUNTER; i++) {
+        DEE_Read(DDE_START + i, &value); // (dee.h)  
+        printf(" %u,", value);
+    }
+    printf("\n");
+    __delay(5000);
+    ncycle++;
+}
 #endif  
 
 
@@ -476,15 +518,15 @@ int main(void) {
 /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_measurement_save 
 
-    //    DEE_Init(); // Emulated Data Eprom 
+//    DEE_Init(); // Emulated Data Eprom 
 
-    // measurementInitialize(&g_measurement);    
+// measurementInitialize(&g_measurement);    
 
 
 #define ShowMem() {   printf("FreeSpace :%u\n", depotFreeSpaceKb());    \
     uint16_t Sector, Offset;	\
-    DEE_Read(EEA_SST26_SECTOR, &Sector);   \
-    DEE_Read(EEA_SST26_OFFSET, &Offset);  \
+    DEE_Read(EEA_SST26_HA, &Sector);   \
+    DEE_Read(EEA_SST26_LA, &Offset);  \
     printf("Sector :%u\n", Sector);	\
     printf("Offset :%u\n", Offset);	\
     printf("Meas_Counter :%u\n", device.sts.meas_counter ); \
@@ -503,39 +545,39 @@ int main(void) {
     }
 
 
-    printf("Start test... \n\n");
-    while (1) {
-        //ShowMem();
+printf("Start test... \n\n");
+while (1) {
+    //ShowMem();
 
-        printf("Save new measurement...\n");
-        NewMeasurement(64);
-        measurementSave(&g_measurement);
-        ShowMem();
-        printf("--------------\n\n");
-        g_measurement.tset = 0;
-        g_measurement.ns = 0;
+    printf("Save new measurement...\n");
+    NewMeasurement(64);
+    measurementSave(&g_measurement);
+    ShowMem();
+    printf("--------------\n\n");
+    g_measurement.tset = 0;
+    g_measurement.ns = 0;
 
-        //__delay(5000);
-        printf("Measurement Read...\n");
-        measurementLoad(1);
-        printf("tset:%u\n", g_measurement.tset);
-        stime.lstamp = g_measurement.dtime;
-        L2Time(&stime);
-        printf("timestamp: %d/%d/%d - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
-        printf("ns:%u \n", g_measurement.ns);
-        printf("nss:%u \n", g_measurement.nss);
-        for (i = 0; i < g_measurement.ns; i++) {
-            printf("%u,", *(g_measurement.ss + i));
-        };
-        printf("\n---------------\n\n");
-        __delay(2000);
-    }
+    //__delay(5000);
+    printf("Measurement Read...\n");
+    measurementLoad(1);
+    printf("tset:%u\n", g_measurement.tset);
+    stime.lstamp = g_measurement.dtime;
+    L2Time(&stime);
+    printf("timestamp: %d/%d/%d - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
+    printf("ns:%u \n", g_measurement.ns);
+    printf("nss:%u \n", g_measurement.nss);
+    for (i = 0; i < g_measurement.ns; i++) {
+        printf("%u,", *(g_measurement.ss + i));
+    };
+    printf("\n---------------\n\n");
+    __delay(2000);
+}
 #endif      
 
 /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_measurement_delete 
 
-    measurementInitialize(&g_measurement);
+measurementInitialize(&g_measurement);
 
 
 #define ShowMem() {   printf("FreeSpace :%u\n", sstFreeSpaceKb());    \
@@ -548,7 +590,7 @@ int main(void) {
     __delay(2000); \
     }
 
-    printf("Start test... \n\n");
+printf("Start test... \n\n");
 
 #define NewMeasurement(n) { g_measurement.tset = _SIG0; \
      RTCC_GetTime(&stime); \
@@ -561,168 +603,168 @@ int main(void) {
     }
 
 
-    while (1) {
+while (1) {
 
-        int j = 0;
-        printf("Save 3 new measurement...\n");
+    int j = 0;
+    printf("Save 3 new measurement...\n");
 
-        while (j < 3) {
-            NewMeasurement(5);
-            measurementSave(&g_measurement);
-            printf("Measurement Save...\n");
-            ShowMem();
-            printf("--------------\n\n");
-            g_measurement.tset = 0;
-            g_measurement.ns = 0;
-            j++;
-        }
-        printf("Measurement Delete...\n");
-        measurementDelete(1);
+    while (j < 3) {
+        NewMeasurement(5);
+        measurementSave(&g_measurement);
+        printf("Measurement Save...\n");
         ShowMem();
         printf("--------------\n\n");
-
-        printf("Measurement Read...\n");
-        measurementLoad(1, &g_measurement);
-        printf("---------------\n");
-        printf("tset:%u\n", g_measurement.tset);
-        stime.lstamp = g_measurement.dtime;
-        L2Time(&stime);
-        printf("timestamp: %d/%d/%d - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
-        printf("ns:%u \n", g_measurement.ns);
-        printf("nss:%u \n", g_measurement.nss);
-        for (i = 0; i < g_measurement.ns; i++) {
-            printf("%u,", *(g_measurement.ss + i));
-        };
-        printf("---------------\n\n\n");
-        __delay(2000);
+        g_measurement.tset = 0;
+        g_measurement.ns = 0;
+        j++;
     }
+    printf("Measurement Delete...\n");
+    measurementDelete(1);
+    ShowMem();
+    printf("--------------\n\n");
+
+    printf("Measurement Read...\n");
+    measurementLoad(1, &g_measurement);
+    printf("---------------\n");
+    printf("tset:%u\n", g_measurement.tset);
+    stime.lstamp = g_measurement.dtime;
+    L2Time(&stime);
+    printf("timestamp: %d/%d/%d - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
+    printf("ns:%u \n", g_measurement.ns);
+    printf("nss:%u \n", g_measurement.nss);
+    for (i = 0; i < g_measurement.ns; i++) {
+        printf("%u,", *(g_measurement.ss + i));
+    };
+    printf("---------------\n\n\n");
+    __delay(2000);
+}
 #endif      
 
 
 
 
-    while (1) {
-        switch (state) {
-            case STARTUP: // Executed only after Power-On/Reset
+while (1) {
+    switch (state) {
+        case STARTUP: // Executed only after Power-On/Reset
 
-                //g_dev.cnf.CRC16 = 0; // Set Default config
-                Device_ConfigRead(&g_dev.cnf); // Read from EEprom/Flash
-                //Device_GetStatus(&g_dev.st);
-                //g_dev.st.alarm_counter = Device_CheckReset();
-                //g_dev.cnf.general.typeset = _AV00;
-                //printf("Delay %u\n", g_dev.cnf.general.delaytime);
-                //printf("Cycle %u\n", g_dev.cnf.general.cycletime);
-                state = SAMPLING; // After start-up try to connect
-                break;
+            //g_dev.cnf.CRC16 = 0; // Set Default config
+            Device_ConfigRead(&g_dev.cnf); // Read from EEprom/Flash
+            //Device_GetStatus(&g_dev.st);
+            //g_dev.st.alarm_counter = Device_CheckReset();
+            //g_dev.cnf.general.typeset = _AV00;
+            //printf("Delay %u\n", g_dev.cnf.general.delaytime);
+            //printf("Cycle %u\n", g_dev.cnf.general.cycletime);
+            state = SAMPLING; // After start-up try to connect
+            break;
 
-            case SAMPLING:
-                lstate = state;
-                // RTCC_TimeGet(&stime);
-                //!! if ((stime.lstamp > g_config.general.startdate) && (stime.lstamp < g_config.general.stopdate)) {
-                g_dev.cnf.general.typeset = FORCED_TYPESET;
-                measurementAcquire(&g_measurement);
+        case SAMPLING:
+            lstate = state;
+            // RTCC_TimeGet(&stime);
+            //!! if ((stime.lstamp > g_config.general.startdate) && (stime.lstamp < g_config.general.stopdate)) {
+            g_dev.cnf.general.typeset = FORCED_TYPESET;
+            measurementAcquire(&g_measurement);
 #ifdef __VAMP1K_TEST_measurement_save
-                measurementSave(&g_measurement);
+            measurementSave(&g_measurement);
 #endif
 
-                //!!};
-                state = (g_dev.cnf.exchange.attempt_mode == CNF_ATTEMPTMODE_EVERYCYCLE) ? EXCHANGE : WAITING;
-                break;
+            //!!};
+            state = (g_dev.cnf.exchange.attempt_mode == CNF_ATTEMPTMODE_EVERYCYCLE) ? EXCHANGE : WAITING;
+            break;
 
-            case EXCHANGE:
-                lstate = state;
-                Device_StatusRefresh(&g_dev.sts);
+        case EXCHANGE:
+            lstate = state;
+            Device_StatusRefresh(&g_dev.sts);
 
 #ifdef __VAMP1K_TEST_measurement_printf
-                printf("EXCHANGE...\n");
-                printf("---------------\n");
-                printf("typeset:%u\n", g_measurement.tset);
-                printf("timestamp:%lu ", g_measurement.dtime);
-                stime.lstamp = g_measurement.dtime;
-                L2Time(&stime);
-                printf("%d/%d/%d - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
+            printf("EXCHANGE...\n");
+            printf("---------------\n");
+            printf("typeset:%u\n", g_measurement.tset);
+            printf("timestamp:%lu ", g_measurement.dtime);
+            stime.lstamp = g_measurement.dtime;
+            L2Time(&stime);
+            printf("%d/%d/%d - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
 
-                printf("ns:%u \n", g_measurement.ns);
-                for (i = 0; i < g_measurement.ns; i++) {
-                    printf("%u,", *(g_measurement.ss + i));
+            printf("ns:%u \n", g_measurement.ns);
+            for (i = 0; i < g_measurement.ns; i++) {
+                printf("%u,", *(g_measurement.ss + i));
+            };
+            printf("\n");
+            printf("nss:%u\n", g_measurement.nss);
+
+            printf("---------------\n");
+            //    _SIG0 = 0x02, // (02) Test signal  { <sig_fq>, <sig_maxa>, <adc_fq>, <res_scale>, [<dT>,<a>],[...] }
+            //    _AV04 = 0x04, // (04) Aeolean Vibration, RAW without dT ! { <ET>,<WS>,<adc_fq> <res_scale>,<s1>,...,<sn>}            
+            //    _AV00 = 0x0A, // (10) Aeolian Vibration, RAW { <ET>,<WS>,<adc_fq> <res_scale>,[<dT>,<s>],...}
+            //    _SS00 = 0x0B, // (11) Sub-Span, raw
+            //    _AV02 = 0x0C, // (12) Aeolian Vibration, FFT Real { <ET>,<WS>,<adc_fq>,<log2_n>,[<rH1>],...,[<rH((2^log2_n)/2)>]}
+            //    _AV01 = 0x0D, // (13) Aeolian Vibration, P-P { <ET>,<WS>,<adc_fq> <res_scale,[<dT>,<sp>],...}
+            //    _AV03 = 0x0E, // (14) FFT Real { <ET>,<WS>,<adc_fq>,<log2_n>,[<rH1>],...,[<rH((2^log2_n)/2)>]}
+            //    _AV05 = 0x0F  // (15) AVC { <ET>,<WS>,<adc_fq>,<res_scale>,<duration>,[ (<n>,<freq>,<amp>),...]}
+
+            if ((g_measurement.tset == _AV05) || (g_measurement.tset == _AV06)) {
+                for (i = 0; i < (g_measurement.nss / 3); i += 3) {
+                    printf("%u,%u,%u\n", *(g_measurement.ss + i + g_measurement.ns), *(g_measurement.ss + (i + 1) + g_measurement.ns), *(g_measurement.ss + (i + 2) + g_measurement.ns));
+                };
+            } else if (g_measurement.tset == _AV02) { // FFT
+                for (i = 0; i < g_measurement.nss; i++) {
+                    printf("%u ", *(g_measurement.ss + (i) + g_measurement.ns));
                 };
                 printf("\n");
-                printf("nss:%u\n", g_measurement.nss);
+            } else if (g_measurement.tset == _AV04) { // RAW NDT
 
-                printf("---------------\n");
-                //    _SIG0 = 0x02, // (02) Test signal  { <sig_fq>, <sig_maxa>, <adc_fq>, <res_scale>, [<dT>,<a>],[...] }
-                //    _AV04 = 0x04, // (04) Aeolean Vibration, RAW without dT ! { <ET>,<WS>,<adc_fq> <res_scale>,<s1>,...,<sn>}            
-                //    _AV00 = 0x0A, // (10) Aeolian Vibration, RAW { <ET>,<WS>,<adc_fq> <res_scale>,[<dT>,<s>],...}
-                //    _SS00 = 0x0B, // (11) Sub-Span, raw
-                //    _AV02 = 0x0C, // (12) Aeolian Vibration, FFT Real { <ET>,<WS>,<adc_fq>,<log2_n>,[<rH1>],...,[<rH((2^log2_n)/2)>]}
-                //    _AV01 = 0x0D, // (13) Aeolian Vibration, P-P { <ET>,<WS>,<adc_fq> <res_scale,[<dT>,<sp>],...}
-                //    _AV03 = 0x0E, // (14) FFT Real { <ET>,<WS>,<adc_fq>,<log2_n>,[<rH1>],...,[<rH((2^log2_n)/2)>]}
-                //    _AV05 = 0x0F  // (15) AVC { <ET>,<WS>,<adc_fq>,<res_scale>,<duration>,[ (<n>,<freq>,<amp>),...]}
+                for (i = 0; i < g_measurement.nss; i++) {
+                    printf("%u \n", *(g_measurement.ss + (i) + g_measurement.ns));
+                };
+                printf("\n");
 
-                if ((g_measurement.tset == _AV05) || (g_measurement.tset == _AV06)) {
-                    for (i = 0; i < (g_measurement.nss / 3); i += 3) {
-                        printf("%u,%u,%u\n", *(g_measurement.ss + i + g_measurement.ns), *(g_measurement.ss + (i + 1) + g_measurement.ns), *(g_measurement.ss + (i + 2) + g_measurement.ns));
-                    };
-                } else if (g_measurement.tset == _AV02) { // FFT
-                    for (i = 0; i < g_measurement.nss; i++) {
-                        printf("%u ", *(g_measurement.ss + (i) + g_measurement.ns));
-                    };
-                    printf("\n");
-                } else if (g_measurement.tset == _AV04) { // RAW NDT
-
-                    for (i = 0; i < g_measurement.nss; i++) {
-                        printf("%u \n", *(g_measurement.ss + (i) + g_measurement.ns));
-                    };
-                    printf("\n");
-
-                } else {
-                    for (i = 0; i < (g_measurement.nss >> 1); i++) {
-                        printf("%u,%u\n", *(g_measurement.ss + (i * 2) + g_measurement.ns), *(g_measurement.ss + ((i * 2) + 1) + g_measurement.ns));
-                    };
-                    printf("\n");
-                }
-                printf("---------------\n\n");
+            } else {
+                for (i = 0; i < (g_measurement.nss >> 1); i++) {
+                    printf("%u,%u\n", *(g_measurement.ss + (i * 2) + g_measurement.ns), *(g_measurement.ss + ((i * 2) + 1) + g_measurement.ns));
+                };
+                printf("\n");
+            }
+            printf("---------------\n\n");
 
 #elif defined( __VAMP1K_TEST_measurement_DATAVIS )
-                for (i = 4; i < (g_measurement.nss >> 1); i++) {
-                    // printf("%u,%u\n", *(g_measurement.ss + (i * 2) + g_measurement.ns), *(g_measurement.ss + ((i * 2) + 1) + g_measurement.ns));
-                    UART2_Write(0x5F);
-                    UART2_Write(*(g_measurement.ss + (i * 2) + g_measurement.ns) & 0xFF);
-                    UART2_Write(*(g_measurement.ss + (i * 2) + g_measurement.ns) >> 8);
-                    UART2_Write(*(g_measurement.ss + ((i * 2) + 1) + g_measurement.ns) & 0xFF);
-                    UART2_Write(*(g_measurement.ss + ((i * 2) + 1) + g_measurement.ns) >> 8);
-                    UART2_Write(0xA0);
-                    __delay(1);
-                };
+            for (i = 4; i < (g_measurement.nss >> 1); i++) {
+                // printf("%u,%u\n", *(g_measurement.ss + (i * 2) + g_measurement.ns), *(g_measurement.ss + ((i * 2) + 1) + g_measurement.ns));
+                UART2_Write(0x5F);
+                UART2_Write(*(g_measurement.ss + (i * 2) + g_measurement.ns) & 0xFF);
+                UART2_Write(*(g_measurement.ss + (i * 2) + g_measurement.ns) >> 8);
+                UART2_Write(*(g_measurement.ss + ((i * 2) + 1) + g_measurement.ns) & 0xFF);
+                UART2_Write(*(g_measurement.ss + ((i * 2) + 1) + g_measurement.ns) >> 8);
+                UART2_Write(0xA0);
+                __delay(1);
+            };
 #endif
 
 
-                state = WAITING;
-                //state = SAMPLING;
-                break;
+            state = WAITING;
+            //state = SAMPLING;
+            break;
 
 
-            case WAITING:
-                lstate = state;
-                // RTCC_WakeupSet(uint16_t period);
-                // Device_SwitchPower(PW_SLEEP);
-                // Device_SwitchPower(PW_ON_DEFAULT);
-                state = SAMPLING; // EXCHANGE ??? 
+        case WAITING:
+            lstate = state;
+            // RTCC_WakeupSet(uint16_t period);
+            // Device_SwitchPower(PW_SLEEP);
+            // Device_SwitchPower(PW_ON_DEFAULT);
+            state = SAMPLING; // EXCHANGE ??? 
 
-                //waittime = RTCC_GetMinutes();
-                //while ((RTCC_GetMinutes() - waittime) < (g_dev.cnf.general.delaytime / 60)) {
-                //      printf("%u - %u > %u\n",RTCC_GetMinutes(),waittime, (g_dev.cnf.general.delaytime / 60));
-                //  __delay(5000);
-                __delay(2000);
-                __clearWDT();
-                // }
+            //waittime = RTCC_GetMinutes();
+            //while ((RTCC_GetMinutes() - waittime) < (g_dev.cnf.general.delaytime / 60)) {
+            //      printf("%u - %u > %u\n",RTCC_GetMinutes(),waittime, (g_dev.cnf.general.delaytime / 60));
+            //  __delay(5000);
+            __delay(2000);
+            __clearWDT();
+            // }
 
-                break;
-        }
-        __clearWDT();
-    } // End VAMP1K
+            break;
+    }
+    __clearWDT();
+} // End VAMP1K
 
-    return (0);
+return (0);
 } // End Main
 
 

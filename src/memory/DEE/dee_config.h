@@ -33,8 +33,8 @@
 #define EEA_RESET_COUNTER       101 // Status: reset counter / RCON map...
 #define EEA_SKEYL               102 // Status: skey LSW
 #define EEA_SKEYH               103 // Status: skey MSW
-#define EEA_SST26_SECTOR        110
-#define EEA_SST26_OFFSET        111
+#define EEA_SST26_HA        110
+#define EEA_SST26_LA        111
 
 
 #endif	// DDE_CONFIG

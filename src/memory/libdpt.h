@@ -33,6 +33,10 @@
 
 #define SST26_SECTOR0                0   // First used sector
 
+#define SECTOR_OFFSET(a)   ((a.page * SST26_PAGE_SIZE) + a.offset)
+
+
+void depotInitialize();
 void depotDefaultSet();
 uint16_t depotFreeSpaceKb();
 

@@ -115,10 +115,12 @@ void Device_SwitchClock(sysclock_t ck) {
 void Device_SysBoot() { // Initialize system 
 
 #if defined (__PIC24FJ256GA702__)
-    PW_ADP_SetDigitalOutputLow();
-    PW_SWC_SetDigitalOutputLow(); // Power On 
+    // Board V2 - Power Managment
+    PW_ADP_SetDigitalOutputLow(); // Off
+    PW_LTC_SetDigitalOutputLow(); // On 
+
 #endif 
-    //Device_Power_Default();
+    
     Device_SwitchClock(CK_DEFAULT); // Default clock 32Mhz       
     RTCC_Enable();
     DEE_Init(); // Emulated Data Eprom 
@@ -131,15 +133,14 @@ void Device_SysBoot() { // Initialize system
     LATB = 0x0001;
 
     // Setting the GPIO Direction SFR(s)
-    TRISA = 0x000B;
-    TRISB = 0xC7EE;
-
+//    TRISA = 0x000B;
+//    TRISB = 0xC7EE;
 
     // Setting the Weak Pull Up and Weak Pull Down SFR(s)
-    IOCPDA = 0x0000;
-    IOCPDB = 0x0080;
-    IOCPUA = 0x0000;
-    IOCPUB = 0x0300;
+//    IOCPDA = 0x0000;
+//    IOCPDB = 0x0080;
+//    IOCPUA = 0x0000;
+//    IOCPUB = 0x0300;
 
     //Setting the Open Drain SFR(s)
     ODCA = 0x0000;
@@ -167,6 +168,7 @@ void Device_SysBoot() { // Initialize system
     ADA_SS_SetHigh();
     SST26_SS_SetDigitalOutputHigh(); // SST Memory Bank
 
+    // Board V2 - Not used
     // _____________ADA Synco / Sampling timing
     //    RPINR3bits.T3CKR = 0x000F; //RB15->TMR3:T3CK (Synco/TMR3))
     //    AV_SYN_SetDigital(); // Input T3CK/RB15 (SYNCO)

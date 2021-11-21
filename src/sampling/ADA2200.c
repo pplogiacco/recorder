@@ -3,6 +3,8 @@
 #include "../utils.h"   // delay
 #include "ADA2200.h"
 
+//static bool disable_spi1; // Shared SPI1
+
 void ADA2200_EnableSPI1() {
 #if defined(__HWDEVICE)   
 
@@ -32,22 +34,22 @@ void ADA2200_EnableSPI1() {
 
 #elif defined( __PIC24FJ256GA702__ )
 
-//    SPI1CON1bits.SPIEN = 0; // Disable module
-//    IEC0bits.SPI1IE = 0; // Disable int
-//    IFS0bits.SPI1IF = 0; // Clear flag
+    //    SPI1CON1bits.SPIEN = 0; // Disable module
+    //    IEC0bits.SPI1IE = 0; // Disable int
+    //    IFS0bits.SPI1IF = 0; // Clear flag
 
     // ____________________________________SPI Pins
-//    __builtin_write_OSCCONL(OSCCON & 0xbf); //! PPSUnLock    
-//    //SPI1 (Master, no SDI)
-//    RPOR6bits.RP13R = 7; // 7 SDO1 SPI1 Data Output (Pin 24/ RP13)
-//    RPOR5bits.RP11R = 8; // 8 SPI1 Clock Output SCK1OUT (Pin 22/RP11)    
-//    //Slave
-//    //RPINR20bits.SDI1R = 10; // SPI1 Data Input SDI1 (Pin 21/RP10)
-//    //RPINR20bits.SCK1R = 11; // SPI1 Clock Input SCK1IN (Pin 22/RP11)
-//    //! Extra digital output as Chip Select
-//    TRISBbits.TRISB12 = 0; // ADA_SS_SetDigitalOutput(); 
-//    LATBbits.LATB12 = 1; // ADA_SS_SetHigh()        
-//    __builtin_write_OSCCONL(OSCCON | 0x40); //! PPSLock
+    //    __builtin_write_OSCCONL(OSCCON & 0xbf); //! PPSUnLock    
+    //    //SPI1 (Master, no SDI)
+    //    RPOR6bits.RP13R = 7; // 7 SDO1 SPI1 Data Output (Pin 24/ RP13)
+    //    RPOR5bits.RP11R = 8; // 8 SPI1 Clock Output SCK1OUT (Pin 22/RP11)    
+    //    //Slave
+    //    //RPINR20bits.SDI1R = 10; // SPI1 Data Input SDI1 (Pin 21/RP10)
+    //    //RPINR20bits.SCK1R = 11; // SPI1 Clock Input SCK1IN (Pin 22/RP11)
+    //    //! Extra digital output as Chip Select
+    //    TRISBbits.TRISB12 = 0; // ADA_SS_SetDigitalOutput(); 
+    //    LATBbits.LATB12 = 1; // ADA_SS_SetHigh()        
+    //    __builtin_write_OSCCONL(OSCCON | 0x40); //! PPSLock
 
     // ____________________________________SPI Clock & Mode 
     // AUDEN disabled; FRMEN disabled; AUDMOD I2S; FRMSYPW One clock wide; AUDMONO stereo; FRMCNT 0; MSSEN disabled; FRMPOL disabled; IGNROV disabled; SPISGNEXT not sign-extended; FRMSYNC disabled; URDTEN disabled; IGNTUR disabled; 
@@ -57,7 +59,7 @@ void ADA2200_EnableSPI1() {
     // SPIROV disabled; FRMERR disabled; 
     SPI1STATL = 0x00;
     // SPI1BRGL 79; 
-    SPI1BRGL = 0x4F;  // Baud Rate 100Khz (32Mhz)
+    SPI1BRGL = 0x4F; // Baud Rate 100Khz (32Mhz)
     // SPITBFEN disabled; SPITUREN disabled; FRMERREN disabled; SRMTEN disabled; SPIRBEN disabled; BUSYEN disabled; SPITBEN disabled; SPIROVEN disabled; SPIRBFEN disabled; 
     SPI1IMSKL = 0x00;
     // RXMSK 0; TXWIEN disabled; TXMSK 0; RXWIEN disabled; 
@@ -68,8 +70,7 @@ void ADA2200_EnableSPI1() {
     SPI1URDTH = 0x00;
     // SPIEN enabled; DISSDO disabled; MCLKEN FOSC/2; CKP Idle:Low, Active:High; SSEN disabled; MSTEN Master; MODE16 disabled; SMP Middle; DISSCK disabled; SPIFE Frame Sync pulse precedes; CKE Idle to Active; MODE32 disabled; SPISIDL disabled; ENHBUF enabled; DISSDI enabled; 
     SPI1CON1L = 0x8031;
-    
-    
+
 
     // SPI1 Master, 8Bits
     SPI1CON1Lbits.MSTEN = 1; // Master Mode
@@ -79,6 +80,7 @@ void ADA2200_EnableSPI1() {
     SPI1CON1Lbits.CKE = 1; // MODE1: Clock Edge (from Idle to active clock state)
     SPI1CON1Lbits.CKP = 0; // MODE1: Clock Polarity (active is a high level)
     SPI1CON1Lbits.SMP = 1; // Input data is sampled at (0-middle,1-end) of data output
+
     SPI1CON1Lbits.ENHBUF = 0; // Enhanced buffer disabled (0=Legacy No Buffering)
     // 2Wire:SCK+SDIO,softSS
     SPI1CON1Lbits.DISSCK = 0; // Internal serial clock is enabled
@@ -89,9 +91,10 @@ void ADA2200_EnableSPI1() {
     SPI1CON1Lbits.SPIEN = 1; // Enable SPI 
     SPI1STATLbits.SPIROV = 0; // Receive Overflow Flag (0=NO Overflow).
 
-    
-    
 #endif
+
+
+
 #endif  // __HWDEVICE
 }
 
@@ -112,7 +115,7 @@ void ADA_SetReg8(uint16_t reg, uint8_t data) {
     __delay(1);
     Nop();
     ADA_SS_SetHigh();
-    
+
 #elif defined( __PIC24FJ256GA702__ )
     // mode 8bit-legacy, disabled OVERFLOW    
     ADA_SS_SetLow();
@@ -134,11 +137,11 @@ void ADA_SetReg8(uint16_t reg, uint8_t data) {
 
 void ADA2200_Enable() {
 
-    // Power-on Sensor Board LINE1
-    // Power-on and Enable: SPI1, ADC0 
-
+    // Power-on Sensor Board LINE1 and modules SPI1, ADC0....
+    ADA_SS_SetHigh();
     ADA2200_EnableSPI1(); // SPI1 Master Mode 1 (2Wire:SCK+SDIO,softSS)
-    // __delay_ms(1);
+    // disable_spi1 = SPI1_Enable(MODE0, SPI_2MHZ); // Shared SPI1
+
 
     ADA_SetReg8(ADA_SPIRS, 0b01); // Reset & SPI control register (0x00)
     ADA_SetReg8(ADA_SPIRS, 0b00); // Reset to default values... TESTING ONLY !!!!
@@ -210,32 +213,37 @@ void ADA2200_Enable() {
     ADA_SetReg8(ADA_FK26, IIR_K22);
     ADA_SetReg8(ADA_FK27, IIR_K23);
      */
-    
+
     //ADA_SetReg8(ADA_STROBE, 0b11);    // Update IIR coeff.  
     ADA_SetReg8(ADA_STROBE, 0b1); // Update IIR coeff.  SEBASTIANO !!!
     ADA_SetReg8(ADA_RESET, 1); // Core Reset & Start
     ADA_SetReg8(ADA_RESET, 0);
-//    __delay_ms(1);
+    //    __delay_ms(1);
 }
 
 void ADA2200_Synco(uint8_t synco_trim) { // 1..14
-    
-    ADA_SetReg8(ADA_SYNCO, (synco_trim) ? ( (synco_trim & 0x7) | 0x20) : 0x0); // SYNCO control  (0x0029)       
 
-//#elif  defined(__HWDEVICE_V2_702)
-//    ADA_SetReg8(ADA_SYNCO, (sw) ? 0b100011 : 0b000000); // SYNCO control  (0x0029)       
-//#else    
-//    ADA_SetReg8(ADA_SYNCO, (sw) ? 0b100001 : 0b000000); // SYNCO control  (0x0029)
+    ADA_SetReg8(ADA_SYNCO, (synco_trim) ? ((synco_trim & 0x7) | 0x20) : 0x0); // SYNCO control  (0x0029)       
+
+    //#elif  defined(__HWDEVICE_V2_702)
+    //    ADA_SetReg8(ADA_SYNCO, (sw) ? 0b100011 : 0b000000); // SYNCO control  (0x0029)       
+    //#else    
+    //    ADA_SetReg8(ADA_SYNCO, (sw) ? 0b100001 : 0b000000); // SYNCO control  (0x0029)
 }
 
 void ADA2200_Disable() {
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
-    SPI1STATbits.SPIEN = 0;// Disable SPI1
+    SPI1STATbits.SPIEN = 0; // Disable SPI1
     // Power Sensor Board LINE1
     // Disable & Power-off: SPI1, ADC0 
 #elif defined( __PIC24FJ256GA702__ )
     SPI1CON1Lbits.SPIEN = 0; // Disable SPI1
+
+//    if (disable_spi1) { // Shared SPI1
+//        SPI1_Disable();
+//    }
+
 #endif
-    ADA_SS_SetLow();  // CS Low !
+    ////    ADA_SS_SetHigh();  // CS Low !
 }
 

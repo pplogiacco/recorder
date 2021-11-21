@@ -22,7 +22,8 @@
     //    void UART2_SetRxInterruptHandler(void (* interruptHandler)(void));
     //    void UART2_Receive_CallBack(void);
 
-    // --------- EXCHANGE
+    
+    // --------- LibEx
     bool UART2_IsRxReady(void);
     uint16_t UART2_RxBuffer(uint8_t *buff, uint16_t maxSize);
     bool UART2_TxBuffer(uint8_t *buff, uint16_t size);
