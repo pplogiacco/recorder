@@ -15,7 +15,7 @@
 
 #include "../memory/libdpt.h"
 
-
+#define DEPOT_OK
 //==============================================================================
 extern device_t device;
 

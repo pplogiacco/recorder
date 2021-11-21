@@ -218,9 +218,9 @@ void cb_SetDateTime(uint8_t * rxData) {
 
 };
 
+
 /* -------------------------------------------------------------------------- */
 /* Service Availability                                                       */
-
 /* -------------------------------------------------------------------------- */
 uint8_t cb_GetDeviceState(uint8_t *dobj) {
     uint8_t nbyte = 0;
@@ -232,8 +232,8 @@ uint8_t cb_GetDeviceState(uint8_t *dobj) {
 
 /* -------------------------------------------------------------------------- */
 /* Service Alignment                                                          */
-
 /* -------------------------------------------------------------------------- */
+
 bool cb_GetDeviceConfigCRC16(uint16_t * crc16) {
     *crc16 = device.cnf.CRC16;
     return (true);
@@ -254,29 +254,24 @@ uint8_t cb_GetDeviceConfig(uint8_t *dobj) {
 
 /* -------------------------------------------------------------------------- */
 /* Service Transfer                                                           */
-
 /* -------------------------------------------------------------------------- */
 bool cb_GetMeasurementCounter(uint16_t * nobj) {
-    //*nobj = measurementCounterGet(); // measurementsCounter();
+    *nobj = 1; //measurementCounterGet(); // measurementsCounter();
     return (true);
 };
 
 bool cb_GetMeasurement(uint16_t index, uint32_t * dtime, uint16_t * tset, uint16_t * ns, uint16_t * nss) { // ** pointer !!!!!!!!!!!!!!!!!!!!!!!!!
     //uint16_t Depot_ReadPart(uint16_t index, uint16_t offset, uint8_t* pbuf, uint16_t bsize); // 0 error, >0 Readed bytes
     if (measurementLoad(index) == index) {
-
         //        *dtime = measurementGetPTR()->tset;
         //        *tset = (uint16_t) measurementGetPTR()->tset;
         //        *ns = measurementGetPTR()->ns;
         //        *nss = measurementGetPTR()->nss;
-
         *dtime = lmeas.dtime;
         *tset = (uint16_t) lmeas.tset;
         *ns = lmeas.ns;
         *nss = lmeas.nss;
-
         //memcpy(meas, measurementGetPTR(), sizeof(measurement_t) ); // Sample size 2Byte
-
         return (true);
     };
     return (false);

@@ -373,75 +373,7 @@ int main(void) {
     }
 #endif
 
-/*----------------------------------------------------------------------------*/
-#ifdef __VAMP1K_TEST_SST26
-
-#define SST_SECTOR_SIZE      4096        // 4KBytes 
-    // Device_SwitchSys(SYS_ON_EXCHANGE); // SPI
-
-    unsigned long sst_addr = SST_SECTOR_SIZE;
-    //uint16_t sector,offset;
-    uint8_t datas[32];
-
-    SST26_Enable();
-    // SST26_Chip_Erase();
-    //SST26_Switch_Power();
-    //SST26_ResetEn();
-    //SST26_Reset();
-
-
-    //SST26_WREN(); // Necessaria ????
-    SST26_Global_Block_Protection_Unlock();
-
-
-    //SST26_WREN();   // Nexwssarie ???
-    //SST26_Block_Erase(sst_addr);     
-    SST26_Erase_Sector(sst_addr); // Set 4K in 0xFF state
-    SST26_Wait_Busy();
-
-    int man, typ, id, j;
-
-    while (1) {
-        printf("______SST26VF064B:\n");
-        SST26_Jedec_ID_Read(&man, &typ, &id);
-        printf("manufacturer=%u  \n", man);
-        printf("device_type=%u  \n", typ);
-        printf("identifier=%u  \n", id);
-        printf("config_reg=%u  \n", SST26_Read_Configuration());
-        printf("address=%lu  \n\n", sst_addr);
-        printf("erase status=%u  \n", SST26_Read_Status());
-
-        for (i = 0; i < 16; i++) {
-            datas[i] = i;
-        }
-
-        for (i = 0; i < 5; i++) {
-            sst_addr = SST_SECTOR_SIZE * i;
-            SST26_WREN();
-            SST26_Write_Bytes(sst_addr, datas, 16);
-            SST26_Wait_Busy();
-            printf("write status=%u  \n", SST26_Read_Status());
-            SST26_WRDI();
-        }
-
-        for (i = 0; i < 5; i++) {
-
-            sst_addr = SST_SECTOR_SIZE * i;
-            SST26_Read_Bytes(sst_addr, 16, datas);
-            printf("read status=%u  \n", SST26_Read_Status());
-            for (j = 0; j < 16; j++) {
-                printf("Read[%lu]=%u \n", sst_addr + i, datas[j]);
-            }
-        }
-
-        __delay(5000);
-    }
-    SST26_Disable();
-
-    //    Device_SwitchSys(SYS_DEFAULT); // SPI
-#endif    
-
-
+    
 /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_DDE
 
@@ -470,16 +402,96 @@ int main(void) {
         ncycle++;
     }
 #endif  
+    
+/*----------------------------------------------------------------------------*/
+#ifdef __VAMP1K_TEST_SST26
+
+
+#define ShowSST() { printf("[SST26:");  \
+                    printf("%u", SST26_Read_Status() ); \
+                    printf("]\n"); }
+
+//             if (RCONbits.WDTO) {  printf(" WDT");  } 
+//                if (RCONbits.BOR) { printf(" BoR"); } 
+
+#define SST_SECTOR_SIZE   4096        // 4KBytes 
+#define SST_PAGE_SIZE      256
+#define DSIZE 96
+
+uint32_t sst_addr,tmp_addr;
+uint8_t datas[DSIZE];
+
+int man, typ, id, err;
+
+
+SST26_Enable();
+//SST26_Chip_Erase();
+//SST26_Switch_Power();
+//SST26_ResetEn();
+//SST26_Reset();
+
+
+while (1) {
+    printf("______SST26VF064B:\n");
+    SST26_Jedec_ID_Read(&man, &typ, &id);
+    printf("manufacturer=%u\n", man);
+    printf("device_type=%u\n", typ);
+    printf("identifier=%u\n", id);
+    printf("config_reg=%u\n", SST26_Read_Configuration());
+
+    //ShowSST();
+    __delay(1000);
+
+    sst_addr = 0;
+    for (i = 0; i < DSIZE; i++) {
+        datas[i] = i;
+    }
+
+    printf("#Global Unlock\n");
+    SST26_Global_Protection_Unlock();
+    printf("#Erase sector (%lu)... ", sst_addr);
+    SST26_Erase_Sector(sst_addr); // Set 4K in 0xFF state
+    //ShowSST();
+
+    while (1) {
+
+        printf("#Write (addr=%lu,dsize=%u)...\n", sst_addr, DSIZE);
+
+        SST26_Write(sst_addr, (uint8_t*) datas, DSIZE);
+//        ShowSST();
+        printf("#Read (addr=%lu,dsize=%u )...\n", tmp_addr, DSIZE);
+        SST26_Read(sst_addr, DSIZE, datas);
+//        ShowSST();
+
+        err = 0;
+        for (i = 0; i < DSIZE; i++) {
+            if (datas[i] != i) {
+                err++;
+            }
+        }
+        printf("#Error: %u\n", err);
+
+        //        printf("R: ");
+        //        for (i = 0; i < DSIZE; i++) {
+        //            printf(" %u", datas[i]);
+        //        }
+        //        printf("\n");
+        sst_addr+=DSIZE;
+        __delay(2000);
+    }
+}
+SST26_Disable();
+
+//    Device_SwitchSys(SYS_DEFAULT); // SPI
+#endif   
+
+
+
 
 
 
 /*----------------------------------------------------------------------------*/
-#ifdef __VAMP1K_TEST_measurement_save 
-
-    //    DEE_Init(); // Emulated Data Eprom 
-
-    // measurementInitialize(&g_measurement);    
-
+#ifdef __VAMP1K_TEST_SST26_DEPOT
 
 #define ShowMem() {   printf("FreeSpace :%u\n", depotFreeSpaceKb());    \
     uint16_t Sector, Offset;	\
@@ -502,14 +514,14 @@ int main(void) {
       } \
     }
 
-
+    
     printf("Start test... \n\n");
     while (1) {
         //ShowMem();
 
         printf("Save new measurement...\n");
-        NewMeasurement(64);
-        measurementSave(&g_measurement);
+        NewMeasurement(32);
+        measurementSave();
         ShowMem();
         printf("--------------\n\n");
         g_measurement.tset = 0;
@@ -620,9 +632,10 @@ int main(void) {
                 // RTCC_TimeGet(&stime);
                 //!! if ((stime.lstamp > g_config.general.startdate) && (stime.lstamp < g_config.general.stopdate)) {
                 g_dev.cnf.general.typeset = FORCED_TYPESET;
-                measurementAcquire(&g_measurement);
+                measurementAcquire();
+                
 #ifdef __VAMP1K_TEST_measurement_save
-                measurementSave(&g_measurement);
+                measurementSave();
 #endif
 
                 //!!};
@@ -632,7 +645,10 @@ int main(void) {
             case EXCHANGE:
                 lstate = state;
                 Device_StatusRefresh(&g_dev.sts);
-
+                
+#ifdef __VAMP1K_TEST_measurement_save
+                measurementLoad(1);
+#endif
 #ifdef __VAMP1K_TEST_measurement_printf
                 printf("EXCHANGE...\n");
                 printf("---------------\n");

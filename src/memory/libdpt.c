@@ -10,12 +10,9 @@
 
 #include "../utils.h"
 // #include "../modules/RTCC.h"
-
 #include "../memory/DEE/dee.h"
 #include "../memory/SST26VF064B.h"  // Flash SPI
-
 #include "../sampling/measurement.h"
-
 #include "libdpt.h"
 
 extern device_t device;
@@ -58,12 +55,12 @@ uint16_t depotPush(uint8_t* dPtr, uint16_t nBytes) { // return written bytes
 
         if (available == 0) {
             Sector++; // Next 4K Sector
-            printf("CAMBIO SETTORE...DISPONIBILI 4K ");
+//            printf("CAMBIO SETTORE...DISPONIBILI 4K ");
             SST26_Erase_Sector(Sector * SST26_SECTOR_SIZE); // Set 4K in 0xFF state
             Offset = 0x0;
         }
         sst_addr = (Sector * SST26_SECTOR_SIZE) + Offset;
-        printf("Send %u Bytes Addr= %lu)! \n", nBytes, sst_addr);
+//        printf("Send %u Bytes Addr= %lu)! \n", nBytes, sst_addr);
         if (nBytes <= available) {
             written = SST26_Write(sst_addr, (dPtr + written), nBytes);
         } else {
@@ -76,7 +73,6 @@ uint16_t depotPush(uint8_t* dPtr, uint16_t nBytes) { // return written bytes
 
     //    SST26_WRDI();
     SST26_Disable();
-
 
     DEE_Write(EEA_SST26_SECTOR, Sector); // (dee.h)  
     DEE_Write(EEA_SST26_OFFSET, Offset); // (dee.h)  
@@ -151,7 +147,6 @@ uint16_t depotPull(uint8_t* dPtr, uint16_t displacement, uint16_t nBytes, bool r
 
     SST26_Enable();
 
-    // sst_addr = ((iSector << 16 ) & (iOffset<<8));
     sst_addr = (iSector * SST26_SECTOR_SIZE) + iOffset;
 
     nBytes = SST26_Read(sst_addr, nBytes, dPtr);

@@ -64,7 +64,7 @@ typedef struct {
     -----------+-----+--------------------------------------+---------------    
  */
  
-void measurementInitialize();
+//void measurementInitialize();
 //
 uint16_t measurementAcquire(); // ret: nsamples
 //
