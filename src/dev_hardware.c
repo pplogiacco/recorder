@@ -131,15 +131,15 @@ void Device_SysBoot() { // Initialize system
     LATB = 0x0001;
 
     // Setting the GPIO Direction SFR(s)
-    TRISA = 0x000B;
-    TRISB = 0xC7EE;
+//    TRISA = 0x000B;
+//    TRISB = 0xC7EE;
 
 
     // Setting the Weak Pull Up and Weak Pull Down SFR(s)
-    IOCPDA = 0x0000;
-    IOCPDB = 0x0080;
-    IOCPUA = 0x0000;
-    IOCPUB = 0x0300;
+//    IOCPDA = 0x0000;
+//    IOCPDB = 0x0080;
+//    IOCPUA = 0x0000;
+//    IOCPUB = 0x0300;
 
     //Setting the Open Drain SFR(s)
     ODCA = 0x0000;

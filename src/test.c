@@ -100,8 +100,8 @@ int main(void) {
     RTCC_GetTime(&stime);
     printf("[%u:%u:%u]\n", stime.hour, stime.min, stime.sec);
 
-    
-/*----------------------------------------------------------------------------*/
+
+    /*----------------------------------------------------------------------------*/
 #ifdef  __VAMP1K_TEST_RESET    
     ShowRCON();
     RCON = 0x0;
@@ -113,7 +113,7 @@ int main(void) {
 #endif 
 
 
-/*----------------------------------------------------------------------------*/
+    /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_SLEEP
     // RTCC Settings
     g_dev.cnf.general.delaytime = 20;
@@ -134,23 +134,35 @@ int main(void) {
 
     while (1) {
 
+        
+                
+        while (1) {
+        Device_Power_Save();
+        __delay(2000);
+        Device_Power_Default();
+         __delay(2000);
+        }
+                
+                
         printf("Running... \n");
         __delay(1000);
 
         // Enable RTC Alarm Wake-Up
         RTCC_GetTime(&stime);
-
         stime.sec += 10;
 
-        //        stime.sec += g_dev.cnf.general.delaytime % 60;
-        //        if (stime.sec > 59) {
-        //            stime.sec -= 59;
-        //            stime.min++;
-        //        }
-        //        stime.min += g_dev.cnf.general.delaytime / 60;
-        //        if (stime.min > 59) {
-        //            stime.min -= 59;
-        //        }
+
+
+
+        //                stime.sec += g_dev.cnf.general.delaytime % 60;
+        //                if (stime.sec > 59) {
+        //                    stime.sec -= 59;
+        //                    stime.min++;
+        //                }
+        //                stime.min += g_dev.cnf.general.delaytime / 60;
+        //                if (stime.min > 59) {
+        //                    stime.min -= 59;
+        //                }
 
 
         RTCC_AlarmSet(&stime);
@@ -168,7 +180,7 @@ int main(void) {
         RCONbits.VREGS = 0; // 
         //////////    // __builtin_disable_interrupts();
 
-        //   Device_Power_Save();
+        Device_Power_Save();
 
         // Enable INT0 event (connect by wire) Wake-Up
         // __builtin_disable_interrupts();
@@ -179,7 +191,7 @@ int main(void) {
         Sleep(); // enter in sleep mode....
         Nop();
         //IEC0bits.INT0IE = 0; // Disable INT0 (No change detection) 
-        //   Device_Power_Default();
+        Device_Power_Default();
 
         RTCC_GetTime(&stime);
         printf("Wake-up: %u/%u/%u - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
@@ -187,7 +199,7 @@ int main(void) {
 #endif
 
 
-/*----------------------------------------------------------------------------*/
+    /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_CONFIG
     //  Device_ConfigDefaultSet(&g_dev.cnf);
     //  Device_ConfigWrite((uint8_t*) & g_dev.cnf); // Write EEprom/Flash
@@ -205,7 +217,7 @@ int main(void) {
 #endif
 
 
-/*----------------------------------------------------------------------------*/
+    /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_BATLEV   
     //    Device_SwitchADG(0xFF);
     while (1) {
@@ -216,7 +228,7 @@ int main(void) {
 
 
 
-/*----------------------------------------------------------------------------*/
+    /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_USB
     while (1) {
         if (!Device_IsUsbConnected()) {
@@ -228,7 +240,7 @@ int main(void) {
     }
 #endif
 
-/*----------------------------------------------------------------------------*/
+    /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_ADG
     Device_SwitchSys(SYS_DEFAULT);
 
@@ -244,7 +256,7 @@ int main(void) {
     Device_SwitchADG(0xFF); //_bs8(PW_WST) | _bs8(PW_ADA));
 #endif      
 
-/*----------------------------------------------------------------------------*/
+    /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_TIMERS
 
     /// _______________TEST TMR1 TIMEOUT
@@ -312,7 +324,7 @@ int main(void) {
 
 
 
-/*----------------------------------------------------------------------------*/
+    /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_BATTERY
     Device_SwitchSys(SYS_DEFAULT);
 
@@ -324,8 +336,8 @@ int main(void) {
     }
 #endif
 
-    
-/*----------------------------------------------------------------------------*/
+
+    /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_RTCC
     if (1) {
         stime.day = 14;
@@ -373,8 +385,8 @@ int main(void) {
     }
 #endif
 
-    
-/*----------------------------------------------------------------------------*/
+
+    /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_DDE
 
 #define DDE_START	150
@@ -402,8 +414,8 @@ int main(void) {
         ncycle++;
     }
 #endif  
-    
-/*----------------------------------------------------------------------------*/
+
+    /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_SST26
 
 
@@ -411,78 +423,78 @@ int main(void) {
                     printf("%u", SST26_Read_Status() ); \
                     printf("]\n"); }
 
-//             if (RCONbits.WDTO) {  printf(" WDT");  } 
-//                if (RCONbits.BOR) { printf(" BoR"); } 
+    //             if (RCONbits.WDTO) {  printf(" WDT");  } 
+    //                if (RCONbits.BOR) { printf(" BoR"); } 
 
 #define SST_SECTOR_SIZE   4096        // 4KBytes 
 #define SST_PAGE_SIZE      256
 #define DSIZE 96
 
-uint32_t sst_addr,tmp_addr;
-uint8_t datas[DSIZE];
+    uint32_t sst_addr, tmp_addr;
+    uint8_t datas[DSIZE];
 
-int man, typ, id, err;
-
-
-SST26_Enable();
-//SST26_Chip_Erase();
-//SST26_Switch_Power();
-//SST26_ResetEn();
-//SST26_Reset();
+    int man, typ, id, err;
 
 
-while (1) {
-    printf("______SST26VF064B:\n");
-    SST26_Jedec_ID_Read(&man, &typ, &id);
-    printf("manufacturer=%u\n", man);
-    printf("device_type=%u\n", typ);
-    printf("identifier=%u\n", id);
-    printf("config_reg=%u\n", SST26_Read_Configuration());
+    SST26_Enable();
+    //SST26_Chip_Erase();
+    //SST26_Switch_Power();
+    //SST26_ResetEn();
+    //SST26_Reset();
 
-    //ShowSST();
-    __delay(1000);
-
-    sst_addr = 0;
-    for (i = 0; i < DSIZE; i++) {
-        datas[i] = i;
-    }
-
-    printf("#Global Unlock\n");
-    SST26_Global_Protection_Unlock();
-    printf("#Erase sector (%lu)... ", sst_addr);
-    SST26_Erase_Sector(sst_addr); // Set 4K in 0xFF state
-    //ShowSST();
 
     while (1) {
+        printf("______SST26VF064B:\n");
+        SST26_Jedec_ID_Read(&man, &typ, &id);
+        printf("manufacturer=%u\n", man);
+        printf("device_type=%u\n", typ);
+        printf("identifier=%u\n", id);
+        printf("config_reg=%u\n", SST26_Read_Configuration());
 
-        printf("#Write (addr=%lu,dsize=%u)...\n", sst_addr, DSIZE);
+        //ShowSST();
+        __delay(1000);
 
-        SST26_Write(sst_addr, (uint8_t*) datas, DSIZE);
-//        ShowSST();
-        printf("#Read (addr=%lu,dsize=%u )...\n", tmp_addr, DSIZE);
-        SST26_Read(sst_addr, DSIZE, datas);
-//        ShowSST();
-
-        err = 0;
+        sst_addr = 0;
         for (i = 0; i < DSIZE; i++) {
-            if (datas[i] != i) {
-                err++;
-            }
+            datas[i] = i;
         }
-        printf("#Error: %u\n", err);
 
-        //        printf("R: ");
-        //        for (i = 0; i < DSIZE; i++) {
-        //            printf(" %u", datas[i]);
-        //        }
-        //        printf("\n");
-        sst_addr+=DSIZE;
-        __delay(2000);
+        printf("#Global Unlock\n");
+        SST26_Global_Protection_Unlock();
+        printf("#Erase sector (%lu)... ", sst_addr);
+        SST26_Erase_Sector(sst_addr); // Set 4K in 0xFF state
+        //ShowSST();
+
+        while (1) {
+
+            printf("#Write (addr=%lu,dsize=%u)...\n", sst_addr, DSIZE);
+
+            SST26_Write(sst_addr, (uint8_t*) datas, DSIZE);
+            //        ShowSST();
+            printf("#Read (addr=%lu,dsize=%u )...\n", tmp_addr, DSIZE);
+            SST26_Read(sst_addr, DSIZE, datas);
+            //        ShowSST();
+
+            err = 0;
+            for (i = 0; i < DSIZE; i++) {
+                if (datas[i] != i) {
+                    err++;
+                }
+            }
+            printf("#Error: %u\n", err);
+
+            //        printf("R: ");
+            //        for (i = 0; i < DSIZE; i++) {
+            //            printf(" %u", datas[i]);
+            //        }
+            //        printf("\n");
+            sst_addr += DSIZE;
+            __delay(2000);
+        }
     }
-}
-SST26_Disable();
+    SST26_Disable();
 
-//    Device_SwitchSys(SYS_DEFAULT); // SPI
+    //    Device_SwitchSys(SYS_DEFAULT); // SPI
 #endif   
 
 
@@ -490,7 +502,7 @@ SST26_Disable();
 
 
 
-/*----------------------------------------------------------------------------*/
+    /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_SST26_DEPOT
 
 #define ShowMem() {   printf("FreeSpace :%u\n", depotFreeSpaceKb());    \
@@ -514,7 +526,7 @@ SST26_Disable();
       } \
     }
 
-    
+
     printf("Start test... \n\n");
     while (1) {
         //ShowMem();
@@ -544,7 +556,7 @@ SST26_Disable();
     }
 #endif      
 
-/*----------------------------------------------------------------------------*/
+    /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_measurement_delete 
 
     measurementInitialize(&g_measurement);
@@ -633,7 +645,7 @@ SST26_Disable();
                 //!! if ((stime.lstamp > g_config.general.startdate) && (stime.lstamp < g_config.general.stopdate)) {
                 g_dev.cnf.general.typeset = FORCED_TYPESET;
                 measurementAcquire();
-                
+
 #ifdef __VAMP1K_TEST_measurement_save
                 measurementSave();
 #endif
@@ -645,7 +657,7 @@ SST26_Disable();
             case EXCHANGE:
                 lstate = state;
                 Device_StatusRefresh(&g_dev.sts);
-                
+
 #ifdef __VAMP1K_TEST_measurement_save
                 measurementLoad(1);
 #endif
