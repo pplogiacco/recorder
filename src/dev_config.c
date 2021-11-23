@@ -43,6 +43,7 @@ uint16_t computeCRC16(uint8_t *strtochk, uint16_t length) {
 
 
 //------------------------------------------------------------------------------
+
 void Device_StatusRefresh() { // Every call
     device.sts.timestamp = RTCC_GetTimeL(); // time evaluation reference
     // Through the calls 
@@ -56,10 +57,10 @@ void Device_StatusRefresh() { // Every call
 void Device_StatusRead() {
     // Start-up 
     Device_CheckHwReset(); // critical errors/reset (device.sts.alarm_counter)
-    device.sts.DIN = __DEVICE_DIN;  // Read from OTP
+    device.sts.DIN = __DEVICE_DIN; // Read from OTP
     device.sts.version = __DEVICE_VER;
     device.sts.config_counter = device.cnf.CRC16; // To evaluate VMS alignment
-    
+
     // Memory & Measurement
     DEE_Read(EEA_MEAS_COUNTER, &device.sts.meas_counter); // Persistent: stored measurements (dee.h)   
     device.sts.storage_space = depotFreeSpaceKb(); // available meas storage memory (Kb)
@@ -76,88 +77,67 @@ void Device_SetLockSKEY(uint32_t skey) { // skey: >0 lock, =0 unlock
 
 }
 
-void Device_ConfigDefaultSet() {
-#ifdef __VAMP1K_TEST_CONFIG
-    printf("Set Default Config !\n");
-#endif   
-
-    memset(&device.cnf, 0, sizeof (config_t));
-
-    // General settings
-    device.cnf.general.typeset = _SIG0; // 
-    device.cnf.general.cycletime = 5;   // sec
-    device.cnf.general.delaytime = 60; // 1 min
-    device.cnf.general.timezone = 9; // Rome
-    // Calibration
-    device.cnf.calibration.et_factor = 100001; // Formato ?
-    device.cnf.calibration.ws_factor = 200002;
-    device.cnf.calibration.av_period = 1024; // default 1Khz
-    device.cnf.calibration.av_filter = 6; // _snr = 30;
-    device.cnf.calibration.av_factor = 500005;
-    device.cnf.calibration.ss_factor = 600006;
-    // Exchange
-    device.cnf.exchange.attempt_mode = CNF_ATTEMPTMODE_EVERYCYCLE;
-    device.cnf.exchange.app_timeout = 3000; //30sec
-    device.cnf.exchange.handshake_timeout = 500; //1sec
-    device.cnf.exchange.interchar_timeout = 100;
-    device.cnf.exchange.SKEY = 0; // Fuori dal calcolo del CRC
-    device.cnf.CRC16 = 0x00; // !
-    //
-}
-
-#ifdef __VAMP1K_TEST_CONFIG
-
-void printConfig() {
-    timestamp_t stime; // Use: g_dev.st.lasttime
-    RTCC_GetTime(&stime);
-    printf("---Time: %u:%u:%u\n#:", stime.hour, stime.min, stime.sec);
-    // General settings
-    printf("typeset=%u\n", device.cnf.general.typeset);
-    printf("cycletime=%u\n", device.cnf.general.cycletime);
-    printf("delaytime=%u\n", device.cnf.general.delaytime);
-    //printf("timezone=%u", g_dev.cnf.general.timezone);
-
-    // Calibration
-    //printf("et_factor=%lu\n", g_dev.cnf.calibration.et_factor);
-    //printf("ws_factor=%lu\n", g_dev.cnf.calibration.ws_factor);
-    //g_dev.cnf.calibration.av_period = 127; // Synco 38.4 Khz : 16 = 2.4Khz    0,416 ms
-    printf("av_filterr=%lu\n", device.cnf.calibration.av_filter);
-    //g_dev.cnf.calibration.av_factor = 500005;
-    //g_dev.cnf.calibration.ss_factor = 600006;
-
-    // Exchange
-    printf("attempt_mode=%u\n", device.cnf.exchange.attempt_mode);
-    //    printf("app_timeout=%u", g_dev.cnf.exchange.app_timeout);
-    //    printf("handshake_timeout=%u", g_dev.cnf.exchange.handshake_timeout);
-    //g_dev.cnf.exchange.interchar_timeout = 100;
-    printf("SKEY=%lu\n", device.cnf.exchange.SKEY);
-    printf("---CRC16=%u\n", device.cnf.CRC16);
-}
-#endif
-
-bool Device_ConfigWrite(uint8_t * pSrc) {   // Check consistency and COMPUTE CRC !!!!!!!!!!!!!
+bool Device_ConfigWrite(uint8_t * objcnf) { // Check consistency and COMPUTE CRC !!!!!!!!!!!!!
     DEE_RETURN_STATUS res = DEE_NO_ERROR;
     uint16_t i, nbyte;
     uint16_t * ptr;
-    
+    config_t * pcnf;
+
+    pcnf = (config_t *) objcnf;
     nbyte = sizeof (config_t);
-    memcpy(&device.cnf, pSrc, nbyte); // Update active
-    nbyte = nbyte >> 1;
-    ptr = (uint16_t*) pSrc;
-    i = 0;
-    while (res == DEE_NO_ERROR && (i < nbyte)) {
-        res = DEE_Write(i, *(ptr + i));
-        i++;
+
+#ifndef ACCEPT_ALL_CONFIG_OBJ 
+    if (pcnf->CRC16 != computeCRC16(objcnf, nbyte - 2)) { // Not valid !!!!
+        return (false);
+    } else {
+#else
+    pcnf->CRC16 = computeCRC16(objcnf, nbyte - 2);
+    {
+#endif        
+        memcpy(&device.cnf, objcnf, nbyte); // Update active
+        nbyte = nbyte >> 1;
+        ptr = (uint16_t*) objcnf; // Save in EEprom
+        i = 0;
+        while (res == DEE_NO_ERROR && (i < nbyte)) {
+            res = DEE_Write(i, (uint16_t) *(ptr + i));
+            i++;
+        }
     }
-
-#ifdef __VAMP1K_TEST_CONFIG
-    printf("Write:\n");
-    printConfig();
-    _LATB2 = 1; // Led on
-#endif
-
-    return (i == nbyte);
+    return (true);
 }
+
+void Device_ConfigDefaultSet() {
+    //#ifdef __VAMP1K_TEST_CONFIG
+    //    printf("Set Default Config !\n");
+    //#endif   
+
+    config_t objcnf;
+    memset(&objcnf, 0, sizeof (config_t));
+
+    // General settings
+    objcnf.general.typeset = _SIG0; // 
+    objcnf.general.cycletime = 10; // sec
+    objcnf.general.delaytime = 60; // 1 min
+    objcnf.general.timezone = 9; // Rome
+    // Calibration
+    objcnf.calibration.et_factor = 100001; // Formato ?
+    objcnf.calibration.ws_factor = 200002;
+    objcnf.calibration.av_period = 10; // default 10 Hz Sample Signal
+    objcnf.calibration.av_filter = 1024; // default 1024 Demo Amplitude
+    objcnf.calibration.av_factor = 500005;
+    objcnf.calibration.ss_factor = 600006;
+    // Exchange
+    objcnf.exchange.attempt_mode = CNF_ATTEMPTMODE_EVERYCYCLE;
+    objcnf.exchange.app_timeout = 3000; //30sec
+    objcnf.exchange.handshake_timeout = 500; //1sec
+    objcnf.exchange.interchar_timeout = 100;
+    objcnf.exchange.SKEY = 0; // Fuori dal calcolo del CRC
+    // Set as valid
+    objcnf.CRC16 = computeCRC16((uint8_t*) & objcnf, sizeof (config_t) - 2); // !
+    Device_ConfigWrite((uint8_t*) & objcnf);
+}
+
+
 
 //void Device_FactoryDefaultSet() {
 //}
@@ -174,19 +154,11 @@ bool Device_ConfigRead() {
         res = DEE_Read(i, (ptr + i));
         i++;
     }
-    // result = (i == nbyte);
-#ifdef __VAMP1K_TEST_CONFIG
-    printf("Read:\n");
-    printConfig();
-    _LATB2 = 1; // Led on
-#endif
-
     if (device.cnf.CRC16 != computeCRC16((uint8_t *) & device.cnf, sizeof (config_t) - 2)) { /// Check XOR checksum
         Device_ConfigDefaultSet();
         device.cnf.CRC16 = computeCRC16((uint8_t *) & device.cnf, sizeof (config_t) - 2);
         Device_ConfigWrite((uint8_t*) & device.cnf); // Write EEprom/Flash
         // Factory default !!!!
-        //Device_OnFactoryDefaultSet();
         return (false);
     }
     return (true);

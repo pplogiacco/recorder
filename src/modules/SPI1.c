@@ -13,7 +13,8 @@ static bool spi1_enabled = false;
 bool SPI1_Enable(SPI_MODE mode, SPI_BRATE speed)
 {
     if (!spi1_enabled) {
-
+    PMD1bits.SPI1MD = 0; // Spi1 On
+    
 #if defined(__PIC24FJ256GA702__)  // Work for SST 
 
         // ____________________________________SPI Clock & Mode 
@@ -106,7 +107,9 @@ void SPI1_Disable()
 #ifdef __PIC24FJ256GA702__
     SPI1CON1Lbits.SPIEN = 0; // Enable SPI 
 #endif
+    
     spi1_enabled = false;
+    PMD1bits.SPI1MD = 1; // Spi1 Off
 }
 
 void SPI1_Exchange(uint8_t *pTransmitData, uint8_t *pReceiveData)

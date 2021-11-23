@@ -3,6 +3,7 @@
  *  TEST !!!!!!!                                                              *              
  *----------------------------------------------------------------------------*/
 #include "xc.h"
+#include "string.h"
 //#include "utils.h"
 //#include "modules/RTCC.h"
 //#include "modules/UART2.h"
@@ -86,7 +87,7 @@ int main(void) {
     state = STARTUP; // System startup
     lstate = state;
     //    _TRISB2 = 0; // Out
-    uint16_t i;
+    int i, err, tcycle = 0, tcstop;
 
     if (1) {
         stime.day = 14;
@@ -118,14 +119,16 @@ int main(void) {
             __delay(1000);
         }
 
-        printf("Power-Save... \n");
+        printf("Power-Save...\n");
         Device_Power_Save();
         ShowRCON();
         __delay(2000);
-        printf("Power-Default... \n");
+
+        printf("Power-Default...\n");
         Device_Power_Default();
         ShowRCON();
         __delay(2000);
+
     }
 #endif    
 
@@ -188,13 +191,13 @@ int main(void) {
         printf("Sleep mode: waiting event... (RTTC/INT0 Wake) \n");
         __delay(100); // Wait to complete printf
 
-        Device_SwitchSys(SYS_SLEEP);
+        // Device_SwitchSys(SYS_SLEEP);
 
         //RCON = 0x0;
         //        RCONbits.SBOREN = 0; // Disable BoR
 
         RCONbits.RETEN = 1;
-        RCONbits.VREGS = 1; // 
+        RCONbits.VREGS = 0; // 
         //////////    // __builtin_disable_interrupts();
 
         Device_Power_Save();
@@ -216,193 +219,281 @@ int main(void) {
 
 
     /*----------------------------------------------------------------------------*/
-#ifdef __VAMP1K_TEST_CONFIG
-    //  Device_ConfigDefaultSet(&g_dev.cnf);
-    //  Device_ConfigWrite((uint8_t*) & g_dev.cnf); // Write EEprom/Flash
-    while (1) {
-        Device_ConfigRead(&g_dev.cnf); // Read from EEprom/Flash
-        __delay(5000);
+    if (!Device_ConfigRead()) { // Eval RCON, rtcc, pins, read config
+        
+        // Factory default
+        printf("CONFIG TO FACTORY DEFAULT !\n");
+        depotDefaultSet(); // Memory    
+    } else {
+        printf("CONFIG OK !\n");
     }
+
+#ifdef __VAMP1K_TEST_CONFIG
+
+    //    timestamp_t stime; // Use: g_dev.st.lasttime
+    //    RTCC_GetTime(&stime);
+    //    printf("---Time: %u:%u:%u\n#:", stime.hour, stime.min, stime.sec);
+    printf("________Config:\n");
+
+#define ShowCnf() { printf("---\n"); \
+                    printf("typeset=%u\n", device.cnf.general.typeset);\
+                    printf("cycletime=%u\n", device.cnf.general.cycletime);\
+                    printf("delaytime=%u\n", device.cnf.general.delaytime);\
+                    printf("timezone=%u\n", device.cnf.general.timezone);\
+                    printf("et_factor=%lu\n", device.cnf.calibration.et_factor);\
+                    printf("ws_factor=%lu\n", device.cnf.calibration.ws_factor);\
+                    printf("av_period=%lu\n",device.cnf.calibration.av_period);\
+                    printf("av_filter=%lu\n", device.cnf.calibration.av_filter);\
+                    printf("av_factor=%lu\n", device.cnf.calibration.av_factor);\
+                    printf("attempt_mode=%u\n", device.cnf.exchange.attempt_mode);\
+                    printf("app_timeout=%u\n", device.cnf.exchange.app_timeout);\
+                    printf("handshake_timeout=%u\n",device.cnf.exchange.handshake_timeout);\
+                    printf("interchar_timeout=%u\n",device.cnf.exchange.interchar_timeout);\
+                    printf("SKEY=%lu\n", device.cnf.exchange.SKEY);\
+                    printf("---CRC16=%u\n", device.cnf.CRC16);\
+                    }
+
+
+    config_t ctemp;
+
+    i = 0;
+
+    tcstop = tcycle + __VAMP1K_TEST_CONFIG;
+    while (tcycle++ < tcstop) {
+            
+    ShowCnf();
+    memcpy(&ctemp, &device.cnf, sizeof (config_t)); // Update active
+    printf("Change cnf...\n");
+    ctemp.general.cycletime = i;
+    ctemp.general.delaytime = i;
+    ctemp.general.timezone = i;
+    ctemp.CRC16 = computeCRC16((uint8_t*)&ctemp, sizeof (config_t) - 2); // !
+    Device_ConfigWrite((uint8_t*)&ctemp); // Read from EEprom/Flash
+    Device_ConfigRead(); // Read from EEprom/Flash
+    ShowCnf();
+    
+    __delay(1000);
+    i++;
+}
 #else    
 
     if (!Device_ConfigRead()) { // Eval RCON, rtcc, pins, read config
         // Factory default
-        printf("RESET TO FACTORY DEFAULT !");
-        // depotDefaultSet(); // Memory    
+        printf("CONFIG TO FACTORY DEFAULT !\n");
+        depotDefaultSet(); // Memory    
+    } else {
+        printf("CONFIG OK !\n");
     }
 #endif
 
 
-    /*----------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_BATLEV   
-    //    Device_SwitchADG(0xFF);
-    while (1) {
-        printf("BAT Level: %d \n", Device_GetBatteryLevel());
-        __delay(1000);
-    }
+//    Device_SwitchADG(0xFF);
+while (1) {
+    printf("BAT Level: %d \n", Device_GetBatteryLevel());
+    __delay(1000);
+}
 #endif 
 
 
 
-    /*----------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_USB
-    while (1) {
-        if (!Device_IsUsbConnected()) {
-            printf("USB Waiting (RB7=%d)... \n", Device_IsUsbConnected());
-        } else {
-            printf("USB Connected (RB7=%d) !  \n", Device_IsUsbConnected());
-        }
-        __delay(1000);
+while (1) {
+    if (!Device_IsUsbConnected()) {
+        printf("USB Waiting (RB7=%d)... \n", Device_IsUsbConnected());
+    } else {
+        printf("USB Connected (RB7=%d) !  \n", Device_IsUsbConnected());
     }
+    __delay(1000);
+}
 #endif
 
-    /*----------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_ADG
-    Device_SwitchSys(SYS_DEFAULT);
+Device_SwitchSys(SYS_DEFAULT);
 
-    while (1) {
-        printf("ADG all on \n");
-        Device_SwitchADG(0xFF); //_bs8(PW_WST) | _bs8(PW_ADA));
-        __delay(3000);
-        printf("ADG all off \n");
-        //        Device_SwitchADG(0b0); //_bs8(PW_WST) | _bs8(PW_ADA));
-        __delay(3000);
-    }
-#else
+while (1) {
+    printf("ADG all on \n");
     Device_SwitchADG(0xFF); //_bs8(PW_WST) | _bs8(PW_ADA));
+    __delay(3000);
+    printf("ADG all off \n");
+    //        Device_SwitchADG(0b0); //_bs8(PW_WST) | _bs8(PW_ADA));
+    __delay(3000);
+}
+#else
+Device_SwitchADG(0xFF); //_bs8(PW_WST) | _bs8(PW_ADA));
 #endif      
 
-    /*----------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_TIMERS
 
-    /// _______________TEST TMR1 TIMEOUT
-    Timeout_Set(2, 0);
-    printf("TMR1: Timeout = 2sec \n");
-    while (!isTimeout()) { // Loop until cycle-time or full filled buffer
-        __delay(10);
-        printf(".");
+/// _______________TEST TMR1 TIMEOUT
+Timeout_Set(2, 0);
+printf("TMR1: Timeout = 2sec \n");
+while (!isTimeout()) { // Loop until cycle-time or full filled buffer
+    __delay(10);
+    printf(".");
+}
+printf("Tmr1 ok\n");
+
+/// _______________TEST TMR2 COUNTER  
+printf("TMR2: Tsrc=T2CK pin \n");
+WS_IN_SetDigitalInputLow();
+IEC0bits.T2IE = 0; // Disable Int
+T2CON = 0x00; // Reset TMR2, 16 Bit, No Prescaler
+T2CONbits.TCS = 1; //  Extended Clock Source (TECS))
+T2CONbits.TECS = 1; // T2CK pin 
+TMR2 = 0x00; // TMR2 Counter Register
+PR2 = 0x10; // TMR2 Counter
+IFS0bits.T2IF = 0; // Reset iflag
+IEC0bits.T2IE = 1; // Enable Int
+T2CONbits.TON = 1;
+
+tmr2trig = false;
+while (!tmr2trig) {
+    if (tmr2trig) {
+        printf("Tmr2 ok\n");
+        //  tmr2trig = 0;
     }
-    printf("Tmr1 ok\n");
+    // printf("°");
+}
 
-    /// _______________TEST TMR2 COUNTER  
-    printf("TMR2: Tsrc=T2CK pin \n");
-    WS_IN_SetDigitalInputLow();
-    IEC0bits.T2IE = 0; // Disable Int
-    T2CON = 0x00; // Reset TMR2, 16 Bit, No Prescaler
-    T2CONbits.TCS = 1; //  Extended Clock Source (TECS))
-    T2CONbits.TECS = 1; // T2CK pin 
-    TMR2 = 0x00; // TMR2 Counter Register
-    PR2 = 0x10; // TMR2 Counter
-    IFS0bits.T2IF = 0; // Reset iflag
-    IEC0bits.T2IE = 1; // Enable Int
-    T2CONbits.TON = 1;
+/// _______________TEST TMR3 COUNTER
+AV_SYN_SetDigital();
+AV_SYN_SetDigitalInput(); // Input T3CK/RB15 (SYNCO)
 
-    tmr2trig = false;
-    while (!tmr2trig) {
-        if (tmr2trig) {
-            printf("Tmr2 ok\n");
-            //  tmr2trig = 0;
-        }
-        // printf("°");
+T3CONbits.TON = 1;
+//T3CON = 0x00; // Timer 3 Control Register
+T2CONbits.T32 = 0; // Configure TMR3 16Bit Operation
+T3CONbits.TCS = 1; // Clock Source 
+//1 = External clock from pin, TyCK (on the rising edge)
+//0 = Internal clock (FOSC/2)
+T3CONbits.TECS = 0b01; // bit 9-8: Timery Extended Clock Source (when TCS = 1)
+//11 = Generic timer (TxCK) external input
+//10 = LPRC Oscillator
+//01 = T3CK external clock input
+//00 = SOSC
+T3CONbits.TCKPS = 0b00; // Input Clock Prescale (00 = 1:1)
+TMR3 = 0x00; //TMR3 Timer3 Counter Register  
+PR3 = 10; // Count 
+IFS0bits.T3IF = 0; // Reset Int vector
+IEC0bits.T3IE = 1; // Int call-back 
+//T3CONbits.TON = 1;
+
+tmr3trig = false;
+while (1) {
+    if (tmr3trig) {
+        printf("!");
+        tmr3trig = 0;
     }
-
-    /// _______________TEST TMR3 COUNTER
-    AV_SYN_SetDigital();
-    AV_SYN_SetDigitalInput(); // Input T3CK/RB15 (SYNCO)
-
-    T3CONbits.TON = 1;
-    //T3CON = 0x00; // Timer 3 Control Register
-    T2CONbits.T32 = 0; // Configure TMR3 16Bit Operation
-    T3CONbits.TCS = 1; // Clock Source 
-    //1 = External clock from pin, TyCK (on the rising edge)
-    //0 = Internal clock (FOSC/2)
-    T3CONbits.TECS = 0b01; // bit 9-8: Timery Extended Clock Source (when TCS = 1)
-    //11 = Generic timer (TxCK) external input
-    //10 = LPRC Oscillator
-    //01 = T3CK external clock input
-    //00 = SOSC
-    T3CONbits.TCKPS = 0b00; // Input Clock Prescale (00 = 1:1)
-    TMR3 = 0x00; //TMR3 Timer3 Counter Register  
-    PR3 = 10; // Count 
-    IFS0bits.T3IF = 0; // Reset Int vector
-    IEC0bits.T3IE = 1; // Int call-back 
-    //T3CONbits.TON = 1;
-
-    tmr3trig = false;
-    while (1) {
-        if (tmr3trig) {
-            printf("!");
-            tmr3trig = 0;
-        }
-        // printf("°");
-    }
+    // printf("°");
+}
 #endif
 
 
 
-    /*----------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_BATTERY
-    Device_SwitchSys(SYS_DEFAULT);
+Device_SwitchSys(SYS_DEFAULT);
 
-    while (1) {
-        printf("Read battery level... \n");
-        printf("level=%d  \n", Device_GetBatteryLevel());
-        __delay(1000);
-        // RTCC_GetTimeL();
-    }
+while (1) {
+    printf("Read battery level... \n");
+    printf("level=%d  \n", Device_GetBatteryLevel());
+    __delay(1000);
+    // RTCC_GetTimeL();
+}
 #endif
 
 
-    /*----------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_RTCC
-    if (1) {
-        stime.day = 14;
-        stime.month = 06;
-        stime.year = 21;
+if (1) {
+    stime.day = 14;
+    stime.month = 06;
+    stime.year = 21;
 
-        stime.hour = 12;
-        stime.min = 25;
-        stime.sec = 1;
-        RTCC_SetTime(&stime, 1);
-    }
+    stime.hour = 12;
+    stime.min = 25;
+    stime.sec = 1;
+    RTCC_SetTime(&stime, 1);
+}
 
-    printf("%u/%u/%u - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
-    //    __delay(500);
+printf("%u/%u/%u - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
+//    __delay(500);
 
-    RTCC_SetCallBack(Alarm);
-    g_dev.cnf.general.delaytime = 70;
+RTCC_SetCallBack(Alarm);
+g_dev.cnf.general.delaytime = 70;
 
+RTCC_GetTime(&stime);
+stime.sec += g_dev.cnf.general.delaytime % 60;
+if (stime.sec > 59) {
+    stime.sec -= 59;
+    stime.min++;
+}
+stime.min += g_dev.cnf.general.delaytime / 60;
+if (stime.min > 59) {
+    stime.min -= 59;
+}
+
+RTCC_AlarmSet(&stime);
+printf("Alarm set: %u:%u:%u \n", stime.hour, stime.min, stime.sec);
+
+while (1) {
     RTCC_GetTime(&stime);
-    stime.sec += g_dev.cnf.general.delaytime % 60;
-    if (stime.sec > 59) {
-        stime.sec -= 59;
-        stime.min++;
-    }
-    stime.min += g_dev.cnf.general.delaytime / 60;
-    if (stime.min > 59) {
-        stime.min -= 59;
-    }
+    printf("%u/%u/%u - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
+    //        if (alarm_event) {
+    //            printf("Alarm...\n");
+    //            alarm_event = false;
+    //        }
 
-    RTCC_AlarmSet(&stime);
-    printf("Alarm set: %u:%u:%u \n", stime.hour, stime.min, stime.sec);
-
-    while (1) {
-        RTCC_GetTime(&stime);
-        printf("%u/%u/%u - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
-        //        if (alarm_event) {
-        //            printf("Alarm...\n");
-        //            alarm_event = false;
-        //        }
-
-        //printf("L1=%d \n",RTCC_GetTimeL(&stime));
-        //printf("L2=%d \n",RTCC_GetTimeL2(&stime));
-        //printf("waiting...\n");
-        __delay(1000);
-    }
+    //printf("L1=%d \n",RTCC_GetTimeL(&stime));
+    //printf("L2=%d \n",RTCC_GetTimeL2(&stime));
+    //printf("waiting...\n");
+    __delay(1000);
+}
 #endif
 
+/*----------------------------------------------------------------------------*/
+#ifdef __VAMP1K_TEST_DDE
 
-    /*----------------------------------------------------------------------------*/
+#define DDE_START	150
+#define DDE_STOP	160
+#define DDE_COUNTER DDE_STOP - DDE_START
+
+tcstop = tcycle + __VAMP1K_TEST_DDE;
+
+uint16_t value;
+int nc = 0;
+printf("______DDE:\n");
+
+
+
+while (tcycle++ < tcstop) {
+    printf("Write:");
+    for (i = 0; i < DDE_COUNTER; i++) {
+        value = i + nc;
+        DEE_Write(DDE_START + i, value); // (dee.h)  
+        printf(" %u", value);
+    }
+    printf(" (%u)\n", DDE_COUNTER);
+
+    printf("Read: ");
+    for (i = 0; i < DDE_COUNTER; i++) {
+        DEE_Read(DDE_START + i, &value); // (dee.h)  
+        printf(" %u", value);
+    }
+    printf("\n");
+    __delay(1000);
+    nc++;
+
+}
+#endif  
+
+
+
+/*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_SST26
 
 
@@ -417,10 +508,10 @@ int main(void) {
 #define SST_PAGE_SIZE      256
 #define DSIZE 96
 
-flash_address_t sst_addr,tmp_addr;
+uint32_t sst_addr;
 uint8_t datas[DSIZE];
 
-int man, typ, id, err;
+int man, typ, id;
 
 
 SST26_Enable();
@@ -428,39 +519,39 @@ SST26_Enable();
 //SST26_Switch_Power();
 //SST26_ResetEn();
 //SST26_Reset();
+printf("______SST26VF064B:\n");
+SST26_Jedec_ID_Read(&man, &typ, &id);
+printf("manufacturer=%u\n", man);
+printf("device_type=%u\n", typ);
+printf("identifier=%u\n", id);
+printf("config_reg=%u\n", SST26_Read_Configuration());
 
-
-while (1) {
-    printf("______SST26VF064B:\n");
-    SST26_Jedec_ID_Read(&man, &typ, &id);
-    printf("manufacturer=%u\n", man);
-    printf("device_type=%u\n", typ);
-    printf("identifier=%u\n", id);
-    printf("config_reg=%u\n", SST26_Read_Configuration());
+tcstop = tcycle + __VAMP1K_TEST_SST26;
+while (tcycle++ < tcstop) {
 
     ShowSST();
     __delay(1000);
 
-    sst_addr.a32 = 0;
+    sst_addr = 0;
     for (i = 0; i < DSIZE; i++) {
         datas[i] = i;
     }
 
     printf("#Global Unlock\n");
     SST26_Global_Protection_Unlock();
-    printf("#Erase sector (%lu)... ", sst_addr.a32);
-    SST26_Erase_Sector(sst_addr.a32); // Set 4K in 0xFF state
+    printf("#Erase sector (%lu)... ", sst_addr);
+    SST26_Erase_Sector(sst_addr); // Set 4K in 0xFF state
     ShowSST();
 
-    while (1) {
+    tcstop = tcycle + __VAMP1K_TEST_SST26;
+    while (tcycle++ < tcstop) {
 
-        printf("#Write (addr=%lu,dsize=%u)...\n", sst_addr.a32, DSIZE);
-        tmp_addr = sst_addr;
-        SST26_Write(&sst_addr, (uint8_t*) datas, DSIZE);
-//        ShowSST();
-        printf("#Read (addr=%lu,dsize=%u )...\n", tmp_addr, DSIZE);
-        SST26_Read(tmp_addr, DSIZE, datas);
-//        ShowSST();
+        printf("#Write (addr=%lu,dsize=%u)...\n", sst_addr, DSIZE);
+        SST26_Write(sst_addr, (uint8_t*) datas, DSIZE);
+        //        ShowSST();
+        printf("#Read (addr=%lu,dsize=%u )...\n", sst_addr, DSIZE);
+        SST26_Read(sst_addr, DSIZE, datas);
+        //        ShowSST();
 
         err = 0;
         for (i = 0; i < DSIZE; i++) {
@@ -475,7 +566,8 @@ while (1) {
         //            printf(" %u", datas[i]);
         //        }
         //        printf("\n");
-        __delay(2000);
+        sst_addr += DSIZE;
+        __delay(1000);
     }
 }
 SST26_Disable();
@@ -484,95 +576,160 @@ SST26_Disable();
 #endif    
 
 
-/*----------------------------------------------------------------------------*/
-#ifdef __VAMP1K_TEST_DDE
-
-#define DDE_START	150
-#define DDE_STOP	160
-#define DDE_COUNTER DDE_STOP - DDE_START
-
-uint16_t value;
-int ncycle = 0;
-printf("______DDE:\n");
-
-while (1) {
-    printf("Write... %u, %u \n", DDE_COUNTER, ncycle);
-    for (i = 0; i < DDE_COUNTER; i++) {
-        DEE_Write(DDE_START + i, ncycle * i); // (dee.h)  
-    }
-
-    printf("Read...%u, %u \n", DDE_COUNTER, ncycle);
-    printf("values: ");
-    for (i = 0; i < DDE_COUNTER; i++) {
-        DEE_Read(DDE_START + i, &value); // (dee.h)  
-        printf(" %u,", value);
-    }
-    printf("\n");
-    __delay(5000);
-    ncycle++;
-}
-#endif  
-
-
 
 /*----------------------------------------------------------------------------*/
-#ifdef __VAMP1K_TEST_measurement_save 
-
-//    DEE_Init(); // Emulated Data Eprom 
-
-// measurementInitialize(&g_measurement);    
+#ifdef __VAMP1K_TEST_DEPOT
 
 
-#define ShowMem() {   printf("FreeSpace :%u\n", depotFreeSpaceKb());    \
-    uint16_t Sector, Offset;	\
-    DEE_Read(EEA_SST26_HA, &Sector);   \
-    DEE_Read(EEA_SST26_LA, &Offset);  \
-    printf("Sector :%u\n", Sector);	\
-    printf("Offset :%u\n", Offset);	\
-    printf("Meas_Counter :%u\n", device.sts.meas_counter ); \
-    }
+//#define ShowMem() {   printf("Free: %u Kb ", ( SST26_SIZE_KB - (((Sector * SST26_SECTOR_SIZE) + Offset) / 1024)));    
+//                      printf("(S:%u,O:%u,C:%u)\n", Sector, Offset,device.sts.meas_counter);	
+//    }
 
+#define HSIZE   10U   // Measurement's header
+#define MSIZE  651  // Samples
 
-#define NewMeasurement(n) { g_measurement.tset = _SIG0; \
+#define NewMeasurement(n) { lmeas.tset = _SIG0; \
      RTCC_GetTime(&stime); \
-     g_measurement.dtime =   stime.lstamp; \
-     g_measurement.ns = n; \
-     g_measurement.nss = 0; \
-     g_measurement.ss = SSBUF; \
-      for (i = 0; i < g_measurement.ns; i++) {  \
-          *(g_measurement.ss + i) = i;  \
+     lmeas.dtime =   stime.lstamp; \
+     lmeas.ns = 4; \
+     lmeas.nss = MSIZE-lmeas.ns; \
+     lmeas.ss = &(SSBUF[0]); \
+      for (i = 0; i < lmeas.ns+lmeas.nss; i++) {  \
+          lmeas.ss[i] = i;  \
       } \
     }
 
 
-printf("Start test... \n\n");
-while (1) {
-    //ShowMem();
+#define ShowMeas() {  printf("---------------\n"); \
+                        stime.lstamp = lmeas.dtime; \
+                        L2Time(&stime);\
+                        printf("Timestamp: %d/%d/%d - %u:%u:%u \n", stime.day, \
+                        stime.month, stime.year, stime.hour, stime.min, stime.sec); \
+                        printf("Typeset:%u\n", lmeas.tset); \
+                        printf("ns:%u \n", lmeas.ns); \
+                        printf("nss:%u \n", lmeas.nss); \
+                        printf("SS:"); \
+                        for (i = 0; i < lmeas.ns+lmeas.nss; i++) { \
+                            printf("%u,", lmeas.ss[i]); \
+                        }; \
+                        printf("\n"); \
+                        }
 
-    printf("Save new measurement...\n");
-    NewMeasurement(64);
-    measurementSave(&g_measurement);
-    ShowMem();
-    printf("--------------\n\n");
-    g_measurement.tset = 0;
-    g_measurement.ns = 0;
 
-    //__delay(5000);
-    printf("Measurement Read...\n");
-    measurementLoad(1);
-    printf("tset:%u\n", g_measurement.tset);
-    stime.lstamp = g_measurement.dtime;
-    L2Time(&stime);
-    printf("timestamp: %d/%d/%d - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
-    printf("ns:%u \n", g_measurement.ns);
-    printf("nss:%u \n", g_measurement.nss);
-    for (i = 0; i < g_measurement.ns; i++) {
-        printf("%u,", *(g_measurement.ss + i));
-    };
-    printf("\n---------------\n\n");
+
+#define CheckMeas() {  err=0; \
+                       for (i = 0; i < lmeas.ns + lmeas.nss; i++) \
+                          err += (lmeas.ss[i]!=i)?1:0; \
+                          printf((err>0)?"Error %u\n":"OK\n",err); \
+                               }
+
+
+printf("Test DEPOT... \n\n");
+
+//    lmeas.ns = 10;
+//    lmeas.ss = &(SSBUF[0]);
+//    while (1) {
+//
+//        for (i = 0; i < lmeas.ns; i++) {
+//            lmeas.ss[i] = i;
+//        }
+//        ShowMeas();
+////        for (i = 0; i < lmeas.ns; i++) {
+////            printf("%u,\n", lmeas.ss[i]);
+////        }
+//        printf("\n\n\n");
+//        __delay(2000);
+//    }
+int c = 0;
+tcstop = tcycle + __VAMP1K_TEST_DEPOT;
+
+while (tcycle++ < tcstop) {
+
+    printf("#Free: %u Kb\n", depotFreeSpaceKb());
+    printf("#Push new measurement.(size=%u)..\n", MSIZE);
+    NewMeasurement(MSIZE);
+
+    depotPush((uint8_t*) &(lmeas.ss[0]), ((lmeas.ns + lmeas.nss) << 1)); // Save samples
+    depotPush((uint8_t*) & lmeas, HSIZE);
+    //        ShowMeas();
+
+    if (c % 3 > 0) {
+        printf("#Drop measurement.(size=%u)..\n", HSIZE + (MSIZE * 2));
+        depotDrop(HSIZE + (MSIZE * 2));
+    }
+
+    printf("#Pull measurement...");
+    depotPull((uint8_t*) & lmeas, 0, HSIZE, false); // ok
+    depotPull((uint8_t*) & lmeas.ss[0], HSIZE, ((lmeas.ns + lmeas.nss) *2), false);
+    CheckMeas();
+    //        ShowMeas();
+    printf("\n\n");
+    c++;
     __delay(2000);
 }
 #endif      
+
+
+
+
+/*----------------------------------------------------------------------------*/
+//////////#ifdef __VAMP1K_TEST_measurement_save 
+//////////
+//////////    //    DEE_Init(); // Emulated Data Eprom 
+//////////
+//////////    // measurementInitialize(&g_measurement);    
+//////////
+//////////
+////////// #define ShowMem() {   printf("FreeSpace :%u\n", depotFreeSpaceKb());    \
+//////////    uint16_t Sector, Offset;	\
+//////////    DEE_Read(EEA_SST26_SECTOR, &Sector);   \
+//////////    DEE_Read(EEA_SST26_OFFSET, &Offset);  \
+//////////    printf("Sector :%u\n", Sector);	\
+//////////    printf("Offset :%u\n", Offset);	\
+//////////    printf("Meas_Counter :%u\n", device.sts.meas_counter ); \
+//////////    }
+//////////
+//////////
+//////////    //#define NewMeasurement(n) { g_measurement.tset = _SIG0; 
+//////////    //     RTCC_GetTime(&stime); 
+//////////    //     g_measurement.dtime =   stime.lstamp; 
+//////////    //     g_measurement.ns = n; 
+//////////    //     g_measurement.nss = 0; 
+//////////    //     g_measurement.ss = SSBUF; 
+//////////    //      for (i = 0; i < g_measurement.ns; i++) {  
+//////////    //          *(g_measurement.ss + i) = i;  
+//////////    //      } 
+//////////    //    }
+//////////
+//////////
+//////////    printf("Start test... \n\n");
+//////////    while (1) {
+//////////        //ShowMem();
+//////////
+//////////        printf("Save new measurement...\n");
+//////////        NewMeasurement(64);
+//////////        measurementSave(&g_measurement);
+//////////        ShowMem();
+//////////        printf("--------------\n\n");
+//////////        g_measurement.tset = 0;
+//////////        g_measurement.ns = 0;
+//////////
+//////////        //__delay(5000);
+//////////        printf("Measurement Read...\n");
+//////////        measurementLoad(1);
+//////////        printf("tset:%u\n", g_measurement.tset);
+//////////        stime.lstamp = g_measurement.dtime;
+//////////        L2Time(&stime);
+//////////        printf("timestamp: %d/%d/%d - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
+//////////        printf("ns:%u \n", g_measurement.ns);
+//////////        printf("nss:%u \n", g_measurement.nss);
+//////////        for (i = 0; i < g_measurement.ns; i++) {
+//////////            printf("%u,", *(g_measurement.ss + i));
+//////////        };
+//////////        printf("\n---------------\n\n");
+//////////        __delay(2000);
+//////////    }
+//////////#endif      
 
 /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_measurement_delete 
@@ -662,11 +819,11 @@ while (1) {
             // RTCC_TimeGet(&stime);
             //!! if ((stime.lstamp > g_config.general.startdate) && (stime.lstamp < g_config.general.stopdate)) {
             g_dev.cnf.general.typeset = FORCED_TYPESET;
-            measurementAcquire(&g_measurement);
-#ifdef __VAMP1K_TEST_measurement_save
-            measurementSave(&g_measurement);
-#endif
+            measurementAcquire();
 
+#ifdef __VAMP1K_TEST_measurement_save
+            measurementSave();
+#endif
             //!!};
             state = (g_dev.cnf.exchange.attempt_mode == CNF_ATTEMPTMODE_EVERYCYCLE) ? EXCHANGE : WAITING;
             break;
@@ -674,6 +831,32 @@ while (1) {
         case EXCHANGE:
             lstate = state;
             Device_StatusRefresh(&g_dev.sts);
+
+#ifdef __VAMP1K_TEST_measurement_save
+
+            printf("EXCHANGE...\n");
+            printf("meas_count:%u\n", measurementCounterGet());
+            if (measurementCounterGet() > 0) {
+                measurementLoad(measurementCounterGet());
+                printf("---------------\n");
+                printf("typeset:%u\n", lmeas.tset);
+                printf("timestamp:%lu ", lmeas.dtime);
+                stime.lstamp = lmeas.dtime;
+                L2Time(&stime);
+                printf("%d/%d/%d - %u:%u:%u \n", stime.day, stime.month, stime.year, stime.hour, stime.min, stime.sec);
+
+                printf("ns:%u \n", lmeas.ns);
+                //                for (i = 0; i < g_measurement.ns; i++) {
+                //                    printf("%u,", *(g_measurement.ss + i));
+                //                };
+                //                printf("\n");
+                printf("nss:%u\n", g_measurement.nss);
+
+                printf("---------------\n");
+                measurementDelete(measurementCounterGet());
+            }
+
+#endif
 
 #ifdef __VAMP1K_TEST_measurement_printf
             printf("EXCHANGE...\n");
@@ -755,7 +938,7 @@ while (1) {
             //while ((RTCC_GetMinutes() - waittime) < (g_dev.cnf.general.delaytime / 60)) {
             //      printf("%u - %u > %u\n",RTCC_GetMinutes(),waittime, (g_dev.cnf.general.delaytime / 60));
             //  __delay(5000);
-            __delay(2000);
+            __delay(4000);
             __clearWDT();
             // }
 

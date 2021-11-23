@@ -6,21 +6,22 @@
 
 static bool disable_spi1; // Shared SPI1
 
-void SST26_Enable(void) {
+void SST26_Enable() {
     SST26_SS_SetDigitalOutputHigh();
     disable_spi1 = SPI1_Enable(MODE0, SPI_2MHZ); // Shared SPI1
 }
 
-void SST26_Disable(void) {
+void SST26_Disable() {
     SST26_SS_SetHigh();
     if (disable_spi1) { // Shared SPI1
         SPI1_Disable();
     }
 }
 
-
 void SST26_WREN();
+
 void SST26_WRDI();
+
 
 void SST26_Switch_Power() {
     SST26_SS_SetLow(); /* enable device */
@@ -97,11 +98,10 @@ void SST26_Write_Status_Register(unsigned int data1, unsigned char datalen) {
  * 0x80 -> bit 7 "BUSY Write operation status ( 1=in progress)"
  ************************************************************************/
 void SST26_Wait_Busy() {
-    while ((SST26_Read_Status() & 0x80) == 0x80) { // waste time until not busy
-     //   SST26_Read_Status();
-       // __delay(1);
-        Nop();Nop();Nop();Nop();
-    }
+    while ((SST26_Read_Status() & 0x80) == 0x80) // waste time until not busy
+        // SST26_Read_Status();
+        // Nop();Nop();Nop();Nop();
+        _delay_us(10);
 }
 
 
@@ -140,26 +140,28 @@ void SST26_Erase_Chip() // Erases the entire Chip !!!
     SST26_SS_SetHigh();
 }
 
-void SST26_Erase_Sector(uint32_t addr) {
+void SST26_Erase_Sector(unsigned long Dst) {
     // Sector Addresses: Use AMS - A12, remaining address are don?t care, but must be set to VIL or VIH.
     SST26_WREN();
     SST26_SS_SetLow();
     SPI1_Exchange8bit(SST26_CMD_SECTOR_ERASE); // Erase 4 KBytes (000000H-7FFFFFH)
-    SPI1_Exchange8bit(((addr & 0xFFFFFF) >> 16)); // Send the sector offset high byte first
-    SPI1_Exchange8bit(((addr & 0xFFFF) >> 8));
-    SPI1_Exchange8bit(addr & 0xFF);
+    SPI1_Exchange8bit(((Dst & 0xFFFFFF) >> 16)); // Send the sector offset high byte first
+    SPI1_Exchange8bit(((Dst & 0xFFFF) >> 8));
+    SPI1_Exchange8bit(Dst & 0xFF);
     SST26_SS_SetHigh();
-    _delay_us(2);
-    SST26_Wait_Busy();
+    //    SST26_Wait_Busy();
+    while ((SST26_Read_Status() & 0x80) == 0x80) {// waste time until not busy
+      _delay_us(20);
+    }
 }
 
-void SST26_Erase_Block(flash_address_t addr) // 8Kbyte, 32 KByte or 64 KByte 
+void SST26_Erase_Block(unsigned long Dst) // 8Kbyte, 32 KByte or 64 KByte 
 {
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(SST26_CMD_BULK_ERASE_64K); /* send Block Erase command */
-    SPI1_Exchange8bit(((addr.a32 & 0xFFFFFF) >> 16)); /* send 3 address bytes */
-    SPI1_Exchange8bit(((addr.a32 & 0xFFFF) >> 8));
-    SPI1_Exchange8bit(addr.a32 & 0xFF);
+    SPI1_Exchange8bit(((Dst & 0xFFFFFF) >> 16)); /* send 3 address bytes */
+    SPI1_Exchange8bit(((Dst & 0xFFFF) >> 8));
+    SPI1_Exchange8bit(Dst & 0xFF);
     SST26_SS_SetHigh(); /* disable device */
 }
 
@@ -203,51 +205,53 @@ input exceeds or overlaps the end of the address of the page boundary,
 the excess data inputs wrap around and will be programmed at the start of that
 target page.
  */
-uint16_t SST26_Write(flash_address_t* addr, uint8_t *dbuf, uint16_t dlen) {
-
+uint16_t SST26_Write(uint32_t addr, uint8_t *dbuf, uint16_t dlen) {
     uint16_t written;
     uint16_t index;
-    uint8_t *dptr= dbuf;
-        
-//    index = (*addr & 0xFF); // page offset 
-//    *addr = *addr & 0xFFFFFF00; // sector/page address
 
-    printf("-->Write: %u bytes (Sector:%lu Page:%lu, Index: %lu) \n", dlen, addr->sector, addr->page, addr->offset);
-
+    index = (addr & 0xFF); // set to page offset 
+    addr = addr & 0xFFFFFF00; // Sector/Page Address
     written = 0;
-    SST26_WREN();
-    while (written < dlen) {
+    //    printf("__Write: %u bytes (addr:%lu, offs: %u) \n", dlen, addr >> 8, index);
 
-        if (index == SST26_PAGE_SIZE) { // Page boundary
-            addr->page++; // Next Page
-            // Check Sector Boundary
-            addr->offset = 0x0;
-            
+    while (dlen > 0) {
+        //        available = (SST26_PAGE_SIZE - index);
+        //        printf("DISPONIBILI %u \n", available);
+        if (index == SST26_PAGE_SIZE) {
+            addr = addr + SST26_PAGE_SIZE; // Next Page
+            //            printf("CAMBIO PAGINA...");
+            //            printf("(Addr= %lu), DISPONIBILI 256 ! \n", addr >> 8);
+            index = 0x0;
         }
-        printf("   DISPONIBILI %u (Page=%lu,Index=%u) !\n",(SST26_PAGE_SIZE - addr->offset), addr->page, addr->offset );
-        
+        //available = (255 - poffs);
+        //SST26_WREN();
+        SST26_SS_SetLow(); /* enable device */
+        SPI1_Exchange8bit(SST26_CMD_WRITE_ENABLE); /* send WREN command */
+        SST26_SS_SetHigh(); /* disable device */
         SST26_SS_SetLow(); // Select device
         SPI1_Exchange8bit(SST26_CMD_WRITE_PAGE); // send command "Page Program"  
-        SPI1_Exchange8bit((addr->a32 >> 16) & 0xFF); // send msb first
-        SPI1_Exchange8bit((addr->a32 >> 8) & 0xFF); // 24-bit page address
-        SPI1_Exchange8bit(addr->a32 & 0xFF); // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//          printf("W: ");
+        SPI1_Exchange8bit((addr >> 16) & 0xFF); // send msb first
+        SPI1_Exchange8bit((addr >> 8) & 0xFF); // 24-bit page address
+        SPI1_Exchange8bit(index); // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        //        printf("W: ");
 
-        while ((addr->offset < SST26_PAGE_SIZE) && (written < dlen)) {
-            SPI1_Exchange8bit(*dptr); // send bytes 
-//            printf("%u,", *dptr);
-            dptr++;
-            addr->offset++;
+        while ((index < SST26_PAGE_SIZE) && (dlen > 0)) {
+            SPI1_Exchange8bit(*dbuf); // send bytes 
+            //            printf("%u,", *dbuf);
+            dbuf++;
+            index++;
+            dlen--;
             written++;
-            if (addr->offset == SST26_PAGE_SIZE) {
-                printf("   BOUNDARY\n");
-            }
         }
-//        printf("\n");    
+        //        printf("\n");
+        //        printf("SCRITTI %u \n", written);
         SST26_SS_SetHigh(); // unselect device 
-        SST26_Wait_Busy();
+        while ((SST26_Read_Status() & 0x80) == 0x80) { // waste time until not busy
+            Nop();
+            Nop();
+        }
+        //SST26_Wait_Busy();
     }
-    printf("   SCRITTI %u\n", written);
     SST26_WRDI();
     return (written);
 }
@@ -259,27 +263,26 @@ uint16_t SST26_Write(flash_address_t* addr, uint8_t *dbuf, uint16_t dlen) {
 /* only with clock frequencies up to 40 MHz.                            */
 
 /************************************************************************/
-uint16_t SST26_Read(flash_address_t addr, uint16_t dlen, uint8_t *dbuf) {
+uint16_t SST26_Read(uint32_t addr, uint16_t dlen, uint8_t *dbuf) {
     uint16_t i = 0;
 
 
-    printf("-->Read: %u bytes (Page:%lu, Index: %lu) \n", dlen, addr.page, addr.offset);
+    //    printf("__Read: %u bytes (addr:%lu, offs: %lu) \n", dlen, addr >> 8, (addr & 0xFF));
     SST26_SS_SetLow();
-    SPI1_Exchange8bit(SST26_CMD_READ); // Command  + 3 Address bytes 
-//    SPI1_Exchange8bit(SST26_CMD_HS_READ); // Command  + 3 Address bytes 
-    SPI1_Exchange8bit((addr.a32 >> 16) & 0xFF); // send msb first
-    SPI1_Exchange8bit((addr.a32 >> 8) & 0xFF); // 24-bit page address
-    SPI1_Exchange8bit(addr.a32 & 0xFF); //  8bit page offset
-//    SPI1_Exchange8bit(0xFF); //  Dummy char
-//    printf("R: ");
+    //SPI1_Exchange8bit(SST26_CMD_READ); // Command  + 3 Address bytes 
+    SPI1_Exchange8bit(SST26_CMD_HS_READ); // Command  + 3 Address bytes 
+    SPI1_Exchange8bit((addr >> 16) & 0xFF); // send msb first
+    SPI1_Exchange8bit((addr >> 8) & 0xFF); // 24-bit page address
+    SPI1_Exchange8bit(addr & 0xFF); //  8bit page offset
+    SPI1_Exchange8bit(0xFF); //  Dummy char
+    //    printf("R: ");
     while (i < dlen) {
-
         *dbuf = SPI1_Exchange8bit(0xFF); // receive byte 
-//        printf("%u,", *dbuf);
+        //        printf("%u,", *dbuf);
         dbuf++;
         i++;
     }
-//    printf("\n");
+    //    printf("\n");
     SST26_SS_SetHigh(); // disable device 
     return (i);
 }

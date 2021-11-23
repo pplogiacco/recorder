@@ -74,14 +74,14 @@ void __attribute__((weak)) cb_PerformReset(uint8_t rtype); // Reset / Reboot !!!
 // Manage device configuration ( Align )
 bool __attribute__((weak)) cb_GetDeviceConfigCRC16(uint16_t *crc16);
 void __attribute__((weak)) cb_SetDeviceConfig(uint8_t *dobj);
-uint8_t __attribute__((weak)) cb_GetDeviceConfig(uint8_t *dobj);
+uint8_t __attribute__((weak)) cb_GetDeviceConfigPtr(uint8_t **dobj);
 
 // Generic Transfer
 
 // Measurements Transfer
 bool __attribute__((weak)) cb_GetMeasurementCounter(uint16_t *nobj);
 bool __attribute__((weak)) cb_GetMeasurement(uint16_t index, uint32_t * dtime, uint16_t * tset, uint16_t * ns, uint16_t * nss);
-void __attribute__((weak)) cb_GetMeasurementBlock(uint8_t *pbuf, uint16_t offset, uint16_t size);
+uint16_t __attribute__((weak)) cb_GetMeasurementBlock(uint8_t *pbuf, uint16_t offset, uint16_t size);
 void __attribute__((weak)) cb_DeleteMeasurement(uint16_t index);
 
 // Lock/ Unlock !!!!!

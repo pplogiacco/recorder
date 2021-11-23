@@ -15,10 +15,9 @@
 
 #include "../memory/libdpt.h"
 
-
+#define DEPOT_OK
 //==============================================================================
 extern device_t device;
-
 extern sample_t SSBUF[SS_BUF_SIZE]; // global buffer
 extern measurement_t lmeas;
 
@@ -68,7 +67,7 @@ uint16_t measurementAcquire() // ( tset, duration, adc_fq, filter )
 
     lmeas.dtime = RTCC_GetTimeL(); // get RTC datetime  
     lmeas.tset = typeset;
-    lmeas.ss = SSBUF;
+    lmeas.ss = &(SSBUF[0]);
     ptrSS = lmeas.ss;
 
     if (typeset != _SIG0) {
@@ -91,7 +90,7 @@ uint16_t measurementAcquire() // ( tset, duration, adc_fq, filter )
 
         case _SIG0: // (02) Test Signal { <sig_fq>, <sig_maxa>, <adc_fq>, <res_scale>, [<dT>,<a>],[...] }
             //tmpM.tset = _SIG0;
-            lmeas.nss = acquireSig(ptrSS, duration, (SS_BUF_SIZE - lmeas.ns), fq_Hz, filter, true) - 4;
+            lmeas.nss = acquireSig(ptrSS, duration, SS_BUF_SIZE , fq_Hz, filter, true) - 4;
             lmeas.ns = 4; // <sig_fq>, <sig_maxa>, <adc_fq>, <res_scale>
             nsamples = lmeas.nss + lmeas.ns;
             break;
@@ -232,7 +231,8 @@ uint16_t measurementSave() // Uses g_measurement
     if ((lmeas.ns + lmeas.nss) > 0) {
 
 #ifdef DEPOT_OK
-        depotPush((uint8_t*) lmeas.ss, ((lmeas.ns + lmeas.nss) << 1)); // Save samples
+        
+        depotPush((uint8_t*) &(lmeas.ss[0]), ((lmeas.ns + lmeas.nss) *SAMPLE_SIZE_IN_BYTE)); // Save samples
         depotPush((uint8_t*) & lmeas, HEADER_SIZE_IN_BYTE);
 #endif        
         device.sts.meas_counter++;
@@ -247,8 +247,9 @@ uint16_t measurementLoad(uint16_t index) { // LIFO !!!!!!!!!!!!!!
 
     if (device.sts.meas_counter > 0) {
 #ifdef DEPOT_OK
+        lmeas.ss = &(SSBUF[0]);        
         depotPull((uint8_t*) & lmeas, 0, HEADER_SIZE_IN_BYTE, false); // ok
-        depotPull((uint8_t*) lmeas.ss, HEADER_SIZE_IN_BYTE, ((lmeas.ns + lmeas.nss) << 1), false);
+        depotPull((uint8_t*) &(lmeas.ss[0]), HEADER_SIZE_IN_BYTE, ((lmeas.ns + lmeas.nss) * SAMPLE_SIZE_IN_BYTE), false);
 #endif
         return index; //return device.sts.meas_counter; !!!!!!!!
     }
@@ -259,8 +260,7 @@ uint16_t measurementLoad(uint16_t index) { // LIFO !!!!!!!!!!!!!!
 uint16_t measurementDelete(uint16_t index) {
     if (device.sts.meas_counter > 0) {
 #ifdef DEPOT_OK
-        depotPull((uint8_t*) & lmeas, 0, HEADER_SIZE_IN_BYTE, false); // ok
-        depotDrop(HEADER_SIZE_IN_BYTE + ((lmeas.ns + lmeas.nss) << 1));
+        depotDrop(HEADER_SIZE_IN_BYTE + ((lmeas.ns + lmeas.nss) * SAMPLE_SIZE_IN_BYTE));
 #endif
         device.sts.meas_counter--;
         DEE_Write(EEA_MEAS_COUNTER, device.sts.meas_counter);

@@ -114,33 +114,34 @@ void Device_SwitchClock(sysclock_t ck) {
 
 void Device_SysBoot() { // Initialize system 
 
+    Device_SwitchClock(CK_DEFAULT); // Default clock 32Mhz      
+    RTCC_Enable();     
+    
 #if defined (__PIC24FJ256GA702__)
+
+
+    TRISA = 0xFFFF; // All tri-state
+    TRISB = 0xFFFF;
+    LATA = 0x0000;  
+    LATB = 0x0000;
+    
     // Board V2 - Power Managment
     PW_ADP_SetDigitalOutputLow(); // Off
     PW_LTC_SetDigitalOutputLow(); // On 
 
-#endif 
-    
-    Device_SwitchClock(CK_DEFAULT); // Default clock 32Mhz       
-    RTCC_Enable();
-    DEE_Init(); // Emulated Data Eprom 
-
-
-#if defined (__PIC24FJ256GA702__)
-
     // Setting the Output Latch SFR(s)
-    LATA = 0x0000;
-    LATB = 0x0001;
+    //    LATA = 0x0000;
+    //    LATB = 0x0001;
 
     // Setting the GPIO Direction SFR(s)
-//    TRISA = 0x000B;
-//    TRISB = 0xC7EE;
+    //    TRISA = 0x000B;
+    //    TRISB = 0xC7EE;
 
     // Setting the Weak Pull Up and Weak Pull Down SFR(s)
-//    IOCPDA = 0x0000;
-//    IOCPDB = 0x0080;
-//    IOCPUA = 0x0000;
-//    IOCPUB = 0x0300;
+    //    IOCPDA = 0x0000;
+    //    IOCPDB = 0x0080;
+    //    IOCPUA = 0x0000;
+    //    IOCPUB = 0x0300;
 
     //Setting the Open Drain SFR(s)
     ODCA = 0x0000;
@@ -154,18 +155,17 @@ void Device_SysBoot() { // Initialize system
     __builtin_write_OSCCONL(OSCCON & 0xbf); // unlock PPS
 
     // _____________UART2
-    UART2_RX_SetDigitalInput();
-    UART2_TX_SetDigitalOutputHigh();
     RPOR0bits.RP0R = 0x0005; //RB0->UART2:U2TX
     RPINR19bits.U2RXR = 0x0001; //RB1->UART2:U2RX
+    UART2_RX_SetDigitalInput();
+    UART2_TX_SetDigitalOutputHigh();
 
     // _____________SPI1 
     RPOR5bits.RP11R = 0x0008; //RB11->SPI1:SCK1OUT
     RPOR6bits.RP13R = 0x0007; //RB13->SPI1:SDO1
     RPINR20bits.SDI1R = 0x000A; // RB10->SPI1:SDI
     MRF24_SS_SetDigitalOutputHigh(); // MRF24J40.c    
-    ADA_SS_SetDigitalOutput(); // ADA2200.c
-    ADA_SS_SetHigh();
+    ADA_SS_SetDigitalOutputHigh(); // ADA2200.c
     SST26_SS_SetDigitalOutputHigh(); // SST Memory Bank
 
     // Board V2 - Not used
@@ -188,11 +188,12 @@ void Device_SysBoot() { // Initialize system
     // _____________ADC:AN3 (Measure Batt Level)
     BAT_LV_SetAnalogInput(); // (S) Batt Level ( AN1 )
 
-
+    // _____________I2C  
     LATBbits.LATB8 = 1; //Start with bus in idle mode - both lines high
     LATBbits.LATB9 = 1;
     TRISBbits.TRISB8 = 0; //SCL1 output
     TRISBbits.TRISB9 = 0; //SDA1 output
+    
     //    ET_IN_SetAnalog();      
     //    ET_IN_SetAnalogInput(); // ADC ( Pin 7 AN5/RP3 )
 
@@ -200,9 +201,9 @@ void Device_SysBoot() { // Initialize system
     //    MRF24_SS_SetDigital();
     //    MRF24_SS_SetDigitalOutput();
     //    MRF24_SS_SetHigh();
-    MRF24_SS_SetDigitalOutputHigh();
 
-    Device_SwitchADG(PW_OFF); // All off
+
+
 
 #ifdef __VAMP1K_TEST            
     PMD1 = 00; // 0b1111111110111111; // Uart2 enabled
@@ -219,6 +220,11 @@ void Device_SysBoot() { // Initialize system
 #endif
 
     __builtin_enable_interrupts();
+
+    DEE_Init(); // Emulated Data Eprom 
+    Device_SwitchADG(PW_OFF); // All off
+
+
 
 } // Device_SysBoot()
 
@@ -288,16 +294,16 @@ void Device_SysSleep() {
     //
     // RETEN VREGS MODE
     // -----+-----+----------------------
-    //   0     1   Fast Wake-up   (4)
+    //   0     1   Fast Wake-up    (4)
     //   1     0   Retention Sleep (1)
     //   0     0   Sleep           (3)
-    //   1     1   Fast Retention (2)
+    //   1     1   Fast Retention  (2)
     // -----+-----+-------------------------
     //
     //RCON = 0x0; 
     //RCONbits.SBOREN = 0; // Disable BoR
     RCONbits.RETEN = 1;
-    RCONbits.VREGS = 0; // 
+    RCONbits.VREGS = 1; // 
 
     //////////    // __builtin_disable_interrupts();
     //////////
@@ -504,13 +510,12 @@ runlevel_t Device_SwitchSys(runlevel_t lv) {
  */
 #define RCON_RESET_MASK 0b1100001011010010
 
-
 void Device_CheckHwReset(void) {
 #if defined(__PIC24FJ256GA702__)    
     if (RCON & RCON_RESET_MASK) {
         device.sts.alarm_counter++;
     }
-    RCON = RCON & RCON_RESET_MASK;    
+    RCON = RCON & RCON_RESET_MASK;
 #endif
 }
 

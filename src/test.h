@@ -3,7 +3,7 @@
 #define	XTEST_H
 
 //
-#define __VAMP1K_TEST
+//#define __VAMP1K_TEST
 //#define __NOFLASH    // Use RAM to store config
 //#define __NOUSB      // Force to use RF ( USB not connect )
 //
@@ -18,15 +18,16 @@
 //#define __VAMP1K_TEST_HW                    
 //#define __VAMP1K_TEST_RESET
 //#define __VAMP1K_TEST_TIMERS
-//#define __VAMP1K_TEST_CONFIG 
+#define __VAMP1K_TEST_CONFIG 10
 //#define __VAMP1K_TEST_ADG
 //#define __VAMP1K_TEST_USB
 //#define __VAMP1K_TEST_RTCC
 //#define __VAMP1K_TEST_SLEEP
 //#define __VAMP1K_TEST_BATTERY
 //#define __VAMP1K_TEST_BATLEV
-#define __VAMP1K_TEST_SST26
-//#define __VAMP1K_TEST_DDE
+//#define __VAMP1K_TEST_DDE 2
+//#define __VAMP1K_TEST_SST26 2
+//#define __VAMP1K_TEST_DEPOT 15
 
 
 #define __VAMP1K_TEST_measurement_save

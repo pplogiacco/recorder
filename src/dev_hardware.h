@@ -18,14 +18,10 @@
 
 // Firmware / Hardware
 // Hardware:
+
 //#define __HWDONGLE
 
 #define __HWDEVICE
-
-// #define __HWDEVICE_V1
-// Logic Board V1 + Sensor Board + RF Board
-// #define __BOARD_V2
-// Logic Board V2 + RF Board
 
 #define __USE_ADG715
 
@@ -47,12 +43,13 @@
 #define __SENSOR_BOARD
 
 
+
 #define __BOARD_V2
 /*******************************************************************************
- * PIC24FJ256GA702 (QFN, UQFN) (Board V2 )                                   *
+ * PIC24FJ256GA702 (QFN, UQFN) (Board V2 )                                     *
  *******************************************************************************
-    PIN Signal                      BUS Function
-
+  PIN Signal                            BUS/Function
+  ---+---------------------------------+---------------------------------------
     1 PGD1/AN2/CTCMP/C2INB/RP0/RB0 
     2 PGC1/AN1-/AN3/C2INA/RP1/
       CTED12/RB1 
@@ -84,6 +81,52 @@
     27 VREF+/CVREF+/AN0/C3INC/RP26/CTED1/RA0
     28 VREF-/CVREF-/AN1/C3IND/RP27/CTED2/RA1
 */
+
+
+#ifdef __BOARD_V2 // (QFN, UQFN)
+
+// ADC1 Channels
+#define BAT_LV_SetAnalogInput()         { _TRISA3=1;  _ANSA3=1; }   // AN3
+#define BAT_LV_ADC_CH0SA                5    // S/H+ Input A3
+
+#define ADA_IN_SetAnalogInput()         { _TRISA1=1;  _ANSA1=1; }   // AN1 
+#define ADA_IN_ADC_CH0SA                1     // S/H+ Input A 
+
+// Default power LTC Buck/Booster
+#define PW_LTC_SetDigitalOutputLow()    { _TRISB4=0;  _LATB4=0; } // LTC3127 On
+#define PW_LTC_SetHigh()                { _LATB4=1; }          // Off   
+#define PW_LTC_SetLow()                 { _LATB4=0; }          // On   
+
+// Low power ADP LDO
+#define PW_ADP_SetDigitalOutputLow()    { _ANSB15=0; _TRISB15=0; _LATB15=0; }
+#define PW_ADP_SetHigh()                { _LATB15=1; }  // ADP151 On      
+#define PW_ADP_SetLow()                 { _LATB15=0; }  // ADP151 Off
+
+// Power Managment
+#define Device_Power_Save()             {  PW_ADP_SetHigh(); PW_LTC_SetHigh(); }                       
+#define Device_Power_Default()          {  PW_LTC_SetLow(); PW_ADP_SetLow(); }
+
+// UART2
+#define UART2_TX_SetDigitalOutputHigh() { _ANSB0 = 0; _TRISB0 = 0; _LATB0 = 1;}  // RP0/RB0
+#define UART2_RX_SetDigitalInput()      { _ANSB1 = 0; _TRISB1 = 1; }   // RP1/RB1
+
+// Flash memory ( SPI )
+#define SST26_SS_SetDigitalOutputHigh()     {_TRISA4 = 0; _LATA4 = 1;}
+#define SST26_SS_SetHigh()                  (_LATA4 = 1)
+#define SST26_SS_SetLow()                   (_LATA4 = 0)
+
+// ADA2200 
+#define ADA_SS_SetHigh()            _LATB12=1
+#define ADA_SS_SetLow()             _LATB12=0
+#define ADA_SS_SetDigitalOutputHigh()  { _ANSB12=0; _TRISB12=0; _LATB12=1; }
+
+
+
+#endif
+
+
+
+
 
 #undef __BOARD_V1
 /*******************************************************************************
@@ -120,34 +163,6 @@ SPI1    21  SDI/RP10                    (S)
 POWER   27  Vss
         28  Vdd
  *******************************************************************************/
-
-
-
-#ifdef __BOARD_V2 // (QFN, UQFN)
-
-#define BAT_LV_SetAnalogInput()         { _TRISA3=1;  _ANSA3=1; }   // AN3
-#define BAT_LV_ADC_CH0SA                5    // S/H+ Input A3
-
-#define ADA_IN_SetAnalogInput()         { _TRISA1=1;  _ANSA1=1; }   // AN1 
-#define ADA_IN_ADC_CH0SA                1     // S/H+ Input A 
-
-// Default power LTC Buck/Booster
-#define PW_LTC_SetDigitalOutputLow()    { _TRISB4=0;  _LATB4=0; } // LTC3127 On
-#define PW_LTC_SetHigh()                { _LATB4=1; }          // Off   
-#define PW_LTC_SetLow()                 { _LATB4=0; }          // On   
-
-// Low power ADP LDO
-#define PW_ADP_SetDigitalOutputLow()    { _ANSB15=0; _TRISB15=0; _LATB15=0; }
-#define PW_ADP_SetHigh()                { _LATB15=1; }  // ADP151 On      
-#define PW_ADP_SetLow()                 { _LATB15=0; }  // ADP151 Off
-
-// Power Managment
-#define Device_Power_Save()             {  PW_ADP_SetHigh(); PW_LTC_SetHigh(); }                       
-#define Device_Power_Default()          {  PW_LTC_SetLow(); PW_ADP_SetLow(); }
-
-
-#endif
-
 #ifdef __BOARD_V1   // Board V1 (SOIC, SSOP, SPDIP)
 
 #define BAT_LV_SetAnalogInput()   { _TRISA1=1;  _ANSA1=1; }   // AN0
@@ -171,10 +186,8 @@ POWER   27  Vss
 #define __I2C1
 
 #if defined(__PIC24FJ256GA702__)
-#define ADA_SS                      _RB12  // RB14 INT1/AN10
-#define ADA_SS_SetHigh()            _LATB12=1
-#define ADA_SS_SetLow()             _LATB12=0
-#define ADA_SS_SetDigitalOutput()   _TRISB12=0
+
+
 //#define AV_SYN_SetDigital()         _ANSB15=0  // Digital
 //#define AV_SYN_SetDigitalInput()    _TRISB15=1 // Input T3CK/RB15 (SYNCO)
 #define AV_IN_SetAnalogInput()      ADA_IN_SetAnalogInput()
@@ -229,8 +242,8 @@ POWER   27  Vss
 #endif // __USB
 
 #ifdef __UART2       // __________________________________________________UART2
-#define UART2_TX_SetDigitalOutputHigh() { _ANSB1 = 0; _TRISB1 = 1; }
-#define UART2_RX_SetDigitalInput()      { _ANSB0 = 0; _TRISB0 = 0; _LATB0 = 1; }
+//#define UART2_TX_SetDigitalOutputHigh() { _ANSB1 = 0; _TRISB1 = 1; _LATB1 = 1; }
+//#define UART2_RX_SetDigitalInput()      { _ANSB0 = 0; _TRISB0 = 0; }
 #endif // __UART2 
 
 #if defined(__MRF24) // __________________________________________________MRF24
@@ -243,24 +256,6 @@ POWER   27  Vss
 
 
 //----------------------------------------------------------------------------//
-
-// DaaS
-//typedef enum {
-//    SYS_OFF, // Shutdown
-//    SYS_HWRESET,
-//    SYS_DEFAULT, // RTCC,I2C1,TMR1
-//    SYS_STARTUP, // Initialize device
-//    SYS_WAITING, // Low-power Idle mode
-//    SYS_SUSPEND, // Low-power sleep/deep-sleep mode
-//    SYS_EXCHANGE, // I2C1,SPI1,TMR1,UART
-//    SYS_MEASURE,
-//    // Others...
-//    SYS_EXCHANGE_CHK, // I2C1,TMR1, ADC
-//    SYS_SAMPLING_ADA,
-//    SYS_SAMPLING_WST,
-//    SYS_ON_SAMP_SS
-//} runlevel_t;
-//
 
 
 typedef enum {
@@ -285,20 +280,11 @@ typedef enum {
 
 runlevel_t Device_SwitchSys(runlevel_t lv);
 
-//
-//void Device_Initialize();
 
 void Device_CheckHwReset(void); // Cheack reason of reboot 
 
 
 void Device_SwitchClock(sysclock_t ck);
-
-//#define SYS_CLK_FrequencySystemGet()         Device_FrequencySystemGet()   
-//#define SYS_CLK_FrequencyPeripheralGet()    (Device_FrequencySystemGet()/2)
-//#define SYS_CLK_FrequencyInstructionGet()   (Device_FrequencySystemGet()/2)
-//#define FCY                                 (SYS_CLK_FrequencyInstructionGet())
-// #define Device_FrequencySystemGet() device.SYS_CLOCK
-// unsigned long inline Device_FrequencySystemGet();
 
 //----------------------------------------------------------------------------//
 #ifdef __USE_ADG715     // Board V2 

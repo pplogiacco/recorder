@@ -58,9 +58,10 @@ int main(void) {
                 //!! if ((stime.lstamp > g_config.general.startdate) && (stime.lstamp < g_config.general.stopdate)) {
 
                 measurementAcquire(); // Uses Device_SwitchSys()
-                Device_SwitchSys(SYS_EXCHANGE);
+
+                //                Device_SwitchSys(SYS_EXCHANGE);
                 measurementSave();
-                Device_SwitchSys(SYS_DEFAULT);
+                //                Device_SwitchSys(SYS_DEFAULT);
                 //                //!!};
                 //                if (lstate == EXCHANGE_RT) {
                 //                    lstate = state;
@@ -78,6 +79,7 @@ int main(void) {
             case EXCHANGE:
 
                 lstate = state;
+                state = WAITING;
                 rlevel = Device_SwitchSys(SYS_EXCHANGE);
                 if (!Exchange_isConnected()) {
 
@@ -167,15 +169,36 @@ int main(void) {
                 } else { //  
 
                     RTCC_GetTime(&stime);
-                    stime.sec += device.cnf.general.delaytime % 60; // secs
-                    stime.min += device.cnf.general.delaytime / 60; // minutes
-                    if (stime.min > 59) {
-                        stime.min = stime.min % 60;
-                    }
-                    RTCC_AlarmSet(&stime); // Enable RTCC Wake-Up
-                    Device_SwitchSys(SYS_SLEEP); //  ...wait event (INT0/RTCC)
-                    RTCC_AlarmUnset();
+                    stime.sec += device.cnf.general.delaytime; // secs
+                    if (stime.sec > 59) {
+                        stime.min += (stime.sec) / 60; // minutes
+                        stime.sec = (device.cnf.general.delaytime) % 60; // secs
+                        if (stime.min > 59) {
+                            stime.min = stime.min % 60;
+                        }
+                    };
+
+                    //__builtin_disable_interrupts();
+                    RTCC_AlarmSet(&stime); // Enable RTCC event to Wake-Up on time elapsed
+                    IFS0bits.INT0IF = 0; // Enable INT0 event to Wake-Up on wire connect
+                    IEC0bits.INT0IE = 1;
+                    //
+                    RCONbits.RETEN = 1;
+                    RCONbits.VREGS = 1; // 
+                    // Device_SwitchSys(SYS_SLEEP); //  switch off all 
+
+                    Device_Power_Save();
+
+                    Nop();
+                    Sleep(); // enter in sleep mode
+                    Nop();
+
+                    Device_Power_Default();
                     Device_SwitchSys(SYS_DEFAULT);
+                    //
+                    IEC0bits.INT0IE = 0; // Disable INT0 (No change detection) 
+                    RTCC_AlarmUnset(); // Disable Alarm
+                    //__builtin_enable_interrupts();
                 }
                 break;
         }
@@ -218,6 +241,7 @@ void cb_SetDateTime(uint8_t * rxData) {
 
 };
 
+
 /* -------------------------------------------------------------------------- */
 /* Service Availability                                                       */
 
@@ -234,21 +258,24 @@ uint8_t cb_GetDeviceState(uint8_t *dobj) {
 /* Service Alignment                                                          */
 
 /* -------------------------------------------------------------------------- */
+
 bool cb_GetDeviceConfigCRC16(uint16_t * crc16) {
     *crc16 = device.cnf.CRC16;
     return (true);
 };
 
 void cb_SetDeviceConfig(uint8_t *dobj) {
-    Device_ConfigWrite(dobj);
+    if (Device_ConfigWrite(dobj)) {
+        Device_StatusRead();
+    }
 };
 
-uint8_t cb_GetDeviceConfig(uint8_t *dobj) {
-    uint8_t nbyte = 0;
-    if (Device_ConfigRead(&device.cnf)) {
-        *dobj = (int) &device.cnf;
-        nbyte = sizeof (device.cnf);
-    }
+uint8_t cb_GetDeviceConfigPtr(uint8_t **dobj) {
+    uint8_t nbyte = sizeof (config_t);
+    //if (Device_ConfigRead()) {
+    
+    *dobj = (uint8_t*) (&device.cnf);
+    //}
     return (nbyte);
 };
 
@@ -257,38 +284,29 @@ uint8_t cb_GetDeviceConfig(uint8_t *dobj) {
 
 /* -------------------------------------------------------------------------- */
 bool cb_GetMeasurementCounter(uint16_t * nobj) {
-    //*nobj = measurementCounterGet(); // measurementsCounter();
+    *nobj = device.sts.meas_counter;
     return (true);
 };
 
-bool cb_GetMeasurement(uint16_t index, uint32_t * dtime, uint16_t * tset, uint16_t * ns, uint16_t * nss) { // ** pointer !!!!!!!!!!!!!!!!!!!!!!!!!
-    //uint16_t Depot_ReadPart(uint16_t index, uint16_t offset, uint8_t* pbuf, uint16_t bsize); // 0 error, >0 Readed bytes
+bool cb_GetMeasurement(uint16_t index, uint32_t * dtime, uint16_t * tset, uint16_t * ns, uint16_t * nss) {
     if (measurementLoad(index) == index) {
-
-        //        *dtime = measurementGetPTR()->tset;
-        //        *tset = (uint16_t) measurementGetPTR()->tset;
-        //        *ns = measurementGetPTR()->ns;
-        //        *nss = measurementGetPTR()->nss;
-
         *dtime = lmeas.dtime;
         *tset = (uint16_t) lmeas.tset;
         *ns = lmeas.ns;
         *nss = lmeas.nss;
-
-        //memcpy(meas, measurementGetPTR(), sizeof(measurement_t) ); // Sample size 2Byte
-
         return (true);
     };
     return (false);
 };
 
-void cb_GetMeasurementBlock(uint8_t *pbuf, uint16_t offset, uint16_t size) {
+uint16_t cb_GetMeasurementBlock(uint8_t *pbuf, uint16_t offset, uint16_t size) {
+    size = size * SAMPLE_SIZE_IN_BYTE;
     memcpy(pbuf, &(lmeas.ss[offset]), size); // Sample size 2Byte
-    //uint16_t Depot_ReadPart(uint16_t index, uint16_t offset, uint8_t* pbuf, uint16_t bsize); // 0 error, >0 Readed bytes
+    return ( size);
 };
 
 void cb_DeleteMeasurement(uint16_t index) {
-    //  depot_delete(index);
+    measurementDelete(index);
 };
 
 /* -------------------------------------------------------------------------- */
