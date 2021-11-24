@@ -10,10 +10,7 @@
  * xxxx 0000 0000 0000    2048 Sectors * 16 Pages ( x 256 bytes )
  */
 
-//#define SST26_SECTOR_SHIFT  12    /* Sector size 1 << 15 = 65,536 */
-//#define SST26_NSECTORS      2048
-//#define SST26_PAGE_SHIFT    8     /* Page size 1 << 8 = 256 */
-//#define SST26_NPAGES        32768
+
 
 #define SST26_SECTOR_SIZE    4096
 #define SST26_PAGE_SIZE      256
