@@ -280,9 +280,14 @@ typedef enum {
 
 runlevel_t Device_SwitchSys(runlevel_t lv);
 
+void Device_SysBoot();
+void Device_SysDefault() ;
+void Device_SysExchange() ;
+void Device_SysSleep();
+
+
 
 void Device_CheckHwReset(void); // Cheack reason of reboot 
-
 
 void Device_SwitchClock(sysclock_t ck);
 
@@ -311,9 +316,6 @@ void Device_SwitchADG(uint8_t reg);
 
 //----------------------------------------------------------------------------//
 uint16_t Device_GetBatteryLevel();
-
-#define __clearWDT()  ClrWdt()
-#define _bs8(n) (1U<<n)
 
 
 #endif // HARDWARE_H

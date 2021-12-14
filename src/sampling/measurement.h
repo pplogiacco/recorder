@@ -11,7 +11,7 @@
 #include <xc.h>         
 #include <stdbool.h>
 #include "../device.h"            // defs / config params
-#include "../memory/libdpt.h"
+#include "../daas/libdpt.h"
 
 //typedef unsigned short sample_t;  // ADC FormatAbsolute Integer Format
 #define sample_t signed short     // 16Bit

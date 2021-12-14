@@ -69,6 +69,8 @@ bool isTimeout(void);
 #define __delay(x) _delay_ms(x)
 #define __noop(x) __delay32(x) // delay of the requested number of cycles (min 12)
 
+#define __clearWDT()  ClrWdt()
+#define _bs8(n) (1U<<n)
 
 //
 //#define FCY SYS_CLK_FrequencyInstructionGet()  // Required for __delayXXX() to work

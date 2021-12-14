@@ -3,6 +3,7 @@
 #include "memory/DEE/dee.h"
 #include "dev_hardware.h"
 #include "device.h"
+#include "utils.h"
 
 extern device_t device;
 
@@ -264,7 +265,7 @@ void Device_SysExchange() {
 
 #elif defined(__PIC24FJ256GA702__)
 
-    if (!Device_IsWiredLinked()) {
+    if (!Device_IsWireLinked()) {
         // Wireless
         PMD1bits.T1MD = 0; // Tmr1 On 
         PMD1bits.SPI1MD = 0; // Spi1 On
@@ -325,163 +326,6 @@ void Device_SysSleep() {
 #endif
 }
 
-runlevel_t Device_SwitchSys(runlevel_t lv) {
-    static runlevel_t llv;
-    switch (lv) {
-
-            /**********************************
-             * B O O T                        *
-             **********************************/
-        case SYS_BOOT: // Set DOZE MODE !!!
-            Device_SysBoot();
-            Device_SysDefault();
-            break;
-
-            /**********************************
-             * D E F A U L T                  *
-             **********************************/
-        case SYS_DEFAULT: // RTCC,I2C1,TMR1
-            Device_SysDefault();
-            break;
-
-            /**********************************
-             * E X C H A N G E                *
-             **********************************/
-        case SYS_EXCHANGE: // I2C1,TMR1,SPI1,UART2
-            Device_SysExchange();
-            break;
-
-
-            /**********************************
-             * S L E E P                      *
-             **********************************/
-        case SYS_SLEEP:
-            Device_SysSleep();
-            break;
-
-            /**********************************
-             * D E E P   S L E E P            *
-             **********************************/
-        case SYS_DSLEEP:
-
-#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
-            asm(";Put the device into Deep Sleep mode \
-                 BSET DSCON DSEN;  \
-                 BSET DSCON DSEN;  \
-                 PWRSAV#SLEEP_MODE; ");
-
-#elif defined(__PIC24FJ256GA702__) 
-
-            //The low-voltage retention regulator is only available when Sleep mode is invoked. 
-            //It is controlled by the LPCFG Configuration bit (FPOR<2>) and in firmware by 
-            //the RETEN bit (RCON<12>). 
-            //LPCFG must be programmed (= 0) and the RETEN bit must be set (= 1) for the 
-            //regulator to be enabled.
-
-            //#define Sleep()  __builtin_pwrsav(0)
-            //#define Idle()   __builtin_pwrsav(1)
-
-            //            RCON 
-            //            DSWAKE = 0;       
-            //CLKDIV 
-            //PMDx
-            //DSCON
-            //DSWAKE
-            //DSGPR0 
-            //DSGPR1
-            //            //RCONbits.RETEN
-            //            DSWAKEbits
-            // Enable USB Wake-Up
-            // Enable RTC Alarm Wake-Up
-
-            PMD1 = 0xFF;
-            PMD2 = 0xFF; // IC3MD enabled; OC1MD enabled; IC2MD enabled; OC2MD enabled; IC1MD enabled; OC3MD enabled; 
-            PMD3 = 0b1111110111111111; // RTCC
-            PMD4 = 0xFF; // CTMUMD enabled; REFOMD enabled; LVDMD enabled; 
-            PMD5 = 0xFF; // CCP2MD enabled; CCP1MD enabled; CCP4MD enabled; CCP3MD enabled; CCP5MD enabled; 
-            PMD6 = 0xFF; // SPI3MD enabled; 
-            PMD7 = 0xFF; // DMA1MD enabled; DMA0MD disabled; 
-            PMD8 = 0xFF; // CLC1MD enabled; CLC2MD enabled; 
-
-            // set INT0 wake_up
-            IFS0bits.INT0IF = 0;
-            IEC0bits.INT0IE = 1; // enables INT0 (for change detection)
-
-            Sleep(); // enter in sleep mode
-
-            IEC0bits.INT0IE = 0; // Disable INT0 (No change detection)
-
-#endif
-            break;
-
-        case SYS_IDLE:
-#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
-            asm(";Put the device into Idle mode \
-                 PWRSAV#IDLE_MODE; ");
-#endif
-            break;
-
-        case SYS_OFF:
-            break;
-
-        case SYS_ON_CHECK: // I2C1,TMR1,ADC
-            break;
-
-
-            /**********************************
-             * S A M P L I N G   W S T        *
-             **********************************/
-        case SYS_ON_SAMP_WST: // TMR1,TMR4,ADC
-
-            Device_SwitchADG(PW_WST); // Wind & Temp Sensors Circuits On
-
-#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))      
-            PMD3bits.RTCCMD = 0; // RTCC
-            PMD1bits.I2C1MD = 0;
-            PMD1bits.T1MD = 0;
-            PMD1bits.T4MD = 0;
-            PMD1bits.ADC1MD = 0;
-#elif defined(__PIC24FJ256GA702__)
-            PMD1bits.AD1MD = 0; // ADC On 
-            PMD1bits.T1MD = 0; // Tmr1 On 
-            PMD1bits.T2MD = 0; // Tmr2 On
-            PMD1bits.T3MD = 0; // Tmr3 On
-#endif
-            break;
-
-            /**********************************
-             * S A M P L I N G   A D A        *
-             **********************************/
-        case SYS_ON_SAMP_ADA: // I2C1,TMR1, TMR3, SPI1, ADC
-
-            Device_SwitchADG(PW_ADA); // LVDT circuits On
-
-#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))      
-            PMD1bits.I2C1MD = 0;
-            PMD1bits.T1MD = 0;
-            PMD1bits.T3MD = 0;
-            PMD1bits.SPI1MD = 0;
-            PMD1bits.ADC1MD = 0;
-#elif defined(__PIC24FJ256GA702__)
-            PMD1bits.SPI1MD = 0; // SPI On
-            PMD1bits.AD1MD = 0; // ADC On 
-            PMD1bits.T1MD = 0; // Tmr1 On 
-            PMD1bits.T2MD = 0; // Tmr2 On
-            PMD1bits.T3MD = 0; // Tmr3 On
-#endif
-            //Device_SwitchClock(); // 32Mhz
-            break;
-
-        case SYS_ON_SAMP_SS: // ND !!!!
-            break;
-
-
-
-    }
-    llv = lv;
-    return (lv);
-}
-
 
 /*******************************************************************************
   
@@ -520,3 +364,120 @@ void Device_CheckHwReset(void) {
 }
 
 
+void Device_SwitchADG(uint8_t reg) { // ADG729_Switch(uint8_t reg)
+#if defined(__HWDEVICE) 
+    uint16_t i2clpw;
+
+#if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
+    // Power on i2c module !!!!!!!
+    I2C1CON = 0x1000; // i2c_1
+    I2C1BRG = 78; // Baud Rate
+    IFS1bits.MI2C1IF = 0; //Clear I2C master Int flag
+    I2C1CONbits.I2CEN = 1; //Enable I2C
+    I2C1STAT = 0x00;
+
+    I2C1CONbits.SEN = 1; // START condition
+    while (I2C1CONbits.SEN) { //HW cleared when complete
+    }
+    I2C1TRN = ADG_ADDRESS; // Write address+(ADG729: 10011AAX)
+    while (I2C1STATbits.TRSTAT) {//HW cleared when TX complete
+    }
+    I2C1TRN = reg; // Write data
+    while (I2C1STATbits.TRSTAT) { //HW cleared when TX complete
+    }
+    I2C1CONbits.PEN = 1; // Send a stop
+    while (I2C1CONbits.PEN) {//HW cleared when complete
+    }
+    I2C1CONbits.I2CEN = 0; // Disable module
+
+#elif defined( __PIC24FJ256GA702__ )
+    i2clpw = PMD1bits.I2C1MD;
+    PMD1bits.I2C1MD = 0; // Enable I2C Module
+    //______________I2C (ADG729)
+    //    LATBbits.LATB8 = 1; //Start with bus in idle mode - both lines high
+    //    LATBbits.LATB9 = 1;
+    //    TRISBbits.TRISB8 = 0; //SCL1 output
+    //    TRISBbits.TRISB9 = 0; //SDA1 output
+
+    I2C1CONL = 0x8000;
+    I2C1BRG = 0x4E; // 100Khz @ Fcy=16Mhz (Fosc=32Mhz)
+    IFS1bits.MI2C1IF = 0; //Clear I2C master Int flag
+    I2C1CONLbits.I2CEN = 1; //Enable I2C
+    I2C1STAT = 0x00;
+    I2C1CONLbits.SEN = 1; // START condition
+    while (I2C1CONLbits.SEN); //HW cleared when complete
+    I2C1TRN = ADG_ADDRESS; // Write address+(ADG729: 10011AAX)
+    while (I2C1STATbits.TRSTAT); //HW cleared when TX complete
+    I2C1TRN = reg; // Write data
+    while (I2C1STATbits.TRSTAT); //HW cleared when TX complete
+    I2C1CONLbits.PEN = 1; // Send a stop
+    while (I2C1CONLbits.PEN); //HW cleared when complete
+    I2C1CONLbits.I2CEN = 0; // Disable module
+    PMD1bits.I2C1MD = i2clpw;
+#endif
+
+#endif // HWDEVICE
+}
+
+/*******************************************************************************
+Device_GetPowerLevel()
+ 
+Voltage Divider Circuit:
+ Set up the ADC with +Reference set to ANx, and -Reference set to AVss.  
+ Enable external Voltage Divider Circuit
+ Read the ADC value, for 10-bit ADC format, compute:
+
+BandGap: 
+ Set up the ADC with +Reference set to AVdd, and -Reference set to AVss.
+ Set up BandGap reference to be enabled for ADC.
+ Set up ADC channel to read Vbg (the Bandgap Reference voltage).
+ Read the ADC value, for 10-bit ADC format, compute:
+    Vadc = (ADC Reading / 1024) * AVdd
+    AVdd = Vbg * 1024 / (ADC Reading)
+ to verify that AVdd is equal to 3.3 Volts +- 5%
+ Nominal ADC reading        =    1.2    * 1024 /    3.3     = (Approximately)372
+ Max acceptable ADC Reading = (1.2*1.05)* 1024 / (3.3*0.95) = (Approximately)412
+ Min acceptable ADC Reading = (1.2*0.95)* 1024 / (3.3*1.05) = (Approximately)337
+ *******************************************************************************/
+uint16_t Device_GetBatteryLevel() {
+#ifdef __PIC24FJ256GA702__
+    uint8_t ad1md = PMD1bits.AD1MD; // Enable AD
+    uint8_t bat;
+
+    BAT_LV_SetAnalogInput(); // Batteries Level ( ANx )
+    Device_SwitchADG(PW_RS1); // Enabler detection circuit
+
+    PMD1bits.AD1MD = 0; // Enable ADC module
+
+    // ____________________________________A/D Converter Setup
+    AD1CON1 = 0; // No operation in Idle mode, Converter off
+    AD1CON1bits.MODE12 = 0; // Resolution 10 bit (1=12)
+    AD1CON1bits.ASAM = 1; // Auto-Convert ON (end sampling and start conversion)
+    AD1CON2 = 0; // Inputs are not scanned
+    AD1CON3 = 0;
+    //AD1CON1bits.SSRC = 0b0111; // Auto-Convert mode
+    AD1CON1bits.SSRC = 00; // SAMP is cleared by softwar
+    AD1CON3bits.SAMC = 14; // 12 Auto-Sample Time TAD
+    AD1CON3bits.EXTSAM = 0; // Extend sampling time
+    AD1CON3bits.ADCS = 0x7; // ADC Clock ( 1TAD = 4 TCY -> 250 nS)
+    AD1CON5 = 0; // No CTMU, No BandGap
+    // AD1CON5bits.BGREQ = 1; // Band Gap Req. ( VBG=1.2V, Vdd = 3.3 Volt +/-5%)
+    AD1CHS = 0; // No channels
+    AD1CHSbits.CH0SA = BAT_LV_ADC_CH0SA; // S/H+ Input A (0=AN0,1=AN1)
+    AD1CSSL = 0; // No Scan, ADC1MD bit in the PMD1
+
+    // ____________________________________Acquire
+    AD1CON1bits.ADON = 1; // Turn on A/D
+    //while (0) {
+    AD1CON1bits.SAMP = 1; // Start sampling the input
+    __delay(5); // Ensure the correct sampling time has elapsed
+    AD1CON1bits.SAMP = 0; // End sampling and start conversion
+    while (!AD1CON1bits.DONE) {
+        Nop();
+    }
+    bat = ADC1BUF0;
+    AD1CON1bits.ADON = 0; // ADC Off    
+    PMD1bits.AD1MD = ad1md;
+    return (bat);
+#endif
+}

@@ -51,7 +51,7 @@ void Device_StatusRefresh() { // Every call
         device.sts.power_level = Device_GetBatteryLevel(); // battery/harvesting level/status
         ltime = device.sts.timestamp;
     }
-    device.sts.link_status = Device_IsWiredLinked(); // Exchange: USB / RF-RSSI
+    device.sts.link_status = Device_IsWireLinked(); // Exchange: USB / RF-RSSI
 }
 
 void Device_StatusRead() {

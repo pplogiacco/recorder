@@ -13,7 +13,7 @@
 #include "../memory/DEE/dee.h"
 #include "../memory/SST26VF064B.h"  // Flash SPI
 
-#include "../memory/libdpt.h"
+#include "../daas/libdpt.h"
 
 #define DEPOT_OK
 //==============================================================================

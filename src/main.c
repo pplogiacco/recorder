@@ -1,8 +1,9 @@
 /******************************************************************************\
 |                                                                              |
-| V A M P -  R E C O R D E R                                                   |
-| Ver. 0.0.27                                                  (@)2021 DTeam ! |
+|                         V A M P -  R E C O R D E R                           |
+|                           ver. 0.1.00 - 11/25/21                             |
 |                                                                              |
+|                                                             (@)2021 DTeam !  |
 \******************************************************************************/
 
 //------------------------------------------------------------------------------
@@ -10,17 +11,15 @@
 #include "test.h"
 #include "modules/RTCC.h"           // hal           
 #include "modules/UART2.h"          // hal
-#include "device.h"                 // DaaS-Ex Services: config, status, sync  
-#include "utils.h"
+#include "device.h"                 // system 
+#include "utils.h"                  // system
 #include "sampling/measurement.h"
-#include "daas/libex.h"
-
+#include "daas/libex.h"             // DaaS
 //------------------------------------------------------------------------------ 
 device_t device;
 sample_t SSBUF[SS_BUF_SIZE]; // global buffer
 measurement_t lmeas;
 //------------------------------------------------------------------------------
-
 
 #ifdef __VAMP1K_TEST 
 #include "test.c"  
@@ -43,10 +42,10 @@ int main(void) {
             case STARTUP: // Executed only after Power-On/Reset
                 Device_SwitchSys(SYS_BOOT); // Initialize Hardware & Services
                 if (!Device_ConfigRead()) { // Read persistent config
-                    // if error... Factory default
+                    // Factory default....
                     depotDefaultSet(); // Memory   
                 }
-                Device_StatusRead();
+                Device_StatusRead(); // Initialize global status   
                 state = EXCHANGE; // After start-up always try to connect
                 break;
 
@@ -58,10 +57,8 @@ int main(void) {
                 //!! if ((stime.lstamp > g_config.general.startdate) && (stime.lstamp < g_config.general.stopdate)) {
 
                 measurementAcquire(); // Uses Device_SwitchSys()
-
-                //                Device_SwitchSys(SYS_EXCHANGE);
                 measurementSave();
-                //                Device_SwitchSys(SYS_DEFAULT);
+
                 //                //!!};
                 //                if (lstate == EXCHANGE_RT) {
                 //                    lstate = state;
@@ -86,7 +83,7 @@ int main(void) {
                     Exchange_Initialize(__DEVICE_DIN, __DEVICE_NET_ID, __DEVICE_VER); // DIN, lpeer, hwver.. 802.15.4 PanID ????
                     // while (1) { printf("Ready !\n"); } // Test UART
 
-                    if (Device_IsWiredLinked()) {
+                    if (Device_IsWireLinked()) {
                         Exchange_Connect(CNL_WIRED, 0, 0, 0); //ch,rpeer,skey,mode 0-RLY 1-RT
                     } else {
                         Exchange_Connect(CNL_WIRELESS, MRF24J40_DONGLE_ADDRESS, 0, 0); //ch,rpeer,skey,mode 0-RLY 1-RT
@@ -159,12 +156,11 @@ int main(void) {
                 break;
 
             case WAITING:
-                //lstate = EXCHANGE_RT;
                 lstate = state;
-                state = SAMPLING;
+                state = SAMPLING; // Smpling on wake-up
                 //state = EXCHANGE;
 
-                if (Device_IsWiredLinked()) {
+                if (Device_IsWireLinked()) {
                     __delay(5000); // wait 5 secs and restart cycle
                 } else { //  
 
@@ -210,17 +206,30 @@ int main(void) {
 } // End Main
 
 
+
 #include <string.h>
 
+ /***************************************************************************** 
+ *                              D a a S - Lib-Ex                              *  
+ *****************************************************************************/
 
-/* -------------------------------------------------------------------------- */
-/* Service Syncronize                                                         */
 
-/* -------------------------------------------------------------------------- */
+/******************************************************************************
+ Security                                                         
+ ******************************************************************************/
+
+
+/******************************************************************************
+ Mapping                                                         
+ ******************************************************************************/
+
+
+/******************************************************************************
+ Syncronize                                                         
+ ******************************************************************************/
 bool cb_GetDateTime(uint32_t *ltime, uint16_t * tzone) {
-
     *ltime = RTCC_GetTimeL();
-    *tzone = 1;
+    *tzone = device.cnf.general.timezone;
     return true;
 };
 
@@ -236,16 +245,14 @@ void cb_SetDateTime(uint8_t * rxData) {
     ts.min = rxData[offset++];
     ts.sec = rxData[offset++];
     weekday = rxData[offset++];
-
     RTCC_SetTime(&ts, weekday);
-
+    // device.cnf.general.timezone = ???
 };
 
 
-/* -------------------------------------------------------------------------- */
-/* Service Availability                                                       */
-
-/* -------------------------------------------------------------------------- */
+/******************************************************************************
+ Avability
+ ******************************************************************************/
 uint8_t cb_GetDeviceState(uint8_t *dobj) {
     uint8_t nbyte = 0;
     Device_StatusRefresh();
@@ -254,11 +261,10 @@ uint8_t cb_GetDeviceState(uint8_t *dobj) {
     return (nbyte);
 };
 
-/* -------------------------------------------------------------------------- */
-/* Service Alignment                                                          */
 
-/* -------------------------------------------------------------------------- */
-
+/******************************************************************************
+ Alignment                                                         
+ ******************************************************************************/
 bool cb_GetDeviceConfigCRC16(uint16_t * crc16) {
     *crc16 = device.cnf.CRC16;
     return (true);
@@ -272,17 +278,14 @@ void cb_SetDeviceConfig(uint8_t *dobj) {
 
 uint8_t cb_GetDeviceConfigPtr(uint8_t **dobj) {
     uint8_t nbyte = sizeof (config_t);
-    //if (Device_ConfigRead()) {
-    
     *dobj = (uint8_t*) (&device.cnf);
-    //}
     return (nbyte);
 };
 
-/* -------------------------------------------------------------------------- */
-/* Service Transfer                                                           */
 
-/* -------------------------------------------------------------------------- */
+/******************************************************************************
+ Transfer                                                         
+ ******************************************************************************/
 bool cb_GetMeasurementCounter(uint16_t * nobj) {
     *nobj = device.sts.meas_counter;
     return (true);
@@ -302,14 +305,12 @@ bool cb_GetMeasurement(uint16_t index, uint32_t * dtime, uint16_t * tset, uint16
 uint16_t cb_GetMeasurementBlock(uint8_t *pbuf, uint16_t offset, uint16_t size) {
     size = size * SAMPLE_SIZE_IN_BYTE;
     memcpy(pbuf, &(lmeas.ss[offset]), size); // Sample size 2Byte
-    return ( size);
+    return (size);
 };
 
 void cb_DeleteMeasurement(uint16_t index) {
     measurementDelete(index);
 };
-
-/* -------------------------------------------------------------------------- */
 
 
 #endif

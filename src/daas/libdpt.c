@@ -1,6 +1,6 @@
 /*
  * File:   depot.c
- * Author: plogi
+ * Author: plogiacco@smartlab.it
  *
  * Created on 18 novembre 2021, 9.57
  */

@@ -217,8 +217,8 @@ uint16_t SST26_Write(uint32_t addr, uint8_t *dbuf, uint16_t dlen) {
     while (dlen > 0) {
         //        available = (SST26_PAGE_SIZE - index);
         //        printf("DISPONIBILI %u \n", available);
-        if (index == SST26_PAGE_SIZE) {
-            addr = addr + SST26_PAGE_SIZE; // Next Page
+        if (index == SST26_PAGE_SIZE_IN_BYTE) {
+            addr = addr + SST26_PAGE_SIZE_IN_BYTE; // Next Page
             //            printf("CAMBIO PAGINA...");
             //            printf("(Addr= %lu), DISPONIBILI 256 ! \n", addr >> 8);
             index = 0x0;
@@ -235,7 +235,7 @@ uint16_t SST26_Write(uint32_t addr, uint8_t *dbuf, uint16_t dlen) {
         SPI1_Exchange8bit(index); // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         //        printf("W: ");
 
-        while ((index < SST26_PAGE_SIZE) && (dlen > 0)) {
+        while ((index < SST26_PAGE_SIZE_IN_BYTE) && (dlen > 0)) {
             SPI1_Exchange8bit(*dbuf); // send bytes 
             //            printf("%u,", *dbuf);
             dbuf++;

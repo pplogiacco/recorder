@@ -24,14 +24,7 @@
 #ifndef XC_DEPOT_H
 #define	XC_DEPOT_H
 
-//
-#define SST26_SIZE_IN_KB            8192   // SST26VF064 capacity is 8,388,608 bytes 
-#define SST26_SECTOR_SIZE_IN_BYTE   4096   // 4Kbyte 0..4095
-#define SST26_MAX_SECTOR            2048   //  = 8Mbyte / 4Kbyte
-#define SST26_PAGE_SIZE_IN_BYTE      256   // Page size in byte
-#define SST26_PAGEXSECTOR             16   // Pages per Sector
-#define SST26_SECTOR0                  0   // Start from sector...
-//
+
 
 void depotDefaultSet();
 uint16_t depotFreeSpaceKb();
@@ -39,6 +32,8 @@ uint16_t depotFreeSpaceKb();
 uint16_t depotPush(uint8_t* dPtr, uint16_t nBytes);
 uint16_t depotDrop(uint16_t nBytes);
 uint16_t depotPull(uint8_t* dPtr, uint16_t displacement, uint16_t nBytes, bool release);
+
+
 
 
 #endif	/* XC_DEPOT_H */

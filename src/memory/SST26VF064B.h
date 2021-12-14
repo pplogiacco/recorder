@@ -1,19 +1,22 @@
-#ifndef SST26VF064B_H
-#define	SST26VF064B_H
+/******************************************************************************
+ * SST26VF064 
+ * Capacity: 8,388,608 bytes
+ * Addressing space: 0x000000 - 0x7FFFFF
+ * 2048 sectors*4096 bytes per sector divided in 16 pages   
+ * 32768 pages*256 bytes
+ ******************************************************************************/
 #include "xc.h"
 
-/* SST26VF064 capacity is 8,388,608 bytes:
- * (2048 sectors) * ( 4096 bytes per sector divided in 16 pages )   
- * (32768 pages) * (256 bytes per page)
- *
- * Addressing ( 0x000000 - 0x7FFFFF )
- * xxxx 0000 0000 0000    2048 Sectors * 16 Pages ( x 256 bytes )
- */
+#ifndef SST26VF064B_H
+#define	SST26VF064B_H
 
-
-
-#define SST26_SECTOR_SIZE    4096
-#define SST26_PAGE_SIZE      256
+// Memory size
+#define SST26_SIZE_IN_KB            8192   // SST26VF064 has 8,388,608 bytes 
+#define SST26_SECTOR_SIZE_IN_BYTE   4096   // 4Kbyte ( 0..4095 )
+#define SST26_MAX_SECTOR            2048   // 8Mbyte / 4Kbyte
+#define SST26_PAGE_SIZE_IN_BYTE      256   // Page size in byte
+#define SST26_PAGEXSECTOR             16   // Pages per Sector
+#define SST26_SECTOR0                  0   // Start from sector...
 
 // Status Register Bits
 #define SST26_WIP              (1 << 0)                /* Bit 0: Write in progress */
@@ -25,7 +28,7 @@
 #define SST26_RES              (1 << 6)                /* Bit 6: RFU */
 #define SST26_WIP2             (1 << 7)                /* Bit 7: Write in progress */
 
-//#define SST26_DUMMY     0xa5
+//#define SST26_SPI_DUMMY     0xa5
 
 
 typedef enum {  // SST26 Commands
