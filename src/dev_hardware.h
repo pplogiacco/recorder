@@ -121,7 +121,6 @@
 #define ADA_SS_SetDigitalOutputHigh()  { _ANSB12=0; _TRISB12=0; _LATB12=1; }
 
 
-
 #endif
 
 

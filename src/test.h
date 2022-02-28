@@ -18,9 +18,9 @@
 //#define __VAMP1K_TEST_HW                    
 //#define __VAMP1K_TEST_RESET
 //#define __VAMP1K_TEST_TIMERS
-#define __VAMP1K_TEST_CONFIG 10
+//#define __VAMP1K_TEST_CONFIG 4
 //#define __VAMP1K_TEST_ADG
-//#define __VAMP1K_TEST_USB
+#define __VAMP1K_TEST_USB
 //#define __VAMP1K_TEST_RTCC
 //#define __VAMP1K_TEST_SLEEP
 //#define __VAMP1K_TEST_BATTERY

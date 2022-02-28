@@ -11,7 +11,7 @@
 #include "sampling/measurement.h"   // DaaS-Ex Protocol 
 #include "memory/SST26VF064B.h"     // Flash SPI
 #include "memory/DEE/dee.h"
-#include "memory/libdpt.h"
+#include "daas/libdpt.h"
 
 #define g_measurement lmeas
 #define g_dev device
@@ -301,10 +301,10 @@ while (1) {
 /*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_USB
 while (1) {
-    if (!Device_IsUsbConnected()) {
-        printf("USB Waiting (RB7=%d)... \n", Device_IsUsbConnected());
+    if (!Device_IsWireLinked()) {
+        printf("USB Waiting (RB7=%d)... \n", Device_IsWireLinked());
     } else {
-        printf("USB Connected (RB7=%d) !  \n", Device_IsUsbConnected());
+        printf("USB Connected (RB7=%d) !  \n", Device_IsWireLinked());
     }
     __delay(1000);
 }

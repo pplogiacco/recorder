@@ -44,6 +44,7 @@ void UART2_Enable(void) {
     U2MODE = (0x8008 & ~(1 << 15)); // disabling UART ON bit
     U2ADMD = 0x00;
     U2STA = 0x00;
+    U2MODEbits.BRGH = 1;
     // BRGH: High Baud Rate Enable bit
     // 1 = High-Speed mode ( 4 BRG clock cycles per bit)
     // 0 = Standard Speed mode (16 BRG clock cycles per bit)
