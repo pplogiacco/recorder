@@ -14,8 +14,6 @@
 
 extern device_t device;
 
-
-
 /* -------------------------------------------------------------------------- *
  * DEMO SIGNAL ( _SIG0 = 0x02 )
  *
@@ -81,7 +79,7 @@ static sample_t *ptrDB; // buffer pointer
 static sample_t Tc, Tcp;
 static uint16_t nSamples;
 
-inline void cycletimer(void) { // called by TMR1 ISR on elapsed cycle
+void cycletimer(void) { // called by TMR1 ISR on elapsed cycle
     _cycletime = false;
 }
 

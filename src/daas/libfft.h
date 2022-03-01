@@ -13,7 +13,7 @@ typedef signed short fix14_t;
 
 void fft_init(short log2_n);
 
-inline fix14_t fft_windowing(fix14_t sample, short i);
+fix14_t fft_windowing(fix14_t sample, short i);
 
 void fft_window(fix14_t fr[], fix14_t fi[]);
 

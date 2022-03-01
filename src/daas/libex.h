@@ -47,7 +47,7 @@ typedef enum {
 void Exchange_Initialize(uint32_t DIN, uint32_t lpeer, uint16_t hwver);
 uint8_t Exchange_Connect(channel_t cnl, uint32_t rpeer, uint32_t skey, uint8_t exmode);
 void Exchange_Disconnect(); // channel_t cnl);
-inline bool Exchange_isConnected();
+bool Exchange_isConnected();
 
 uint8_t Exchange_commandsHandler(RealTimeCommandType *rtCommand);
 bool Exchange_SendResponse(uint16_t dataSize);
