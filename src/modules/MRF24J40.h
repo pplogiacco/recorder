@@ -10,13 +10,13 @@ extern "C" {
 #endif /* __cplusplus */
 
 
-
 // Configuration
 #define MRF24J40_PAN_ID         01234       // Not managed by init /open Libex routines
 #define MRF24J40_RF_CHANNEL     11          // Not managed by init /open Libex routines
 //
 #define APPLICATION_SITE        EUROPE      
-#define MRF24J40_MODULE_TYPE    MRF24J40MA  // MRF24J40MD  !!!! GET FROM Module's register 
+#define MRF24J40_MODULE_TYPE    MRF24J40MD  // !!!! GET FROM Module's register 
+//#define MRF24J40_MODULE_TYPE    MRF24J40MA  //
     
 #undef MRF24J40_PROMISCUOUS      // Accept all packets
 #undef MRF24J40_TURBO_MODE     

@@ -20,7 +20,6 @@ extern sample_t SSBUF[SS_BUF_SIZE]; // global buffer
 
 void depotDefaultSet() {
     // Initialize Persistent Data in eeprom
-    DEE_Write(EEA_MEAS_COUNTER, 0); // (dee.h)  
     DEE_Write(EEA_SST26_SECTOR, SST26_SECTOR0); // (dee.h)  
     DEE_Write(EEA_SST26_OFFSET, 0); // (dee.h)  
     //
@@ -88,7 +87,6 @@ uint16_t depotPush(uint8_t* dPtr, uint16_t nBytes) { // return written bytes
 /* -------------------------------------------------------------------------- */
 uint16_t depotPull(uint8_t* dPtr, uint16_t displacement, uint16_t nBytes, bool release) { // return readed bytes
 
-    ////    uint16_t iSector, iOffset;
     uint16_t Sector, Offset;
     uint32_t sst_addr;
     //

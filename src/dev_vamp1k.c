@@ -120,7 +120,6 @@ void Device_SysBoot() { // Initialize system
     
 #if defined (__PIC24FJ256GA702__)
 
-
     TRISA = 0xFFFF; // All tri-state
     TRISB = 0xFFFF;
     LATA = 0x0000;  
@@ -204,28 +203,11 @@ void Device_SysBoot() { // Initialize system
     //    MRF24_SS_SetHigh();
 
 
-
-
-#ifdef __VAMP1K_TEST            
-    PMD1 = 00; // 0b1111111110111111; // Uart2 enabled
-#else
-    PMD1 = 0xFF; // All disabled
-#endif
-    PMD2 = 0xFF; // IC3MD enabled; OC1MD enabled; IC2MD enabled; OC2MD enabled; IC1MD enabled; OC3MD enabled; 
-    PMD3 = 0b1111110111111111; // RTCC
-    PMD4 = 0xFF; // CTMUMD enabled; REFOMD enabled; LVDMD enabled; 
-    PMD5 = 0xFF; // CCP2MD enabled; CCP1MD enabled; CCP4MD enabled; CCP3MD enabled; CCP5MD enabled; 
-    PMD6 = 0xFF; // SPI3MD enabled; 
-    PMD7 = 0xFF; // DMA1MD enabled; DMA0MD disabled; 
-    PMD8 = 0xFF; // CLC1MD enabled; CLC2MD enabled; 
-#endif
-
     __builtin_enable_interrupts();
-
+    
     DEE_Init(); // Emulated Data Eprom 
-    Device_SwitchADG(PW_OFF); // All off
-
-
+    
+#endif
 
 } // Device_SysBoot()
 
@@ -247,6 +229,7 @@ void Device_SysDefault() {
     PMD6 = 0xFF;
     PMD7 = 0xFF;
     PMD8 = 0xFF;
+    
 #endif
 }
 

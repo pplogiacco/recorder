@@ -10,13 +10,15 @@
 #include "memory/SST26VF064B.h"
 #include "sampling/measurement.h"  // measurementCounter()
 
+extern device_t device; // Global Device Configuration/Status
+//static uint32_t ltime = 0;
+
+//------------------------------------------------------------------------------
 //CRC-16 type
+//------------------------------------------------------------------------------
 #define CRC16_DNP	0x3D65		// DNP, IEC 870, M-BUS, wM-BUS, ...
 #define CRC16_CCITT	0x1021		// X.25, V.41, HDLC FCS, Bluetooth, ...
 #define POLYNOM CRC16_DNP
-
-extern device_t device; // Global Device Configuration/Status
-static uint32_t ltime = 0;
 
 uint16_t computeCRC16(uint8_t *strtochk, uint16_t length) {
     uint16_t crc;
@@ -47,31 +49,37 @@ uint16_t computeCRC16(uint8_t *strtochk, uint16_t length) {
 void Device_StatusRefresh() { // Every call
     device.sts.timestamp = RTCC_GetTimeL(); // time evaluation reference
     // Through the calls 
-    if ((device.sts.timestamp - ltime) > STATUS_REFRESH_PERIOD) {
-        device.sts.power_level = Device_GetBatteryLevel(); // battery/harvesting level/status
-        ltime = device.sts.timestamp;
-    }
-    device.sts.link_status = Device_IsWireLinked(); // Exchange: USB / RF-RSSI
+    //////    if ((device.sts.timestamp - ltime) > STATUS_REFRESH_PERIOD) {
+    //////        device.sts.power_level = Device_GetBatteryLevel(); // battery/harvesting level/status
+    //////        ltime = device.sts.timestamp;
+    //////    }
+    //device.sts.link_status =  (....  // Exchange: USB / RF-RSSI
 }
 
-void Device_StatusRead() {
+void Device_StatusRead() 
+{
     // Start-up 
     Device_CheckHwReset(); // critical errors/reset (device.sts.alarm_counter)
     device.sts.DIN = __DEVICE_DIN; // Read from OTP
     device.sts.version = __DEVICE_VER;
     device.sts.config_counter = device.cnf.CRC16; // To evaluate VMS alignment
+    Device_CheckHwReset(); // device.sts.alarm_counter
 
     // Memory & Measurement
     DEE_Read(EEA_MEAS_COUNTER, &device.sts.meas_counter); // Persistent: stored measurements (dee.h)   
     device.sts.storage_space = depotFreeSpaceKb(); // available meas storage memory (Kb)
+
+    // Exchange
+    device.sts.link_status = 0; // Exchange: USB / RF-RSSI
     device.sts.locked = (device.cnf.exchange.SKEY > 0); // Locked/not locked !!!
     Device_StatusRefresh();
 }
 
-//
-//void Device_StatusDefaultSet() {
-//    Device_StatusRead();
-//}
+void Device_StatusDefaultSet() {
+    device.sts.meas_counter = 0;
+    DEE_Write(EEA_MEAS_COUNTER, device.sts.meas_counter); // (dee.h)  
+    //Device_StatusRead();
+}
 
 void Device_SetLockSKEY(uint32_t skey) { // skey: >0 lock, =0 unlock 
 
@@ -86,13 +94,13 @@ bool Device_ConfigWrite(uint8_t * objcnf) { // Check consistency and COMPUTE CRC
     pcnf = (config_t *) objcnf;
     nbyte = sizeof (config_t);
 
-#ifndef ACCEPT_ALL_CONFIG_OBJ 
+#ifdef ACCEPT_ALL_CONFIG_OBJ 
+    //    pcnf->CRC16 = computeCRC16(objcnf, nbyte - 2);
+    {
+#else
     if (pcnf->CRC16 != computeCRC16(objcnf, nbyte - 2)) { // Not valid !!!!
         return (false);
     } else {
-#else
-    pcnf->CRC16 = computeCRC16(objcnf, nbyte - 2);
-    {
 #endif        
         memcpy(&device.cnf, objcnf, nbyte); // Update active
         nbyte = nbyte >> 1;
@@ -137,11 +145,6 @@ void Device_ConfigDefaultSet() {
     Device_ConfigWrite((uint8_t*) & objcnf);
 }
 
-
-
-//void Device_FactoryDefaultSet() {
-//}
-
 bool Device_ConfigRead() {
     DEE_RETURN_STATUS res = DEE_NO_ERROR;
     uint16_t i, nbyte;
@@ -154,13 +157,16 @@ bool Device_ConfigRead() {
         res = DEE_Read(i, (ptr + i));
         i++;
     }
+
+#ifndef ACCEPT_ALL_CONFIG_OBJ 
     if (device.cnf.CRC16 != computeCRC16((uint8_t *) & device.cnf, sizeof (config_t) - 2)) { /// Check XOR checksum
-        Device_ConfigDefaultSet();
-        device.cnf.CRC16 = computeCRC16((uint8_t *) & device.cnf, sizeof (config_t) - 2);
-        Device_ConfigWrite((uint8_t*) & device.cnf); // Write EEprom/Flash
-        // Factory default !!!!
+        //        Device_ConfigDefaultSet();        
+        //        Device_ConfigWrite((uint8_t*) & device.cnf); // Write EEprom/Flash
+        //        // Factory default !!!!
         return (false);
     }
+#endif
+
     return (true);
 }
 

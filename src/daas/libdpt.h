@@ -24,8 +24,6 @@
 #ifndef XC_DEPOT_H
 #define	XC_DEPOT_H
 
-
-
 void depotDefaultSet();
 uint16_t depotFreeSpaceKb();
 

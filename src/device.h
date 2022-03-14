@@ -7,7 +7,7 @@
 
 //------------------------------------------------------------------------------
 #define __DEVICE_DIN    100100101    // HWVAMP1K (Paolo)
-#define __DEVICE_VER    10108        // ver-rel-bld
+#define __DEVICE_VER    10109        // ver-rel-bld
 #define __DEVICE_USB_SR 0310         // Usb serial
 #define __DEVICE_NET_ID 0xCCCC       // 802. mac-id
 #define __DEVICE_PAN_ID 0            // 802. pan-id

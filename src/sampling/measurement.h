@@ -1,10 +1,22 @@
 /*
- * File:   measurement.h
+ * File: measurement.h
  * Author: plogiacco
  * Revision: merge ws lvdt proj dongle
  *
  * Created on October 25, 2020, 5:40 PM
+ * 
+ *  MEASUREMENT:
+ *  -----------+-----+--------------------------------------+---------------
+ *  Field       Size  Description                               
+ *  -----------+-----+--------------------------------------+---------------
+ *   typeset     2     Data specifications
+ *   timestamp   4     Absolute date and time     
+ *   ns          2     Number of Single Samples
+ *   nss         2     Number of Sequenced Samples
+ *   ss          2     Pointer to Samples Buffer ( unsigned word )
+ *  -----------+-----+--------------------------------------+---------------    
  */
+
 #ifndef MEASUREMENT_H
 #define	MEASUREMENT_H
 
@@ -13,10 +25,10 @@
 #include "../device.h"            // defs / config params
 #include "../daas/libdpt.h"
 
-//typedef unsigned short sample_t;  // ADC FormatAbsolute Integer Format
-#define sample_t signed short     // 16Bit
-#define SAMPLE_SIZE_IN_BYTE     2
-
+//typedef unsigned short sample_t;   // ADC FormatAbsolute Integer Format
+#define sample_t signed short        // 16Bit
+#define SAMPLE_SIZE_IN_BYTE     2    // Single sample in byte
+#define HEADER_SIZE_IN_BYTE     10U  // Measurement's header
 
 //------------------------------------------------------------------------------
 #if ( defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__)) // Flash 32K, SRam 2K, EEprom 512
@@ -40,7 +52,7 @@ typedef enum e_typeset {
     _AV04 = 0x04, // (04) Aeolian Vibration, RAW without dT ! { <ET>,<WS>,<adc_fq> <res_scale>,<s1>,...,<sn>} 
     _AV05 = 0x0F, // (15) AVC-P2P { <ET>,<WS>,<adc_fq>,<res_scale>,<duration>,[ (<n>,<freq>,<amp>),...]}
     _AV06 = 0x08, // (08) AVC-DFT { <ET>,<WS>,<adc_fq>,<res_scale>,<duration>,[ (<n>,<nc>,<pw>),...]}
-    _SS00 = 0x0B // (11) Sub-Span, raw         
+    _SS00 = 0x0B  // (11) Sub-Span, raw         
 } typeset_t;
 //------------------------------------------------------------------------------
 
@@ -53,25 +65,12 @@ typedef struct {
 } measurement_t;
 
 
-// Typeset Measurements Managing
+// Measurements managing
 // -------------------------------------------------------------------------
-/*
-    MEASURAMENT
- 
-    -----------+-----+--------------------------------------+---------------
-    Field       Size  Description                               
-    -----------+-----+--------------------------------------+---------------
-    typeset     2     Data specifications
-    timestamp   4     Absolute date and time     
-    ns          2     Number of Single Samples
-    nss         2     Number of Sequenced Samples
-    ss          2     Pointer to Samples Buffer ( unsigned word )
-    -----------+-----+--------------------------------------+---------------    
- */
 
 //void measurementInitialize();
 //
-uint16_t measurementAcquire(); // ret: nsamples
+uint16_t measurementAcquire(uint32_t ltime, typeset_t typeset); // ret: nsamples
 //
 uint16_t measurementSave(); // ret: measurementCounter()
 
@@ -83,6 +82,7 @@ uint16_t measurementDelete(uint16_t index); // ret: measurementCounter()
 //uint16_t measurementCounterGet();
 
 #define measurementCounterGet() device.sts.meas_counter
+#define measurementCounterSet(a) device.sts.meas_counter=a
 
 //uint16_t getRTMeasure(measureCmd_t cmd, measure_t mtype, sample_t *nsamp);
 

@@ -19,6 +19,7 @@
 device_t device;
 sample_t SSBUF[SS_BUF_SIZE]; // global buffer
 measurement_t lmeas;
+uint32_t lstime = 0, DSTIME; // last sampling 
 //------------------------------------------------------------------------------
 
 #ifdef __VAMP1K_TEST 
@@ -29,24 +30,25 @@ int main(void) {
 
     runlevel_t rlevel; // Use: device.st.llevel
     RealTimeCommandType exRTCmd;
-    timestamp_t stime;
-
     devicestate_t state, lstate; // Main cycle controls
     state = STARTUP; // System startup
-    lstate = state;
 
     while (1) {
 
         switch (state) {
                 //------------------------------------------------------------------
             case STARTUP: // Executed only after Power-On/Reset
-                Device_SwitchSys(SYS_BOOT); // Initialize Hardware & Services
-                if (!Device_ConfigRead()) { // Read persistent config
-                    // Factory default....
-                    depotDefaultSet(); // Memory   
+                Device_SwitchSys(SYS_BOOT); // initialize hardware
+                while (!Device_ConfigRead()) // persistent config
+                {
+                    Device_ConfigDefaultSet(); // Factory default....
+                    Device_StatusDefaultSet();
+                    depotDefaultSet(); // initialize memory
                 }
-                Device_StatusRead(); // Initialize global status   
-                state = EXCHANGE; // After start-up always try to connect
+                Device_StatusRead(); // set status object
+                DSTIME = device.cnf.general.delaytime; // Compute delaytime in long format
+                state = EXCHANGE; // first try to connect
+                //__delay(1000); // !!!! usb stabilizes
                 break;
 
                 //------------------------------------------------------------------
@@ -54,10 +56,16 @@ int main(void) {
 
                 // if ( g_dev.cnf.samplingmode != CNF_SAMPLING_OFF )
                 //!! RTCC_TimeGet(&stime);
-                //!! if ((stime.lstamp > g_config.general.startdate) && (stime.lstamp < g_config.general.stopdate)) {
 
-                measurementAcquire(); // Uses Device_SwitchSys()
+                // if ((stime.lstamp > g_config.general.startdate) && (stime.lstamp < g_config.general.stopdate)) {
+
+                //   if ((device.sts.timestamp - lstime) > DSTIME) { // Check if delaytime is elapsed 
+
+                measurementAcquire(device.sts.timestamp, device.cnf.general.typeset); // Uses Device_SwitchSys()
                 measurementSave();
+                lstime = device.sts.timestamp;
+
+                //   }
 
                 //                //!!};
                 //                if (lstate == EXCHANGE_RT) {
@@ -164,18 +172,19 @@ int main(void) {
                     __delay(5000); // wait 5 secs and restart cycle
                 } else { //  
 
-                    RTCC_GetTime(&stime);
-                    stime.sec += device.cnf.general.delaytime; // secs
-                    if (stime.sec > 59) {
-                        stime.min += (stime.sec) / 60; // minutes
-                        stime.sec = (device.cnf.general.delaytime) % 60; // secs
-                        if (stime.min > 59) {
-                            stime.min = stime.min % 60;
-                        }
-                    };
+                    ////                    RTCC_GetTime(&stime);
+                    ////                    stime.sec += device.cnf.general.delaytime; // secs
+                    ////                    if (stime.sec > 59) {
+                    ////                        stime.min += (stime.sec) / 60; // minutes
+                    ////                        stime.sec = (device.cnf.general.delaytime) % 60; // secs
+                    ////                        if (stime.min > 59) {
+                    ////                            stime.min = stime.min % 60;
+                    ////                        }
+                    ////                    };
+                    ////                    //__builtin_disable_interrupts();
+                    ////                    RTCC_AlarmSet(&stime); // Enable RTCC event to Wake-Up on time elapsed
 
-                    //__builtin_disable_interrupts();
-                    RTCC_AlarmSet(&stime); // Enable RTCC event to Wake-Up on time elapsed
+                    RTCC_SetWakeup(device.cnf.general.delaytime);
                     IFS0bits.INT0IF = 0; // Enable INT0 event to Wake-Up on wire connect
                     IEC0bits.INT0IE = 1;
                     //
@@ -198,7 +207,7 @@ int main(void) {
                 }
                 break;
         }
-        __clearWDT();
+        __clearWDT(); // Reset WDT
         Device_StatusRefresh();
     } // End VAMP1K
 
@@ -209,7 +218,7 @@ int main(void) {
 
 #include <string.h>
 
- /***************************************************************************** 
+/***************************************************************************** 
  *                              D a a S - Lib-Ex                              *  
  *****************************************************************************/
 
@@ -222,7 +231,6 @@ int main(void) {
 /******************************************************************************
  Mapping                                                         
  ******************************************************************************/
-
 
 /******************************************************************************
  Syncronize                                                         
@@ -247,8 +255,8 @@ void cb_SetDateTime(uint8_t * rxData) {
     weekday = rxData[offset++];
     RTCC_SetTime(&ts, weekday);
     // device.cnf.general.timezone = ???
+    device.sts.timestamp = RTCC_GetTimeL(); // Update status object
 };
-
 
 /******************************************************************************
  Avability
@@ -261,7 +269,6 @@ uint8_t cb_GetDeviceState(uint8_t *dobj) {
     return (nbyte);
 };
 
-
 /******************************************************************************
  Alignment                                                         
  ******************************************************************************/
@@ -272,6 +279,10 @@ bool cb_GetDeviceConfigCRC16(uint16_t * crc16) {
 
 void cb_SetDeviceConfig(uint8_t *dobj) {
     if (Device_ConfigWrite(dobj)) {
+        //Device_ConfigDefaultSet(); // Factory default....
+        depotDefaultSet(); // FORCE !!!!   Initialize memory
+        Device_StatusDefaultSet();
+        DSTIME = device.cnf.general.delaytime; // Compute delaytime in long format
         Device_StatusRead();
     }
 };
@@ -282,7 +293,6 @@ uint8_t cb_GetDeviceConfigPtr(uint8_t **dobj) {
     return (nbyte);
 };
 
-
 /******************************************************************************
  Transfer                                                         
  ******************************************************************************/
@@ -292,7 +302,9 @@ bool cb_GetMeasurementCounter(uint16_t * nobj) {
 };
 
 bool cb_GetMeasurement(uint16_t index, uint32_t * dtime, uint16_t * tset, uint16_t * ns, uint16_t * nss) {
-    if (measurementLoad(index) == index) {
+    __clearWDT(); // !!!!!!!!!!!!!!!
+    if (measurementLoad(index)) { // == index
+        //*dtime = 171717 + (index * 10); // TEST !!!!!!!!!
         *dtime = lmeas.dtime;
         *tset = (uint16_t) lmeas.tset;
         *ns = lmeas.ns;

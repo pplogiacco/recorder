@@ -50,13 +50,14 @@ extern measurement_t lmeas;
 //    return m_counter; // number of available measures
 //}
 
-uint16_t measurementAcquire() // ( tset, duration, adc_fq, filter )
+uint16_t measurementAcquire(uint32_t ltime, typeset_t typeset) // ( tset, duration, adc_fq, filter )
 {
     sample_t *ptrSS;
     uint16_t nsamples = 0;
     uint8_t m; // FFTs
 
-    typeset_t typeset = device.cnf.general.typeset;
+    // Time  
+    //typeset_t typeset = device.cnf.general.typeset;
     uint16_t duration = device.cnf.general.cycletime;
     uint16_t fq_Hz = device.cnf.calibration.av_period;
     uint16_t filter = device.cnf.calibration.av_filter;
@@ -65,7 +66,7 @@ uint16_t measurementAcquire() // ( tset, duration, adc_fq, filter )
     printf("Acquiring t=%u, freq=%u\n", typeset, (uint8_t) fq_Hz);
 #endif
 
-    lmeas.dtime = RTCC_GetTimeL(); // get RTC datetime  
+    lmeas.dtime = ltime; // RTCC_GetTimeL(); // get RTC datetime  
     lmeas.tset = typeset;
     lmeas.ss = &(SSBUF[0]);
     ptrSS = lmeas.ss;
@@ -90,7 +91,7 @@ uint16_t measurementAcquire() // ( tset, duration, adc_fq, filter )
 
         case _SIG0: // (02) Test Signal { <sig_fq>, <sig_maxa>, <adc_fq>, <res_scale>, [<dT>,<a>],[...] }
             //tmpM.tset = _SIG0;
-            lmeas.nss = acquireSig(ptrSS, duration, SS_BUF_SIZE , fq_Hz, filter, true) - 4;
+            lmeas.nss = acquireSig(ptrSS, duration, SS_BUF_SIZE, fq_Hz, filter, true) - 4;
             lmeas.ns = 4; // <sig_fq>, <sig_maxa>, <adc_fq>, <res_scale>
             nsamples = lmeas.nss + lmeas.ns;
             break;
@@ -127,7 +128,7 @@ uint16_t measurementAcquire() // ( tset, duration, adc_fq, filter )
             nsamples = lmeas.nss + lmeas.ns;
             break;
 
-        case _AV03: // Aeolian Vibration, Comples FFT 
+        case _AV03: // Aeolian Vibration, Complex FFT 
             lmeas.nss = 0;
             nsamples = 0;
             break;
@@ -142,9 +143,10 @@ uint16_t measurementAcquire() // ( tset, duration, adc_fq, filter )
 
         case _AV05: // (15) AVC-P2P { <ET>,<WS>,<adc_fq>,<adc_res>,<duration>,[ (<n>,<freq>,<amp>),...]}
             m = 8;
-            lmeas.tset = _AV05;
+            //lmeas.tset = _AV05;
             lmeas.ns++; // Add <duration>
-            *ptrSS = duration * (((float) 1 / (fq_Hz << 1)) * (1 << m)); // total time 
+            // *ptrSS = duration * (((float) 1 / (fq_Hz << 1)) * (1 << m)); // total time 
+            *ptrSS = duration;
             ptrSS++;
 
             Device_SwitchSys(SYS_ON_SAMP_ADA);
@@ -170,7 +172,7 @@ uint16_t measurementAcquire() // ( tset, duration, adc_fq, filter )
             oPtr = (oscill_t *) ptrSS; // use ptrSS as touples of samples
             noss = 0; // tuples counter
 
-            filter = 20; // ignore too close peaks 
+            // filter = 20; // ignore too close peaks !!!!!!!!!!!!!!!!!!!!!!
             nsec = duration; // compute on fq_Pr3 and wbSize
 
             do { // _____ Cycle total time....
@@ -207,7 +209,8 @@ uint16_t measurementAcquire() // ( tset, duration, adc_fq, filter )
             m = 8;
             //tmpM.tset = _AV06;
             lmeas.ns++; // Add <duration>
-            *ptrSS = duration * (((float) 1 / fq_Hz) * (1 << m)); // total time 
+            //*ptrSS = duration * (((float) 1 / fq_Hz) * (1 << m)); // total time 
+            *ptrSS = duration;
             ptrSS++;
             Device_SwitchSys(SYS_ON_SAMP_ADA);
             lmeas.nss = acquireAV_EVC_DFT(ptrSS, duration, (SS_BUF_SIZE - lmeas.ns), m, fq_Hz, filter, 0);
@@ -223,31 +226,26 @@ uint16_t measurementAcquire() // ( tset, duration, adc_fq, filter )
 }
 /* -------------------------------------------------------------------------- */
 
-#define HEADER_SIZE_IN_BYTE        10U   // Measurement's header
-
 /* -------------------------------------------------------------------------- */
 uint16_t measurementSave() // Uses g_measurement
 {
     if ((lmeas.ns + lmeas.nss) > 0) {
-
 #ifdef DEPOT_OK
-        
-        depotPush((uint8_t*) &(lmeas.ss[0]), ((lmeas.ns + lmeas.nss) *SAMPLE_SIZE_IN_BYTE)); // Save samples
+        depotPush((uint8_t*) &(lmeas.ss[0]), ((lmeas.ns + lmeas.nss) * SAMPLE_SIZE_IN_BYTE)); // Save samples
         depotPush((uint8_t*) & lmeas, HEADER_SIZE_IN_BYTE);
 #endif        
         device.sts.meas_counter++;
         DEE_Write(EEA_MEAS_COUNTER, device.sts.meas_counter);
-
     };
     return (device.sts.meas_counter);
 }
 
 /* -------------------------------------------------------------------------- */
-uint16_t measurementLoad(uint16_t index) { // LIFO !!!!!!!!!!!!!!
-
+uint16_t measurementLoad(uint16_t index) // LIFO !!!!!!!!!!!!!!
+{
     if (device.sts.meas_counter > 0) {
 #ifdef DEPOT_OK
-        lmeas.ss = &(SSBUF[0]);        
+        lmeas.ss = &(SSBUF[0]);
         depotPull((uint8_t*) & lmeas, 0, HEADER_SIZE_IN_BYTE, false); // ok
         depotPull((uint8_t*) &(lmeas.ss[0]), HEADER_SIZE_IN_BYTE, ((lmeas.ns + lmeas.nss) * SAMPLE_SIZE_IN_BYTE), false);
 #endif

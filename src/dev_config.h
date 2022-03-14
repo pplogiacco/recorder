@@ -24,7 +24,7 @@ typedef enum { // Power sources
 
 
 #define STATUS_REFRESH_PERIOD   500  // Min. time heavy processing
-#define ACCEPT_ALL_CONFIG_OBJ       // Not checks CRC
+#define ACCEPT_ALL_CONFIG_OBJ        // No checks CRC16
 
 //#define Device_UpdStatus_Timer(x)  g_dev.st.timestamp = x 
 //#define Device_UpdStatus_Alarm(x)  g_dev.st.alarm_counter = x 
@@ -114,8 +114,8 @@ uint16_t computeCRC16(uint8_t *strtochk, uint16_t length);
 
 bool Device_ConfigRead();
 bool Device_ConfigWrite(uint8_t *objcnf);
-//void Device_ConfigDefaultSet(config_t * config);
-// void Device_StatusDefaultSet();
+void Device_ConfigDefaultSet();
+void Device_StatusDefaultSet();
 void Device_StatusRead();
 void Device_StatusRefresh();
 

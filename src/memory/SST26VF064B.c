@@ -141,7 +141,7 @@ void SST26_Erase_Chip() // Erases the entire Chip !!!
 }
 
 void SST26_Erase_Sector(unsigned long Dst) {
-    // Sector Addresses: Use AMS - A12, remaining address are don?t care, but must be set to VIL or VIH.
+    // Sector Addresses: Use AMS - A12, remaining address are don't care, but must be set to VIL or VIH.
     SST26_WREN();
     SST26_SS_SetLow();
     SPI1_Exchange8bit(SST26_CMD_SECTOR_ERASE); // Erase 4 KBytes (000000H-7FFFFFH)
