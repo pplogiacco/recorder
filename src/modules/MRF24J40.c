@@ -129,7 +129,7 @@ void MRF24J40_Enable(uint16_t macaddr) {
     seqNumber = 0;
 
     MRF24_SS_SetDigitalOutputHigh();
-    SPI1_Enable(MODE0, SPI_2MHZ);
+    SPI1_Enable(MODE0, SPI_100KHZ); // SPI_2MHZ);
 
     // MRF24J40 module configuration
 

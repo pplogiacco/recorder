@@ -672,7 +672,7 @@ while (tcycle++ < tcstop) {
 
 
 
-/*----------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------
 //////////#ifdef __VAMP1K_TEST_measurement_save 
 //////////
 //////////    //    DEE_Init(); // Emulated Data Eprom 
@@ -680,13 +680,13 @@ while (tcycle++ < tcstop) {
 //////////    // measurementInitialize(&g_measurement);    
 //////////
 //////////
-////////// #define ShowMem() {   printf("FreeSpace :%u\n", depotFreeSpaceKb());    \
-//////////    uint16_t Sector, Offset;	\
-//////////    DEE_Read(EEA_SST26_SECTOR, &Sector);   \
-//////////    DEE_Read(EEA_SST26_OFFSET, &Offset);  \
-//////////    printf("Sector :%u\n", Sector);	\
-//////////    printf("Offset :%u\n", Offset);	\
-//////////    printf("Meas_Counter :%u\n", device.sts.meas_counter ); \
+////////// #define ShowMem() {   printf("FreeSpace :%u \n", depotFreeSpaceKb());    \\
+//////////    uint16_t Sector, Offset;	\\
+//////////    DEE_Read(EEA_SST26_SECTOR, &Sector);   \\
+//////////    DEE_Read(EEA_SST26_OFFSET, &Offset);  \\
+//////////    printf("Sector :%u\n", Sector);	\\
+//////////    printf("Offset :%u\n", Offset);	\\
+//////////    printf("Meas_Counter :%u\n", device.sts.meas_counter ); \\
 //////////    }
 //////////
 //////////
@@ -730,8 +730,8 @@ while (tcycle++ < tcstop) {
 //////////        __delay(2000);
 //////////    }
 //////////#endif      
+----------------------------------------------------------------------------*/
 
-/*----------------------------------------------------------------------------*/
 #ifdef __VAMP1K_TEST_measurement_delete 
 
 measurementInitialize(&g_measurement);
@@ -819,7 +819,7 @@ while (1) {
             // RTCC_TimeGet(&stime);
             //!! if ((stime.lstamp > g_config.general.startdate) && (stime.lstamp < g_config.general.stopdate)) {
             g_dev.cnf.general.typeset = FORCED_TYPESET;
-            measurementAcquire();
+            measurementAcquire(g_dev.sts.timestamp,g_dev.cnf.general.typeset);
 
 #ifdef __VAMP1K_TEST_measurement_save
             measurementSave();

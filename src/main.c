@@ -1,7 +1,7 @@
 /******************************************************************************\
 |                                                                              |
 |                         V A M P -  R E C O R D E R                           |
-|                           ver. 0.1.00 - 11/25/21                             |
+|                           ver. 0.1.17 - 03/14/22                             |
 |                                                                              |
 |                                                             (@)2021 DTeam !  |
 \******************************************************************************/
@@ -60,7 +60,8 @@ int main(void) {
                 // if ((stime.lstamp > g_config.general.startdate) && (stime.lstamp < g_config.general.stopdate)) {
 
                 //   if ((device.sts.timestamp - lstime) > DSTIME) { // Check if delaytime is elapsed 
-
+                Device_StatusRefresh(); // ??????????????
+                
                 measurementAcquire(device.sts.timestamp, device.cnf.general.typeset); // Uses Device_SwitchSys()
                 measurementSave();
                 lstime = device.sts.timestamp;
@@ -185,6 +186,7 @@ int main(void) {
                     ////                    RTCC_AlarmSet(&stime); // Enable RTCC event to Wake-Up on time elapsed
 
                     RTCC_SetWakeup(device.cnf.general.delaytime);
+
                     IFS0bits.INT0IF = 0; // Enable INT0 event to Wake-Up on wire connect
                     IEC0bits.INT0IE = 1;
                     //
@@ -219,22 +221,17 @@ int main(void) {
 #include <string.h>
 
 /***************************************************************************** 
- *                              D a a S - Lib-Ex                              *  
+ *                              D a a S - Lib-Ex                             *  
  *****************************************************************************/
 
 
 /******************************************************************************
- Security                                                         
- ******************************************************************************/
-
-
-/******************************************************************************
- Mapping                                                         
- ******************************************************************************/
+ * Mapping                                                                    *
+ *****************************************************************************/
 
 /******************************************************************************
- Syncronize                                                         
- ******************************************************************************/
+ * Syncronize                                                                 *
+ *****************************************************************************/
 bool cb_GetDateTime(uint32_t *ltime, uint16_t * tzone) {
     *ltime = RTCC_GetTimeL();
     *tzone = device.cnf.general.timezone;
@@ -259,8 +256,8 @@ void cb_SetDateTime(uint8_t * rxData) {
 };
 
 /******************************************************************************
- Avability
- ******************************************************************************/
+ * Avability                                                                  *
+ *****************************************************************************/
 uint8_t cb_GetDeviceState(uint8_t *dobj) {
     uint8_t nbyte = 0;
     Device_StatusRefresh();
@@ -270,8 +267,8 @@ uint8_t cb_GetDeviceState(uint8_t *dobj) {
 };
 
 /******************************************************************************
- Alignment                                                         
- ******************************************************************************/
+ * Alignment                                                                  *
+ *****************************************************************************/
 bool cb_GetDeviceConfigCRC16(uint16_t * crc16) {
     *crc16 = device.cnf.CRC16;
     return (true);
@@ -280,10 +277,12 @@ bool cb_GetDeviceConfigCRC16(uint16_t * crc16) {
 void cb_SetDeviceConfig(uint8_t *dobj) {
     if (Device_ConfigWrite(dobj)) {
         //Device_ConfigDefaultSet(); // Factory default....
-        depotDefaultSet(); // FORCE !!!!   Initialize memory
         Device_StatusDefaultSet();
-        DSTIME = device.cnf.general.delaytime; // Compute delaytime in long format
+        depotDefaultSet(); // FORCE !!!!   Initialize memory
+        Device_ConfigRead();
         Device_StatusRead();
+        DSTIME = device.cnf.general.delaytime; // Compute delaytime in long format
+
     }
 };
 
@@ -294,8 +293,8 @@ uint8_t cb_GetDeviceConfigPtr(uint8_t **dobj) {
 };
 
 /******************************************************************************
- Transfer                                                         
- ******************************************************************************/
+ * Transfer                                                                   *
+ *****************************************************************************/
 bool cb_GetMeasurementCounter(uint16_t * nobj) {
     *nobj = device.sts.meas_counter;
     return (true);
@@ -324,5 +323,10 @@ void cb_DeleteMeasurement(uint16_t index) {
     measurementDelete(index);
 };
 
+
+
+/******************************************************************************
+ * Security                                                                   *
+ *****************************************************************************/
 
 #endif

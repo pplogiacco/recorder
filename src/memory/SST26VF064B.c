@@ -8,7 +8,7 @@ static bool disable_spi1; // Shared SPI1
 
 void SST26_Enable() {
     SST26_SS_SetDigitalOutputHigh();
-    disable_spi1 = SPI1_Enable(MODE0, SPI_2MHZ); // Shared SPI1
+    disable_spi1 = SPI1_Enable(MODE0, SPI_100KHZ); // SPI_2MHZ); // Shared SPI1
 }
 
 void SST26_Disable() {
@@ -369,7 +369,6 @@ void SST26_LockSID() {
 /************************************************************************/
 
 void SST26_Global_Protection_Unlock() {
-
     SST26_WREN();
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(SST26_CMD_UNPROTECT_GLOBAL);
@@ -377,14 +376,12 @@ void SST26_Global_Protection_Unlock() {
 }
 
 void SST26_LockBlockProtection() {
-
     SST26_SS_SetLow(); /* enable device */
     SPI1_Exchange8bit(0x8d); /* read command */
     SST26_SS_SetHigh(); /* disable device */
 }
 
 void SST26_ReadBlockProtection(unsigned int *block_protection_data) {
-
     unsigned char i;
     i = 0;
 
@@ -400,7 +397,6 @@ void SST26_ReadBlockProtection(unsigned int *block_protection_data) {
 }
 
 void SST26_WriteBlockProtection(unsigned int *block_protection_data) {
-
     unsigned char i;
     i = 0;
 
@@ -416,7 +412,6 @@ void SST26_WriteBlockProtection(unsigned int *block_protection_data) {
 }
 
 void SST26_NonVolWriteLockProtection(unsigned int *block_protection_data) {
-
     unsigned char i;
     i = 0;
 
@@ -439,7 +434,6 @@ void SST26_NonVolWriteLockProtection(unsigned int *block_protection_data) {
 
 /************************************************************************/
 unsigned char SST26_SFDP_Read(unsigned long Dst) {
-
     unsigned char byte = 0;
 
     SST26_SS_SetLow(); /* enable device */

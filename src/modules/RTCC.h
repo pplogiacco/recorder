@@ -36,7 +36,7 @@ extern "C" {
 //    } ltime_t;
 
 
-    //void L2Time(timestamp_t *t); // Convert time to long 
+    void L2Time(timestamp_t *t); // Convert time to long 
     //void Time2Timestamp(timestamp_t *t);
 
     void RTCC_Enable(void);

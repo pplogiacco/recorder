@@ -143,9 +143,9 @@ void RTCC_AlarmSet(timestamp_t *t) {
     //    __builtin_write_RTCC_WRLOCK();
     RTCCON1Hbits.ALRMEN = 0; // Disable to modify alarm settings
     RTCSTATLbits.ALMEVT = 0x0;
-    while (RTCSTATLbits.ALMSYNC); // 0 = Alarm registers may be written/modified safely
+    while (RTCSTATLbits.ALMSYNC); // 0 == Alarm registers may be written/modified safely
 
-    RTCCON1Hbits.AMASK = 0b0101; // Every hour hh:mm:ss
+    RTCCON1Hbits.AMASK = 0b0101; // Mask every hour hh:mm:ss
 
     ALMDATEH = (i2bcd(t->year) << 8) | i2bcd(t->month); // Year/Month
     ALMDATEL = (i2bcd(t->day) << 8); // | i2bcd(weekday); // Date/Wday

@@ -1,0 +1,8 @@
+ver. 0.1.17 - 03/14/22  
++ abilitato parametro av_filter ( deve essere impostato altrimenti p2p salta )
++ ogni qualvolta si aggiorna la configurazione la memoria viene resettata ( blocco sessione )
+- l'intervallo delaytime gestito in unità di tempo - NON SECONDI ( test )
+- verifica skey disabilitata ( test )
+- livello batteria valore fisso ( test )
+- conteggio reset di sistema fisso ( test )
+ 

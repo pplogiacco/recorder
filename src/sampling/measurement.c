@@ -77,7 +77,7 @@ uint16_t measurementAcquire(uint32_t ltime, typeset_t typeset) // ( tset, durati
         acquireET(ptrSS); // RET: success
         ptrSS++;
         acquireWS(ptrSS); // RET: success
-        Device_SwitchSys(SYS_DEFAULT);
+        Device_SwitchSys(SYS_DEFAULT);  
         ptrSS++;
         *ptrSS = fq_Hz; // Sampling Frequency (Hz)
         ptrSS++;

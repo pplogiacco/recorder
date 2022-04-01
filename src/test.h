@@ -3,7 +3,7 @@
 #define	XTEST_H
 
 //
-//#define __VAMP1K_TEST
+#define __VAMP1K_TEST
 //#define __NOFLASH    // Use RAM to store config
 //#define __NOUSB      // Force to use RF ( USB not connect )
 //

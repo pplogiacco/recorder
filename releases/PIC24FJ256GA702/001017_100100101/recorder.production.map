@@ -22,7 +22,6 @@ Command:
   build/PIC24FJ256GA702/production/src/memory/DEE/flash.o \
   build/PIC24FJ256GA702/production/src/memory/DEE/flash_asm.o \
   build/PIC24FJ256GA702/production/src/memory/SST26VF064B.o \
-  build/PIC24FJ256GA702/production/src/memory/libdpt.o \
   build/PIC24FJ256GA702/production/src/modules/RTCC.o \
   build/PIC24FJ256GA702/production/src/modules/SPI1.o \
   build/PIC24FJ256GA702/production/src/modules/UART2.o \
@@ -34,9 +33,10 @@ Command:
   build/PIC24FJ256GA702/production/src/utils.o \
   build/PIC24FJ256GA702/production/src/main.o \
   build/PIC24FJ256GA702/production/src/dev_config.o \
-  build/PIC24FJ256GA702/production/src/dev_hardware.o \
+  build/PIC24FJ256GA702/production/src/daas/libdpt.o \
+  build/PIC24FJ256GA702/production/src/dev_vamp1k.o \
   src\daas\libfft.X.a \
-  ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a \
+  src\daas\libex.X.a \
   --local-stack \
   --defsym=__MPLAB_BUILD=1 \
   -Tp24FJ256GA702.gld.00 \
@@ -66,12 +66,11 @@ Archive member included because of file (symbol)
 
 src\daas\libfft.X.a(libfft.o)
                               build/PIC24FJ256GA702/production/src/sampling/acquire.o (_fft_init)
-..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(libex.o)
-                              build/PIC24FJ256GA702/production/src/main.o (_Exchange_Initialize)
-..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(protocol.o)
-                              ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(libex.o) (_setShort)
-..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(channels.o)
-                              ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(libex.o) (_initChannel)
+src\daas\libex.X.a(libex.o)   build/PIC24FJ256GA702/production/src/main.o (_Exchange_Initialize)
+src\daas\libex.X.a(protocol.o)
+                              src\daas\libex.X.a(libex.o) (_setShort)
+src\daas\libex.X.a(channels.o)
+                              src\daas\libex.X.a(libex.o) (_initChannel)
 
 Optional library libpPIC24Fxxx.a not found
 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\liblega-pic30-elf.a(crt0_extended24.o)
@@ -81,19 +80,19 @@ c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\liblega-pic30-elf.a(data
 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\liblega-pic30-elf.a(crt_start_mode_normalda.Leo)
                               (__crt_start_mode_normal)
 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\liblega-pic30-elf.a(delay32da.Leo)
-                              ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(protocol.o) (___delay32)
+                              src\daas\libex.X.a(protocol.o) (___delay32)
 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(addsf3.daeo)
                               build/PIC24FJ256GA702/production/src/modules/MRF24J40.o (___subsf3)
 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(divsf3.daeo)
-                              build/PIC24FJ256GA702/production/src/sampling/measurement.o (___divsf3)
+                              build/PIC24FJ256GA702/production/src/sampling/acquire.o (___divsf3)
 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(feqltle.daeo)
                               build/PIC24FJ256GA702/production/src/sampling/acquire.o (___lesf2)
 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(fixsfsi.daeo)
-                              build/PIC24FJ256GA702/production/src/sampling/measurement.o (_(float, int, long long, short, float, short, int))
+                              build/PIC24FJ256GA702/production/src/sampling/acquire.o (_(float, int, long long, short, float, short, int))
 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(floatsisf.daeo)
                               build/PIC24FJ256GA702/production/src/modules/MRF24J40.o (___floatsisf)
 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(floatunsisf.daeo)
-                              build/PIC24FJ256GA702/production/src/sampling/measurement.o (___floatunsisf)
+                              build/PIC24FJ256GA702/production/src/sampling/acquire.o (___floatunsisf)
 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(fpack.daeo)
                               c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(addsf3.daeo) (__fpack)
 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(funpack.daeo)
@@ -161,29 +160,29 @@ section                    address   length (PC units)   length (bytes) (dec)
 -------                    -------   -----------------   --------------------
 .text                        0x100               0x764           0xb16  (2838)
 .const                       0x864                 0xa             0xf  (15)
-.text                        0x86e              0x355a          0x5007  (20487)
-.text                       0x3dc8               0x218           0x324  (804)
-.init.delay32               0x3fe0                0x1c            0x2a  (42)
-_000000000567CC80_at_address_0000000000004000    0x4000              0x4000          0x6000  (24576)
-.text                       0x8000               0x70a           0xa8f  (2703)
-.text                       0x870a               0x534           0x7ce  (1998)
-.NVM_flash                  0x8c3e               0x154           0x1fe  (510)
-.text                       0x8d92               0x348           0x4ec  (1260)
-.dinit                      0x90da                0x90            0xd8  (216)
-.text                       0x916a                0x7e            0xbd  (189)
+.text                        0x86e              0x352a          0x4fbf  (20415)
+.text                       0x3d98               0x246           0x369  (873)
+.init.delay32               0x3fde                0x1c            0x2a  (42)
+_00000000056BDC80_at_address_0000000000004000    0x4000              0x4000          0x6000  (24576)
+.text                       0x8000               0x2d8           0x444  (1092)
+.text                       0x82d8               0x944           0xde6  (3558)
+.NVM_flash                  0x8c1c               0x154           0x1fe  (510)
+.text                       0x8d70               0x2ae           0x405  (1029)
+.dinit                      0x901e                0x90            0xd8  (216)
+.text                       0x90ae                0x7e            0xbd  (189)
 
-                 Total "program" memory used (bytes):         0xd956  (55638) 21%
+                 Total "program" memory used (bytes):         0xd839  (55353) 21%
 
 
 "data" Memory  [Origin = 0x800, Length = 0x4000]
 
 section                    address      alignment gaps    total length  (dec)
 -------                    -------      --------------    -------------------
-.nbss                        0x800                   0            0x62  (98)
-.bss                         0x862                   0          0x3224  (12836)
-.data                       0x3a86                   0             0x4  (4)
+.nbss                        0x800                   0            0x66  (102)
+.bss                         0x866                   0          0x3224  (12836)
+.data                       0x3a8a                   0             0x4  (4)
 
-                 Total "data" memory used (bytes):         0x328a  (12938) 78%
+                 Total "data" memory used (bytes):         0x328e  (12942) 78%
 
 
 Dynamic Memory Usage
@@ -191,9 +190,9 @@ Dynamic Memory Usage
 region                     address                      maximum length  (dec)
 ------                     -------                      ---------------------
 heap                             0                                   0  (0)
-stack                       0x3a8a                               0xd76  (3446)
+stack                       0x3a8e                               0xd72  (3442)
 
-                 Maximum dynamic memory (bytes):          0xd76  (3446)
+                 Maximum dynamic memory (bytes):          0xd72  (3442)
 
 
 External Symbols in Data Memory (by address):
@@ -204,33 +203,37 @@ External Symbols in Data Memory (by address):
                     0x080c                  __wsready
                     0x082e                  _rxSize
                     0x0830                  _rxCount
-                    0x0848                  _Timeout_CallBack
-                    0x0854                  _g_nrPacket
-                    0x0856                  _dataEEFlags
-                    0x085a                  _RTCC_CallBack
-                    0x0862                  _device
-                    0x08e0                  _SSBUF
-                    0x28e0                  _lmeas
-                    0x3976                  _rxBuf
-                    0x3a80                  __wsptime
-                    0x3a86                  _FlashKey
+                    0x0846                  _lstime
+                    0x084a                  _DSTIME
+                    0x0850                  _Timeout_CallBack
+                    0x0858                  _g_nrPacket
+                    0x085a                  _dataEEFlags
+                    0x085e                  _RTCC_CallBack
+                    0x0866                  _device
+                    0x08e4                  _SSBUF
+                    0x28e4                  _lmeas
+                    0x397a                  _rxBuf
+                    0x3a84                  __wsptime
+                    0x3a8a                  _FlashKey
 
 External Symbols in Data Memory (by name):
 
-                    0x3a86                  _FlashKey
-                    0x085a                  _RTCC_CallBack
-                    0x08e0                  _SSBUF
-                    0x0848                  _Timeout_CallBack
+                    0x084a                  _DSTIME
+                    0x3a8a                  _FlashKey
+                    0x085e                  _RTCC_CallBack
+                    0x08e4                  _SSBUF
+                    0x0850                  _Timeout_CallBack
                     0x0800                  __adcReady
                     0x0801                  __cycletime
                     0x080a                  __icycle
-                    0x3a80                  __wsptime
+                    0x3a84                  __wsptime
                     0x080c                  __wsready
-                    0x0856                  _dataEEFlags
-                    0x0862                  _device
-                    0x0854                  _g_nrPacket
-                    0x28e0                  _lmeas
-                    0x3976                  _rxBuf
+                    0x085a                  _dataEEFlags
+                    0x0866                  _device
+                    0x0858                  _g_nrPacket
+                    0x28e4                  _lmeas
+                    0x0846                  _lstime
+                    0x397a                  _rxBuf
                     0x0830                  _rxCount
                     0x082e                  _rxSize
 
@@ -238,8 +241,8 @@ External Symbols in Program Memory (by address):
 
                   0x000100                  __resetPRI
                   0x00013c                  __psv_init
-                  0x000152                  __data_init_da
                   0x000152                  __data_init
+                  0x000152                  __data_init_da
                   0x000204                  __RTCCInterrupt
                   0x00022a                  __U2TXInterrupt
                   0x000272                  __U2RXInterrupt
@@ -252,9 +255,9 @@ External Symbols in Program Memory (by address):
                   0x00035e                  ___subsf3
                   0x000360                  ___addsf3
                   0x00041a                  ___divsf3
-                  0x00049e                  ___lesf2
                   0x00049e                  ___ltsf2
                   0x00049e                  ___eqsf2
+                  0x00049e                  ___lesf2
                   0x0004a2                  ___fixsfsi
                   0x0004e4                  ___floatsisf
                   0x0004ea                  ___floatunsisf
@@ -299,318 +302,318 @@ External Symbols in Program Memory (by address):
                   0x001af4                  _RTCC_AlarmSet
                   0x001c2c                  _RTCC_AlarmUnset
                   0x001c42                  _RTCC_Grab
-                  0x001c64                  _RTCC_2LTime
-                  0x001df4                  _RTCC_GetTime
-                  0x001e02                  _RTCC_SetTime
-                  0x001f28                  _L2Time
-                  0x001fd2                  _Time2L
-                  0x001fde                  _RTCC_GetTimeL
-                  0x0020da                  _RTCC_GetMinutes
-                  0x0020f4                  _RTCC_SetWakeup
-                  0x0020fc                  _SST26_Enable
-                  0x00210e                  _SST26_Disable
-                  0x00211e                  _SST26_Switch_Power
-                  0x00212c                  _SST26_Read_Status
-                  0x002146                  _SST26_Read_Configuration
-                  0x002160                  _SST26_Write_Status_Register
-                  0x002186                  _SST26_Wait_Busy
-                  0x0021b4                  _SST26_ResetEn
-                  0x0021c2                  _SST26_Reset
-                  0x0021d2                  _SST26_NoOp
-                  0x0021e0                  _SST26_Erase_Chip
-                  0x0021ee                  _SST26_Erase_Sector
-                  0x002288                  _SST26_Erase_Block
-                  0x0022f2                  _SST26_WREN
-                  0x002300                  _SST26_WRDI
-                  0x00230e                  _SST26_Write_Suspend
-                  0x00231c                  _SST26_Write_Resume
-                  0x00232a                  _SST26_Write
-                  0x0023f4                  _SST26_Read
-                  0x00244e                  _SST26_HSRead
-                  0x0024e4                  _SST26_ReadSID
-                  0x00255a                  _SST26_ProgSID
-                  0x0025c8                  _SST26_LockSID
-                  0x0025d8                  _SST26_Global_Protection_Unlock
-                  0x0025e8                  _SST26_LockBlockProtection
-                  0x0025f6                  _SST26_ReadBlockProtection
-                  0x002628                  _SST26_WriteBlockProtection
-                  0x002658                  _SST26_NonVolWriteLockProtection
-                  0x002688                  _SST26_SFDP_Read
-                  0x002708                  _SST26_Jedec_ID_Read
-                  0x00273a                  _Exchange_SetDriverPtr
-                  0x002746                  _Exchange_Initialize
-                  0x00277c                  _Exchange_isConnected
-                  0x00278e                  _Exchange_Disconnect
-                  0x00279a                  _Exchange_Connect
-                  0x0028ae                  _sendDeviceState
-                  0x002916                  _sendDeviceConfig
-                  0x002976                  _sendAvailableMeasurement
-                  0x0029be                  _sendMeasurement
-                  0x002b58                  _sendKeepAlive
-                  0x002b66                  _Exchange_SendResponse
-                  0x002b76                  _Exchange_commandsHandler
-                  0x002d28                  _MRF24J40_Enable
-                  0x002e9c                  _MRF24J40_Disable
-                  0x002eb8                  _MRF24J40_setPanId
-                  0x002eda                  _MRF24J40_setAddress
-                  0x002efc                  _MRF24J40_setChannel
-                  0x002f5c                  _MRF24J40_reset
-                  0x002f68                  _MRF24J40_getSignalStrength
-                  0x002f82                  _MRF24J40_rxFlush
-                  0x002f8e                  _MRF24J40_TxBuffer
-                  0x003084                  _MRF24J40_RxBuffer
-                  0x0030ca                  _MRF24J40_IsRxReady
-                  0x0030de                  _MRF24J40_transmissionDone
-                  0x0030f6                  _MRF24J40_transmissionSuccess
-                  0x00310e                  _MRF24J40_receivePacket
-                  0x003180                  _MRF24J40_writeShort
-                  0x0031a8                  _MRF24J40_readShort
-                  0x0031e4                  _MRF24J40_writeLong
-                  0x003214                  _MRF24J40_readLong
-                  0x00324c                  _getShort
-                  0x003264                  _setShort
-                  0x003282                  _setLong
-                  0x0032fc                  _calculateLRC
-                  0x00332e                  _sendAck
-                  0x003340                  _sendNack
-                  0x003352                  _waitAck
-                  0x0033a4                  _ptrSendData
-                  0x0033ac                  _ptrReceiveData
-                  0x0033ba                  _protocolSend
-                  0x003470                  _protocolReceive
-                  0x0036b0                  _measurementAcquire
-                  0x003a2e                  _measurementSave
-                  0x003a62                  _measurementLoad
-                  0x003a98                  _measurementDelete
-                  0x003ac2                  _main
-                  0x003dc8                  _computeCRC16
-                  0x003e36                  _Device_StatusRefresh
-                  0x003e6e                  _Device_StatusRead
-                  0x003ea6                  _Device_SetLockSKEY
-                  0x003eae                  _Device_ConfigWrite
-                  0x003f10                  _Device_ConfigDefaultSet
-                  0x003f80                  _Device_ConfigRead
-                  0x003fe0                  ___delay32
+                  0x001c64                  _RTCC_Time2L
+                  0x001df4                  _L2Time
+                  0x001e9e                  _RTCC_GetTime
+                  0x001ea8                  _RTCC_GetTimeL
+                  0x001fa4                  _RTCC_SetTime
+                  0x0020ca                  _RTCC_GetMinutes
+                  0x0020e4                  _RTCC_SetWakeup
+                  0x00214a                  _SST26_Enable
+                  0x00215c                  _SST26_Disable
+                  0x00216c                  _SST26_Switch_Power
+                  0x00217a                  _SST26_Read_Status
+                  0x002194                  _SST26_Read_Configuration
+                  0x0021ae                  _SST26_Write_Status_Register
+                  0x0021d4                  _SST26_Wait_Busy
+                  0x002202                  _SST26_ResetEn
+                  0x002210                  _SST26_Reset
+                  0x002220                  _SST26_NoOp
+                  0x00222e                  _SST26_Erase_Chip
+                  0x00223c                  _SST26_Erase_Sector
+                  0x0022d6                  _SST26_Erase_Block
+                  0x002340                  _SST26_WREN
+                  0x00234e                  _SST26_WRDI
+                  0x00235c                  _SST26_Write_Suspend
+                  0x00236a                  _SST26_Write_Resume
+                  0x002378                  _SST26_Write
+                  0x002442                  _SST26_Read
+                  0x00249c                  _SST26_HSRead
+                  0x002532                  _SST26_ReadSID
+                  0x0025a8                  _SST26_ProgSID
+                  0x002616                  _SST26_LockSID
+                  0x002626                  _SST26_Global_Protection_Unlock
+                  0x002636                  _SST26_LockBlockProtection
+                  0x002644                  _SST26_ReadBlockProtection
+                  0x002676                  _SST26_WriteBlockProtection
+                  0x0026a6                  _SST26_NonVolWriteLockProtection
+                  0x0026d6                  _SST26_SFDP_Read
+                  0x002756                  _SST26_Jedec_ID_Read
+                  0x002788                  _Exchange_SetDriverPtr
+                  0x002794                  _Exchange_Initialize
+                  0x0027ca                  _Exchange_isConnected
+                  0x0027dc                  _Exchange_Disconnect
+                  0x0027e8                  _Exchange_Connect
+                  0x0028fc                  _sendDeviceState
+                  0x002964                  _sendDeviceConfig
+                  0x0029c4                  _sendAvailableMeasurement
+                  0x002a0c                  _sendMeasurement
+                  0x002ba6                  _sendKeepAlive
+                  0x002bb4                  _Exchange_SendResponse
+                  0x002bc4                  _Exchange_commandsHandler
+                  0x002d76                  _MRF24J40_Enable
+                  0x002eea                  _MRF24J40_Disable
+                  0x002f06                  _MRF24J40_setPanId
+                  0x002f28                  _MRF24J40_setAddress
+                  0x002f4a                  _MRF24J40_setChannel
+                  0x002faa                  _MRF24J40_reset
+                  0x002fb6                  _MRF24J40_getSignalStrength
+                  0x002fd0                  _MRF24J40_rxFlush
+                  0x002fdc                  _MRF24J40_TxBuffer
+                  0x0030d2                  _MRF24J40_RxBuffer
+                  0x003118                  _MRF24J40_IsRxReady
+                  0x00312c                  _MRF24J40_transmissionDone
+                  0x003144                  _MRF24J40_transmissionSuccess
+                  0x00315c                  _MRF24J40_receivePacket
+                  0x0031ce                  _MRF24J40_writeShort
+                  0x0031f6                  _MRF24J40_readShort
+                  0x003232                  _MRF24J40_writeLong
+                  0x003262                  _MRF24J40_readLong
+                  0x00329a                  _getShort
+                  0x0032b2                  _setShort
+                  0x0032d0                  _setLong
+                  0x00334a                  _calculateLRC
+                  0x00337c                  _sendAck
+                  0x00338e                  _sendNack
+                  0x0033a0                  _waitAck
+                  0x0033f2                  _ptrSendData
+                  0x0033fa                  _ptrReceiveData
+                  0x003408                  _protocolSend
+                  0x0034be                  _protocolReceive
+                  0x0036fe                  _measurementAcquire
+                  0x003a0a                  _measurementSave
+                  0x003a3e                  _measurementLoad
+                  0x003a74                  _measurementDelete
+                  0x003a9e                  _Device_SwitchClock
+                  0x003b0c                  _Device_SysBoot
+                  0x003bd6                  _Device_SysDefault
+                  0x003c00                  _Device_SysExchange
+                  0x003c22                  _Device_SysSleep
+                  0x003c50                  _Device_CheckHwReset
+                  0x003c6e                  _Device_SwitchADG
+                  0x003ce0                  _Device_GetBatteryLevel
+                  0x003d98                  _UART2_Enable
+                  0x003dc8                  _UART2_Disable
+                  0x003dde                  _UART2_Read
+                  0x003e0a                  _UART2_Write
+                  0x003e34                  _UART2_IsRxReady
+                  0x003e4a                  _UART2_IsTxReady
+                  0x003e7e                  _UART2_IsTxDone
+                  0x003ea0                  _UART2_RxBuffer
+                  0x003f36                  _UART2_TxBuffer
+                  0x003f66                  _UART2_Flush
+                  0x003fde                  ___delay32
                   0x004000                  _emulationPages
-                  0x008000                  _Device_SwitchClock
-                  0x00806e                  _Device_SysBoot
-                  0x00815c                  _Device_SysDefault
-                  0x008186                  _Device_SysExchange
-                  0x0081a8                  _Device_SysSleep
-                  0x0081d6                  _Device_SwitchSys
-                  0x008266                  _Device_CheckHwReset
-                  0x008284                  _UART2_Enable
-                  0x0082b2                  _UART2_Disable
-                  0x0082c8                  _UART2_Read
-                  0x0082f4                  _UART2_Write
-                  0x00831e                  _UART2_IsRxReady
-                  0x008334                  _UART2_IsTxReady
-                  0x008368                  _UART2_IsTxDone
-                  0x00838a                  _UART2_RxBuffer
-                  0x008420                  _UART2_TxBuffer
-                  0x008450                  _UART2_Flush
-                  0x0084c8                  _fft_init
-                  0x00853c                  _fft_windowing
-                  0x00854c                  _fft_window
-                  0x00856e                  _fft_fix
-                  0x0086a4                  _fft_spectrum
-                  0x00870a                  _SPI1_Enable
-                  0x008786                  _SPI1_Disable
-                  0x008792                  _SPI1_Exchange
-                  0x0087c2                  _SPI1_ExchangeBuffer
-                  0x0088a6                  _SPI1_Exchange8bit
-                  0x0088b6                  _SPI1_Exchange8bitBuffer
-                  0x0088ca                  _SPI1_TransferModeGet
-                  0x0088e0                  _SPI1_StatusGet
-                  0x0088e8                  _depotDefaultSet
-                  0x00890a                  _depotFreeSpaceKb
-                  0x00892c                  _depotPush
-                  0x0089ec                  _depotPull
-                  0x008a42                  _depotDrop
-                  0x008ac4                  _ADA2200_EnableSPI1
-                  0x008b02                  _ADA_SetReg8
-                  0x008bd8                  _ADA2200_Enable
-                  0x008c16                  _ADA2200_Synco
-                  0x008c34                  _ADA2200_Disable
-                  0x008c40                  _FLASH_Unlock
-                  0x008c4a                  _FLASH_Lock
-                  0x008c58                  _FLASH_SendNvmKey
-                  0x008c84                  _FLASH_ReadWord24
-                  0x008c92                  _FLASH_ReadWord16
-                  0x008c9e                  _FLASH_ErasePage
-                  0x008cb8                  _FLASH_WriteDoubleWord24
-                  0x008cea                  _FLASH_WriteDoubleWord16
-                  0x008d1e                  _FLASH_WriteRow24
-                  0x008d50                  _FLASH_WriteRow16
-                  0x008d82                  _FLASH_GetErasePageOffset
-                  0x008d88                  _FLASH_GetErasePageAddress
-                  0x008d92                  _Device_SwitchADG
-                  0x008e04                  _Device_GetBatteryLevel
-                  0x008ebc                  _initChannel
-                  0x008ede                  _openChannel
-                  0x008f0c                  _closeChannel
-                  0x008f22                  _flushChannel
-                  0x008f34                  __RxBuffer
-                  0x008f60                  __IsRxReady
-                  0x008f7c                  __TxBuffer
-                  0x008fd0                  _FLASH_EraseBlock
-                  0x009056                  _FLASH_WriteInstructions
-                  0x009094                  _FLASH_ReadInstructions
-                  0x0090c0                  _FLASH_GetEraseBlockOffset
-                  0x0090ce                  _FLASH_GetEraseBlockAddress
-                  0x00916a                  _Timeout_SetCallBack
-                  0x009176                  _Timeout_Set
-                  0x0091cc                  _isTimeout
-                  0x0091dc                  _Timeout_Unset
+                  0x008000                  _main
+                  0x0082d8                  _fft_init
+                  0x00834c                  _fft_windowing
+                  0x00835c                  _fft_window
+                  0x00837e                  _fft_fix
+                  0x0084b4                  _fft_spectrum
+                  0x00851a                  _SPI1_Enable
+                  0x008596                  _SPI1_Disable
+                  0x0085a2                  _SPI1_Exchange
+                  0x0085d2                  _SPI1_ExchangeBuffer
+                  0x0086b6                  _SPI1_Exchange8bit
+                  0x0086c6                  _SPI1_Exchange8bitBuffer
+                  0x0086da                  _SPI1_TransferModeGet
+                  0x0086f0                  _SPI1_StatusGet
+                  0x0086f8                  _depotDefaultSet
+                  0x008714                  _depotFreeSpaceKb
+                  0x008736                  _depotPush
+                  0x0087f6                  _depotPull
+                  0x00884c                  _depotDrop
+                  0x0088ce                  _computeCRC16
+                  0x00893c                  _Device_StatusRefresh
+                  0x008948                  _Device_StatusRead
+                  0x008986                  _Device_StatusDefaultSet
+                  0x008998                  _Device_SetLockSKEY
+                  0x0089a0                  _Device_ConfigWrite
+                  0x0089f4                  _Device_ConfigDefaultSet
+                  0x008a64                  _Device_ConfigRead
+                  0x008aa2                  _ADA2200_EnableSPI1
+                  0x008ae0                  _ADA_SetReg8
+                  0x008bb6                  _ADA2200_Enable
+                  0x008bf4                  _ADA2200_Synco
+                  0x008c12                  _ADA2200_Disable
+                  0x008c1e                  _FLASH_Unlock
+                  0x008c28                  _FLASH_Lock
+                  0x008c36                  _FLASH_SendNvmKey
+                  0x008c62                  _FLASH_ReadWord24
+                  0x008c70                  _FLASH_ReadWord16
+                  0x008c7c                  _FLASH_ErasePage
+                  0x008c96                  _FLASH_WriteDoubleWord24
+                  0x008cc8                  _FLASH_WriteDoubleWord16
+                  0x008cfc                  _FLASH_WriteRow24
+                  0x008d2e                  _FLASH_WriteRow16
+                  0x008d60                  _FLASH_GetErasePageOffset
+                  0x008d66                  _FLASH_GetErasePageAddress
+                  0x008d70                  _initChannel
+                  0x008d92                  _openChannel
+                  0x008dc0                  _closeChannel
+                  0x008dd6                  _flushChannel
+                  0x008de8                  __RxBuffer
+                  0x008e14                  __IsRxReady
+                  0x008e30                  __TxBuffer
+                  0x008e84                  _FLASH_EraseBlock
+                  0x008f0a                  _FLASH_WriteInstructions
+                  0x008f48                  _FLASH_ReadInstructions
+                  0x008f74                  _FLASH_GetEraseBlockOffset
+                  0x008f82                  _FLASH_GetEraseBlockAddress
+                  0x008f8e                  _Device_SwitchSys
+                  0x0090ae                  _Timeout_SetCallBack
+                  0x0090ba                  _Timeout_Set
+                  0x009110                  _isTimeout
+                  0x009120                  _Timeout_Unset
                   0x02af00                  __FSEC.sec
 
 External Symbols in Program Memory (by name):
 
-                  0x008c34                  _ADA2200_Disable
-                  0x008bd8                  _ADA2200_Enable
-                  0x008ac4                  _ADA2200_EnableSPI1
-                  0x008c16                  _ADA2200_Synco
-                  0x008b02                  _ADA_SetReg8
+                  0x008c12                  _ADA2200_Disable
+                  0x008bb6                  _ADA2200_Enable
+                  0x008aa2                  _ADA2200_EnableSPI1
+                  0x008bf4                  _ADA2200_Synco
+                  0x008ae0                  _ADA_SetReg8
                   0x000864                  _ADC_T
                   0x00086e                  _DEE_Init
                   0x0009da                  _DEE_Read
                   0x000acc                  _DEE_Write
-                  0x008266                  _Device_CheckHwReset
-                  0x003f10                  _Device_ConfigDefaultSet
-                  0x003f80                  _Device_ConfigRead
-                  0x003eae                  _Device_ConfigWrite
-                  0x008e04                  _Device_GetBatteryLevel
-                  0x003ea6                  _Device_SetLockSKEY
-                  0x003e6e                  _Device_StatusRead
-                  0x003e36                  _Device_StatusRefresh
-                  0x008d92                  _Device_SwitchADG
-                  0x008000                  _Device_SwitchClock
-                  0x0081d6                  _Device_SwitchSys
-                  0x00806e                  _Device_SysBoot
-                  0x00815c                  _Device_SysDefault
-                  0x008186                  _Device_SysExchange
-                  0x0081a8                  _Device_SysSleep
-                  0x00279a                  _Exchange_Connect
-                  0x00278e                  _Exchange_Disconnect
-                  0x002746                  _Exchange_Initialize
-                  0x002b66                  _Exchange_SendResponse
-                  0x00273a                  _Exchange_SetDriverPtr
-                  0x002b76                  _Exchange_commandsHandler
-                  0x00277c                  _Exchange_isConnected
-                  0x008fd0                  _FLASH_EraseBlock
-                  0x008c9e                  _FLASH_ErasePage
-                  0x0090ce                  _FLASH_GetEraseBlockAddress
-                  0x0090c0                  _FLASH_GetEraseBlockOffset
-                  0x008d88                  _FLASH_GetErasePageAddress
-                  0x008d82                  _FLASH_GetErasePageOffset
-                  0x008c4a                  _FLASH_Lock
-                  0x009094                  _FLASH_ReadInstructions
-                  0x008c92                  _FLASH_ReadWord16
-                  0x008c84                  _FLASH_ReadWord24
-                  0x008c58                  _FLASH_SendNvmKey
-                  0x008c40                  _FLASH_Unlock
-                  0x008cea                  _FLASH_WriteDoubleWord16
-                  0x008cb8                  _FLASH_WriteDoubleWord24
-                  0x009056                  _FLASH_WriteInstructions
-                  0x008d50                  _FLASH_WriteRow16
-                  0x008d1e                  _FLASH_WriteRow24
-                  0x001f28                  _L2Time
-                  0x002e9c                  _MRF24J40_Disable
-                  0x002d28                  _MRF24J40_Enable
-                  0x0030ca                  _MRF24J40_IsRxReady
-                  0x003084                  _MRF24J40_RxBuffer
-                  0x002f8e                  _MRF24J40_TxBuffer
-                  0x002f68                  _MRF24J40_getSignalStrength
-                  0x003214                  _MRF24J40_readLong
-                  0x0031a8                  _MRF24J40_readShort
-                  0x00310e                  _MRF24J40_receivePacket
-                  0x002f5c                  _MRF24J40_reset
-                  0x002f82                  _MRF24J40_rxFlush
-                  0x002eda                  _MRF24J40_setAddress
-                  0x002efc                  _MRF24J40_setChannel
-                  0x002eb8                  _MRF24J40_setPanId
-                  0x0030de                  _MRF24J40_transmissionDone
-                  0x0030f6                  _MRF24J40_transmissionSuccess
-                  0x0031e4                  _MRF24J40_writeLong
-                  0x003180                  _MRF24J40_writeShort
-                  0x001c64                  _RTCC_2LTime
+                  0x003c50                  _Device_CheckHwReset
+                  0x0089f4                  _Device_ConfigDefaultSet
+                  0x008a64                  _Device_ConfigRead
+                  0x0089a0                  _Device_ConfigWrite
+                  0x003ce0                  _Device_GetBatteryLevel
+                  0x008998                  _Device_SetLockSKEY
+                  0x008986                  _Device_StatusDefaultSet
+                  0x008948                  _Device_StatusRead
+                  0x00893c                  _Device_StatusRefresh
+                  0x003c6e                  _Device_SwitchADG
+                  0x003a9e                  _Device_SwitchClock
+                  0x008f8e                  _Device_SwitchSys
+                  0x003b0c                  _Device_SysBoot
+                  0x003bd6                  _Device_SysDefault
+                  0x003c00                  _Device_SysExchange
+                  0x003c22                  _Device_SysSleep
+                  0x0027e8                  _Exchange_Connect
+                  0x0027dc                  _Exchange_Disconnect
+                  0x002794                  _Exchange_Initialize
+                  0x002bb4                  _Exchange_SendResponse
+                  0x002788                  _Exchange_SetDriverPtr
+                  0x002bc4                  _Exchange_commandsHandler
+                  0x0027ca                  _Exchange_isConnected
+                  0x008e84                  _FLASH_EraseBlock
+                  0x008c7c                  _FLASH_ErasePage
+                  0x008f82                  _FLASH_GetEraseBlockAddress
+                  0x008f74                  _FLASH_GetEraseBlockOffset
+                  0x008d66                  _FLASH_GetErasePageAddress
+                  0x008d60                  _FLASH_GetErasePageOffset
+                  0x008c28                  _FLASH_Lock
+                  0x008f48                  _FLASH_ReadInstructions
+                  0x008c70                  _FLASH_ReadWord16
+                  0x008c62                  _FLASH_ReadWord24
+                  0x008c36                  _FLASH_SendNvmKey
+                  0x008c1e                  _FLASH_Unlock
+                  0x008cc8                  _FLASH_WriteDoubleWord16
+                  0x008c96                  _FLASH_WriteDoubleWord24
+                  0x008f0a                  _FLASH_WriteInstructions
+                  0x008d2e                  _FLASH_WriteRow16
+                  0x008cfc                  _FLASH_WriteRow24
+                  0x001df4                  _L2Time
+                  0x002eea                  _MRF24J40_Disable
+                  0x002d76                  _MRF24J40_Enable
+                  0x003118                  _MRF24J40_IsRxReady
+                  0x0030d2                  _MRF24J40_RxBuffer
+                  0x002fdc                  _MRF24J40_TxBuffer
+                  0x002fb6                  _MRF24J40_getSignalStrength
+                  0x003262                  _MRF24J40_readLong
+                  0x0031f6                  _MRF24J40_readShort
+                  0x00315c                  _MRF24J40_receivePacket
+                  0x002faa                  _MRF24J40_reset
+                  0x002fd0                  _MRF24J40_rxFlush
+                  0x002f28                  _MRF24J40_setAddress
+                  0x002f4a                  _MRF24J40_setChannel
+                  0x002f06                  _MRF24J40_setPanId
+                  0x00312c                  _MRF24J40_transmissionDone
+                  0x003144                  _MRF24J40_transmissionSuccess
+                  0x003232                  _MRF24J40_writeLong
+                  0x0031ce                  _MRF24J40_writeShort
                   0x001af4                  _RTCC_AlarmSet
                   0x001c2c                  _RTCC_AlarmUnset
                   0x001aca                  _RTCC_Enable
-                  0x0020da                  _RTCC_GetMinutes
-                  0x001df4                  _RTCC_GetTime
-                  0x001fde                  _RTCC_GetTimeL
+                  0x0020ca                  _RTCC_GetMinutes
+                  0x001e9e                  _RTCC_GetTime
+                  0x001ea8                  _RTCC_GetTimeL
                   0x001c42                  _RTCC_Grab
                   0x001aaa                  _RTCC_SetCallBack
-                  0x001e02                  _RTCC_SetTime
-                  0x0020f4                  _RTCC_SetWakeup
-                  0x008786                  _SPI1_Disable
-                  0x00870a                  _SPI1_Enable
-                  0x008792                  _SPI1_Exchange
-                  0x0088a6                  _SPI1_Exchange8bit
-                  0x0088b6                  _SPI1_Exchange8bitBuffer
-                  0x0087c2                  _SPI1_ExchangeBuffer
-                  0x0088e0                  _SPI1_StatusGet
-                  0x0088ca                  _SPI1_TransferModeGet
-                  0x00210e                  _SST26_Disable
-                  0x0020fc                  _SST26_Enable
-                  0x002288                  _SST26_Erase_Block
-                  0x0021e0                  _SST26_Erase_Chip
-                  0x0021ee                  _SST26_Erase_Sector
-                  0x0025d8                  _SST26_Global_Protection_Unlock
-                  0x00244e                  _SST26_HSRead
-                  0x002708                  _SST26_Jedec_ID_Read
-                  0x0025e8                  _SST26_LockBlockProtection
-                  0x0025c8                  _SST26_LockSID
-                  0x0021d2                  _SST26_NoOp
-                  0x002658                  _SST26_NonVolWriteLockProtection
-                  0x00255a                  _SST26_ProgSID
-                  0x0023f4                  _SST26_Read
-                  0x0025f6                  _SST26_ReadBlockProtection
-                  0x0024e4                  _SST26_ReadSID
-                  0x002146                  _SST26_Read_Configuration
-                  0x00212c                  _SST26_Read_Status
-                  0x0021c2                  _SST26_Reset
-                  0x0021b4                  _SST26_ResetEn
-                  0x002688                  _SST26_SFDP_Read
-                  0x00211e                  _SST26_Switch_Power
-                  0x002300                  _SST26_WRDI
-                  0x0022f2                  _SST26_WREN
-                  0x002186                  _SST26_Wait_Busy
-                  0x00232a                  _SST26_Write
-                  0x002628                  _SST26_WriteBlockProtection
-                  0x00231c                  _SST26_Write_Resume
-                  0x002160                  _SST26_Write_Status_Register
-                  0x00230e                  _SST26_Write_Suspend
-                  0x001fd2                  _Time2L
-                  0x009176                  _Timeout_Set
-                  0x00916a                  _Timeout_SetCallBack
-                  0x0091dc                  _Timeout_Unset
-                  0x0082b2                  _UART2_Disable
-                  0x008284                  _UART2_Enable
-                  0x008450                  _UART2_Flush
-                  0x00831e                  _UART2_IsRxReady
-                  0x008368                  _UART2_IsTxDone
-                  0x008334                  _UART2_IsTxReady
-                  0x0082c8                  _UART2_Read
-                  0x00838a                  _UART2_RxBuffer
-                  0x008420                  _UART2_TxBuffer
-                  0x0082f4                  _UART2_Write
+                  0x001fa4                  _RTCC_SetTime
+                  0x0020e4                  _RTCC_SetWakeup
+                  0x001c64                  _RTCC_Time2L
+                  0x008596                  _SPI1_Disable
+                  0x00851a                  _SPI1_Enable
+                  0x0085a2                  _SPI1_Exchange
+                  0x0086b6                  _SPI1_Exchange8bit
+                  0x0086c6                  _SPI1_Exchange8bitBuffer
+                  0x0085d2                  _SPI1_ExchangeBuffer
+                  0x0086f0                  _SPI1_StatusGet
+                  0x0086da                  _SPI1_TransferModeGet
+                  0x00215c                  _SST26_Disable
+                  0x00214a                  _SST26_Enable
+                  0x0022d6                  _SST26_Erase_Block
+                  0x00222e                  _SST26_Erase_Chip
+                  0x00223c                  _SST26_Erase_Sector
+                  0x002626                  _SST26_Global_Protection_Unlock
+                  0x00249c                  _SST26_HSRead
+                  0x002756                  _SST26_Jedec_ID_Read
+                  0x002636                  _SST26_LockBlockProtection
+                  0x002616                  _SST26_LockSID
+                  0x002220                  _SST26_NoOp
+                  0x0026a6                  _SST26_NonVolWriteLockProtection
+                  0x0025a8                  _SST26_ProgSID
+                  0x002442                  _SST26_Read
+                  0x002644                  _SST26_ReadBlockProtection
+                  0x002532                  _SST26_ReadSID
+                  0x002194                  _SST26_Read_Configuration
+                  0x00217a                  _SST26_Read_Status
+                  0x002210                  _SST26_Reset
+                  0x002202                  _SST26_ResetEn
+                  0x0026d6                  _SST26_SFDP_Read
+                  0x00216c                  _SST26_Switch_Power
+                  0x00234e                  _SST26_WRDI
+                  0x002340                  _SST26_WREN
+                  0x0021d4                  _SST26_Wait_Busy
+                  0x002378                  _SST26_Write
+                  0x002676                  _SST26_WriteBlockProtection
+                  0x00236a                  _SST26_Write_Resume
+                  0x0021ae                  _SST26_Write_Status_Register
+                  0x00235c                  _SST26_Write_Suspend
+                  0x0090ba                  _Timeout_Set
+                  0x0090ae                  _Timeout_SetCallBack
+                  0x009120                  _Timeout_Unset
+                  0x003dc8                  _UART2_Disable
+                  0x003d98                  _UART2_Enable
+                  0x003f66                  _UART2_Flush
+                  0x003e34                  _UART2_IsRxReady
+                  0x003e7e                  _UART2_IsTxDone
+                  0x003e4a                  _UART2_IsTxReady
+                  0x003dde                  _UART2_Read
+                  0x003ea0                  _UART2_RxBuffer
+                  0x003f36                  _UART2_TxBuffer
+                  0x003e0a                  _UART2_Write
                   0x000868                  __2Pi
                   0x0002da                  __ADC1Interrupt
                   0x000320                  __DefaultInterrupt
                   0x02af00                  __FSEC.sec
                   0x000318                  __INT0Interrupt
-                  0x008f60                  __IsRxReady
+                  0x008e14                  __IsRxReady
                   0x000204                  __RTCCInterrupt
-                  0x008f34                  __RxBuffer
+                  0x008de8                  __RxBuffer
                   0x0002ec                  __T1Interrupt
-                  0x008f7c                  __TxBuffer
+                  0x008e30                  __TxBuffer
                   0x0002c4                  __U2ErrInterrupt
                   0x000272                  __U2RXInterrupt
                   0x00022a                  __U2TXInterrupt
                   0x000360                  ___addsf3
-                  0x003fe0                  ___delay32
+                  0x003fde                  ___delay32
                   0x00041a                  ___divsf3
                   0x00049e                  ___eqsf2
                   0x0004a2                  ___fixsfsi
@@ -648,50 +651,50 @@ External Symbols in Program Memory (by name):
                   0x001a28                  _acquireWS
                   0x0013aa                  _acquire_START
                   0x0013d4                  _acquire_STOP
-                  0x0032fc                  _calculateLRC
-                  0x008f0c                  _closeChannel
-                  0x003dc8                  _computeCRC16
+                  0x00334a                  _calculateLRC
+                  0x008dc0                  _closeChannel
+                  0x0088ce                  _computeCRC16
                   0x001306                  _cycletimer
-                  0x0088e8                  _depotDefaultSet
-                  0x008a42                  _depotDrop
-                  0x00890a                  _depotFreeSpaceKb
-                  0x0089ec                  _depotPull
-                  0x00892c                  _depotPush
+                  0x0086f8                  _depotDefaultSet
+                  0x00884c                  _depotDrop
+                  0x008714                  _depotFreeSpaceKb
+                  0x0087f6                  _depotPull
+                  0x008736                  _depotPush
                   0x004000                  _emulationPages
                   0x001a00                  _everySecond
-                  0x00856e                  _fft_fix
-                  0x0084c8                  _fft_init
-                  0x0086a4                  _fft_spectrum
-                  0x00854c                  _fft_window
-                  0x00853c                  _fft_windowing
-                  0x008f22                  _flushChannel
+                  0x00837e                  _fft_fix
+                  0x0082d8                  _fft_init
+                  0x0084b4                  _fft_spectrum
+                  0x00835c                  _fft_window
+                  0x00834c                  _fft_windowing
+                  0x008dd6                  _flushChannel
                   0x0007a6                  _fmodf
-                  0x00324c                  _getShort
-                  0x008ebc                  _initChannel
-                  0x0091cc                  _isTimeout
-                  0x003ac2                  _main
-                  0x0036b0                  _measurementAcquire
-                  0x003a98                  _measurementDelete
-                  0x003a62                  _measurementLoad
-                  0x003a2e                  _measurementSave
+                  0x00329a                  _getShort
+                  0x008d70                  _initChannel
+                  0x009110                  _isTimeout
+                  0x008000                  _main
+                  0x0036fe                  _measurementAcquire
+                  0x003a74                  _measurementDelete
+                  0x003a3e                  _measurementLoad
+                  0x003a0a                  _measurementSave
                   0x000848                  _memcpy
                   0x000856                  _memset
-                  0x008ede                  _openChannel
-                  0x003470                  _protocolReceive
-                  0x0033ba                  _protocolSend
-                  0x0033ac                  _ptrReceiveData
-                  0x0033a4                  _ptrSendData
-                  0x00332e                  _sendAck
-                  0x002976                  _sendAvailableMeasurement
-                  0x002916                  _sendDeviceConfig
-                  0x0028ae                  _sendDeviceState
-                  0x002b58                  _sendKeepAlive
-                  0x0029be                  _sendMeasurement
-                  0x003340                  _sendNack
-                  0x003282                  _setLong
-                  0x003264                  _setShort
+                  0x008d92                  _openChannel
+                  0x0034be                  _protocolReceive
+                  0x003408                  _protocolSend
+                  0x0033fa                  _ptrReceiveData
+                  0x0033f2                  _ptrSendData
+                  0x00337c                  _sendAck
+                  0x0029c4                  _sendAvailableMeasurement
+                  0x002964                  _sendDeviceConfig
+                  0x0028fc                  _sendDeviceState
+                  0x002ba6                  _sendKeepAlive
+                  0x002a0c                  _sendMeasurement
+                  0x00338e                  _sendNack
+                  0x0032d0                  _setLong
+                  0x0032b2                  _setShort
                   0x0005fc                  _sinf
-                  0x003352                  _waitAck
+                  0x0033a0                  _waitAck
                   0x000324                  _write
 
 Memory Configuration
@@ -718,7 +721,6 @@ LOAD build/PIC24FJ256GA702/production/src/memory/DEE/dee.o
 LOAD build/PIC24FJ256GA702/production/src/memory/DEE/flash.o
 LOAD build/PIC24FJ256GA702/production/src/memory/DEE/flash_asm.o
 LOAD build/PIC24FJ256GA702/production/src/memory/SST26VF064B.o
-LOAD build/PIC24FJ256GA702/production/src/memory/libdpt.o
 LOAD build/PIC24FJ256GA702/production/src/modules/RTCC.o
 LOAD build/PIC24FJ256GA702/production/src/modules/SPI1.o
 LOAD build/PIC24FJ256GA702/production/src/modules/UART2.o
@@ -730,9 +732,10 @@ LOAD build/PIC24FJ256GA702/production/src/device.o
 LOAD build/PIC24FJ256GA702/production/src/utils.o
 LOAD build/PIC24FJ256GA702/production/src/main.o
 LOAD build/PIC24FJ256GA702/production/src/dev_config.o
-LOAD build/PIC24FJ256GA702/production/src/dev_hardware.o
+LOAD build/PIC24FJ256GA702/production/src/daas/libdpt.o
+LOAD build/PIC24FJ256GA702/production/src/dev_vamp1k.o
 LOAD src\daas\libfft.X.a
-LOAD ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a
+LOAD src\daas\libex.X.a
                     0x0001                  __MPLAB_BUILD = 0x1
 LOAD pPIC24Fxxx
 LOAD c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libfx-elf.a
@@ -779,7 +782,7 @@ LOAD c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libfx-elf.a
                   0x0002da                  __ADC1Interrupt
  .isr.text        0x0002ec         0x2c build/PIC24FJ256GA702/production/src/utils.o
                   0x0002ec                  __T1Interrupt
- .isr.text        0x000318          0x8 build/PIC24FJ256GA702/production/src/dev_hardware.o
+ .isr.text        0x000318          0x8 build/PIC24FJ256GA702/production/src/dev_vamp1k.o
                   0x000318                  __INT0Interrupt
  .isr             0x000320          0x4 default_isr
                   0x000320                  __DefaultInterrupt
@@ -887,118 +890,117 @@ __FDEVOPT1
 .comment
  *(.comment)
 
-.debug_info       0x000000       0xefc7
+.debug_info       0x000000       0xef24
  *(.debug_info)
  .debug_info      0x000000        0x878 build/PIC24FJ256GA702/production/src/memory/DEE/dee.o
  .debug_info      0x000878        0x3ba build/PIC24FJ256GA702/production/src/memory/DEE/flash.o
  .debug_info      0x000c32         0x7b build/PIC24FJ256GA702/production/src/memory/DEE/flash_asm.o
  .debug_info      0x000cad        0xcdc build/PIC24FJ256GA702/production/src/memory/SST26VF064B.o
- .debug_info      0x001989        0x39d build/PIC24FJ256GA702/production/src/memory/libdpt.o
- .debug_info      0x001d26        0xb75 build/PIC24FJ256GA702/production/src/modules/RTCC.o
- .debug_info      0x00289b        0xe8a build/PIC24FJ256GA702/production/src/modules/SPI1.o
- .debug_info      0x003725        0xd1e build/PIC24FJ256GA702/production/src/modules/UART2.o
- .debug_info      0x004443        0xa6f build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
- .debug_info      0x004eb2        0x9e8 build/PIC24FJ256GA702/production/src/sampling/ADA2200.o
- .debug_info      0x00589a        0x98f build/PIC24FJ256GA702/production/src/sampling/measurement.o
- .debug_info      0x006229       0x2483 build/PIC24FJ256GA702/production/src/sampling/acquire.o
- .debug_info      0x0086ac       0x10a6 build/PIC24FJ256GA702/production/src/device.o
- .debug_info      0x009752        0x7b3 build/PIC24FJ256GA702/production/src/utils.o
- .debug_info      0x009f05       0x1407 build/PIC24FJ256GA702/production/src/main.o
- .debug_info      0x00b30c        0xa3b build/PIC24FJ256GA702/production/src/dev_config.o
- .debug_info      0x00bd47       0x1dae build/PIC24FJ256GA702/production/src/dev_hardware.o
- .debug_info      0x00daf5        0xb3d ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(libex.o)
- .debug_info      0x00e632        0x613 ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(protocol.o)
- .debug_info      0x00ec45        0x382 ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(channels.o)
+ .debug_info      0x001989        0xb5b build/PIC24FJ256GA702/production/src/modules/RTCC.o
+ .debug_info      0x0024e4        0xe8a build/PIC24FJ256GA702/production/src/modules/SPI1.o
+ .debug_info      0x00336e        0xd1e build/PIC24FJ256GA702/production/src/modules/UART2.o
+ .debug_info      0x00408c        0xa6f build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
+ .debug_info      0x004afb        0x9e8 build/PIC24FJ256GA702/production/src/sampling/ADA2200.o
+ .debug_info      0x0054e3        0x9a0 build/PIC24FJ256GA702/production/src/sampling/measurement.o
+ .debug_info      0x005e83       0x2483 build/PIC24FJ256GA702/production/src/sampling/acquire.o
+ .debug_info      0x008306        0x720 build/PIC24FJ256GA702/production/src/device.o
+ .debug_info      0x008a26        0x7b3 build/PIC24FJ256GA702/production/src/utils.o
+ .debug_info      0x0091d9       0x144d build/PIC24FJ256GA702/production/src/main.o
+ .debug_info      0x00a626        0x8de build/PIC24FJ256GA702/production/src/dev_config.o
+ .debug_info      0x00af04        0x39b build/PIC24FJ256GA702/production/src/daas/libdpt.o
+ .debug_info      0x00b29f       0x27bf build/PIC24FJ256GA702/production/src/dev_vamp1k.o
+ .debug_info      0x00da5e        0xb39 src\daas\libex.X.a(libex.o)
+ .debug_info      0x00e597        0x60f src\daas\libex.X.a(protocol.o)
+ .debug_info      0x00eba6        0x37e src\daas\libex.X.a(channels.o)
  *(.gnu.linkonce.wi.*)
 
-.debug_abbrev     0x000000       0x1c2e
+.debug_abbrev     0x000000       0x1bba
  *(.debug_abbrev)
  .debug_abbrev    0x000000        0x198 build/PIC24FJ256GA702/production/src/memory/DEE/dee.o
  .debug_abbrev    0x000198         0xa8 build/PIC24FJ256GA702/production/src/memory/DEE/flash.o
  .debug_abbrev    0x000240         0x14 build/PIC24FJ256GA702/production/src/memory/DEE/flash_asm.o
  .debug_abbrev    0x000254        0x1c3 build/PIC24FJ256GA702/production/src/memory/SST26VF064B.o
- .debug_abbrev    0x000417         0xd7 build/PIC24FJ256GA702/production/src/memory/libdpt.o
- .debug_abbrev    0x0004ee        0x1df build/PIC24FJ256GA702/production/src/modules/RTCC.o
- .debug_abbrev    0x0006cd        0x18b build/PIC24FJ256GA702/production/src/modules/SPI1.o
- .debug_abbrev    0x000858        0x1e5 build/PIC24FJ256GA702/production/src/modules/UART2.o
- .debug_abbrev    0x000a3d        0x1ea build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
- .debug_abbrev    0x000c27         0xfb build/PIC24FJ256GA702/production/src/sampling/ADA2200.o
- .debug_abbrev    0x000d22        0x136 build/PIC24FJ256GA702/production/src/sampling/measurement.o
- .debug_abbrev    0x000e58        0x261 build/PIC24FJ256GA702/production/src/sampling/acquire.o
- .debug_abbrev    0x0010b9        0x13a build/PIC24FJ256GA702/production/src/device.o
- .debug_abbrev    0x0011f3        0x167 build/PIC24FJ256GA702/production/src/utils.o
- .debug_abbrev    0x00135a        0x20d build/PIC24FJ256GA702/production/src/main.o
- .debug_abbrev    0x001567        0x16f build/PIC24FJ256GA702/production/src/dev_config.o
- .debug_abbrev    0x0016d6        0x1e7 build/PIC24FJ256GA702/production/src/dev_hardware.o
- .debug_abbrev    0x0018bd        0x160 ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(libex.o)
- .debug_abbrev    0x001a1d        0x125 ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(protocol.o)
- .debug_abbrev    0x001b42         0xec ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(channels.o)
+ .debug_abbrev    0x000417        0x1df build/PIC24FJ256GA702/production/src/modules/RTCC.o
+ .debug_abbrev    0x0005f6        0x18b build/PIC24FJ256GA702/production/src/modules/SPI1.o
+ .debug_abbrev    0x000781        0x1e5 build/PIC24FJ256GA702/production/src/modules/UART2.o
+ .debug_abbrev    0x000966        0x1ea build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
+ .debug_abbrev    0x000b50         0xfb build/PIC24FJ256GA702/production/src/sampling/ADA2200.o
+ .debug_abbrev    0x000c4b        0x11f build/PIC24FJ256GA702/production/src/sampling/measurement.o
+ .debug_abbrev    0x000d6a        0x261 build/PIC24FJ256GA702/production/src/sampling/acquire.o
+ .debug_abbrev    0x000fcb        0x108 build/PIC24FJ256GA702/production/src/device.o
+ .debug_abbrev    0x0010d3        0x167 build/PIC24FJ256GA702/production/src/utils.o
+ .debug_abbrev    0x00123a        0x20d build/PIC24FJ256GA702/production/src/main.o
+ .debug_abbrev    0x001447        0x126 build/PIC24FJ256GA702/production/src/dev_config.o
+ .debug_abbrev    0x00156d         0xd7 build/PIC24FJ256GA702/production/src/daas/libdpt.o
+ .debug_abbrev    0x001644        0x205 build/PIC24FJ256GA702/production/src/dev_vamp1k.o
+ .debug_abbrev    0x001849        0x160 src\daas\libex.X.a(libex.o)
+ .debug_abbrev    0x0019a9        0x125 src\daas\libex.X.a(protocol.o)
+ .debug_abbrev    0x001ace         0xec src\daas\libex.X.a(channels.o)
 
-.debug_line       0x000000       0x1f47
+.debug_line       0x000000       0x1edf
  *(.debug_line)
  .debug_line      0x000000        0x1d9 build/PIC24FJ256GA702/production/src/memory/DEE/dee.o
  .debug_line      0x0001d9         0xdc build/PIC24FJ256GA702/production/src/memory/DEE/flash.o
  .debug_line      0x0002b5        0x100 build/PIC24FJ256GA702/production/src/memory/DEE/flash_asm.o
  .debug_line      0x0003b5        0x261 build/PIC24FJ256GA702/production/src/memory/SST26VF064B.o
- .debug_line      0x000616         0xdc build/PIC24FJ256GA702/production/src/memory/libdpt.o
- .debug_line      0x0006f2        0x1c5 build/PIC24FJ256GA702/production/src/modules/RTCC.o
- .debug_line      0x0008b7        0x17f build/PIC24FJ256GA702/production/src/modules/SPI1.o
- .debug_line      0x000a36        0x1b0 build/PIC24FJ256GA702/production/src/modules/UART2.o
- .debug_line      0x000be6        0x1e7 build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
- .debug_line      0x000dcd        0x144 build/PIC24FJ256GA702/production/src/sampling/ADA2200.o
- .debug_line      0x000f11        0x188 build/PIC24FJ256GA702/production/src/sampling/measurement.o
- .debug_line      0x001099        0x2f1 build/PIC24FJ256GA702/production/src/sampling/acquire.o
- .debug_line      0x00138a        0x12e build/PIC24FJ256GA702/production/src/device.o
- .debug_line      0x0014b8        0x12a build/PIC24FJ256GA702/production/src/utils.o
- .debug_line      0x0015e2        0x208 build/PIC24FJ256GA702/production/src/main.o
- .debug_line      0x0017ea        0x1aa build/PIC24FJ256GA702/production/src/dev_config.o
- .debug_line      0x001994        0x1e8 build/PIC24FJ256GA702/production/src/dev_hardware.o
- .debug_line      0x001b7c        0x194 ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(libex.o)
- .debug_line      0x001d10        0x15c ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(protocol.o)
- .debug_line      0x001e6c         0xdb ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(channels.o)
+ .debug_line      0x000616        0x1d0 build/PIC24FJ256GA702/production/src/modules/RTCC.o
+ .debug_line      0x0007e6        0x17f build/PIC24FJ256GA702/production/src/modules/SPI1.o
+ .debug_line      0x000965        0x1b1 build/PIC24FJ256GA702/production/src/modules/UART2.o
+ .debug_line      0x000b16        0x1e7 build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
+ .debug_line      0x000cfd        0x144 build/PIC24FJ256GA702/production/src/sampling/ADA2200.o
+ .debug_line      0x000e41        0x181 build/PIC24FJ256GA702/production/src/sampling/measurement.o
+ .debug_line      0x000fc2        0x2f1 build/PIC24FJ256GA702/production/src/sampling/acquire.o
+ .debug_line      0x0012b3        0x13a build/PIC24FJ256GA702/production/src/device.o
+ .debug_line      0x0013ed        0x12a build/PIC24FJ256GA702/production/src/utils.o
+ .debug_line      0x001517        0x207 build/PIC24FJ256GA702/production/src/main.o
+ .debug_line      0x00171e        0x13b build/PIC24FJ256GA702/production/src/dev_config.o
+ .debug_line      0x001859         0xd9 build/PIC24FJ256GA702/production/src/daas/libdpt.o
+ .debug_line      0x001932        0x1e2 build/PIC24FJ256GA702/production/src/dev_vamp1k.o
+ .debug_line      0x001b14        0x194 src\daas\libex.X.a(libex.o)
+ .debug_line      0x001ca8        0x15c src\daas\libex.X.a(protocol.o)
+ .debug_line      0x001e04         0xdb src\daas\libex.X.a(channels.o)
 
-.debug_frame      0x000000       0x1656
+.debug_frame      0x000000       0x1644
  *(.debug_frame)
  .debug_frame     0x000000         0xca build/PIC24FJ256GA702/production/src/memory/DEE/dee.o
  .debug_frame     0x0000ca         0x96 build/PIC24FJ256GA702/production/src/memory/DEE/flash.o
  .debug_frame     0x000160        0x320 build/PIC24FJ256GA702/production/src/memory/SST26VF064B.o
- .debug_frame     0x000480         0x96 build/PIC24FJ256GA702/production/src/memory/libdpt.o
- .debug_frame     0x000516        0x1be build/PIC24FJ256GA702/production/src/modules/RTCC.o
- .debug_frame     0x0006d4         0xe4 build/PIC24FJ256GA702/production/src/modules/SPI1.o
- .debug_frame     0x0007b8        0x1d2 build/PIC24FJ256GA702/production/src/modules/UART2.o
- .debug_frame     0x00098a        0x1f0 build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
- .debug_frame     0x000b7a         0x96 build/PIC24FJ256GA702/production/src/sampling/ADA2200.o
- .debug_frame     0x000c10         0x86 build/PIC24FJ256GA702/production/src/sampling/measurement.o
- .debug_frame     0x000c96        0x1be build/PIC24FJ256GA702/production/src/sampling/acquire.o
- .debug_frame     0x000e54         0x48 build/PIC24FJ256GA702/production/src/device.o
- .debug_frame     0x000e9c         0xba build/PIC24FJ256GA702/production/src/utils.o
- .debug_frame     0x000f56        0x132 build/PIC24FJ256GA702/production/src/main.o
- .debug_frame     0x001088         0xd2 build/PIC24FJ256GA702/production/src/dev_config.o
- .debug_frame     0x00115a         0xe4 build/PIC24FJ256GA702/production/src/dev_hardware.o
- .debug_frame     0x00123e        0x21c ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(libex.o)
- .debug_frame     0x00145a        0x132 ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(protocol.o)
- .debug_frame     0x00158c         0xca ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(channels.o)
+ .debug_frame     0x000480        0x1a4 build/PIC24FJ256GA702/production/src/modules/RTCC.o
+ .debug_frame     0x000624         0xe4 build/PIC24FJ256GA702/production/src/modules/SPI1.o
+ .debug_frame     0x000708        0x1d2 build/PIC24FJ256GA702/production/src/modules/UART2.o
+ .debug_frame     0x0008da        0x1f0 build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
+ .debug_frame     0x000aca         0x96 build/PIC24FJ256GA702/production/src/sampling/ADA2200.o
+ .debug_frame     0x000b60         0x7c build/PIC24FJ256GA702/production/src/sampling/measurement.o
+ .debug_frame     0x000bdc        0x1be build/PIC24FJ256GA702/production/src/sampling/acquire.o
+ .debug_frame     0x000d9a         0x2e build/PIC24FJ256GA702/production/src/device.o
+ .debug_frame     0x000dc8         0xba build/PIC24FJ256GA702/production/src/utils.o
+ .debug_frame     0x000e82        0x132 build/PIC24FJ256GA702/production/src/main.o
+ .debug_frame     0x000fb4         0xe4 build/PIC24FJ256GA702/production/src/dev_config.o
+ .debug_frame     0x001098         0x96 build/PIC24FJ256GA702/production/src/daas/libdpt.o
+ .debug_frame     0x00112e         0xfe build/PIC24FJ256GA702/production/src/dev_vamp1k.o
+ .debug_frame     0x00122c        0x21c src\daas\libex.X.a(libex.o)
+ .debug_frame     0x001448        0x132 src\daas\libex.X.a(protocol.o)
+ .debug_frame     0x00157a         0xca src\daas\libex.X.a(channels.o)
 
-.debug_str        0x000000        0x624
+.debug_str        0x000000        0x610
  *(.debug_str)
  .debug_str       0x000000         0x7d build/PIC24FJ256GA702/production/src/memory/DEE/dee.o
  .debug_str       0x00007d         0x1a build/PIC24FJ256GA702/production/src/memory/DEE/flash.o
  .debug_str       0x000097         0x55 build/PIC24FJ256GA702/production/src/memory/SST26VF064B.o
- .debug_str       0x0000ec         0x1e build/PIC24FJ256GA702/production/src/memory/libdpt.o
- .debug_str       0x00010a         0x98 build/PIC24FJ256GA702/production/src/modules/RTCC.o
- .debug_str       0x0001a2         0xbd build/PIC24FJ256GA702/production/src/modules/SPI1.o
- .debug_str       0x00025f         0x39 build/PIC24FJ256GA702/production/src/modules/UART2.o
- .debug_str       0x000298         0x42 build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
- .debug_str       0x0002da         0x95 build/PIC24FJ256GA702/production/src/sampling/ADA2200.o
- .debug_str       0x00036f         0xdd build/PIC24FJ256GA702/production/src/sampling/acquire.o
- .debug_str       0x00044c         0x7d build/PIC24FJ256GA702/production/src/device.o
- .debug_str       0x0004c9         0x2d build/PIC24FJ256GA702/production/src/utils.o
- .debug_str       0x0004f6         0x2e build/PIC24FJ256GA702/production/src/main.o
- .debug_str       0x000524          0xa build/PIC24FJ256GA702/production/src/dev_config.o
- .debug_str       0x00052e         0xc4 build/PIC24FJ256GA702/production/src/dev_hardware.o
- .debug_str       0x0005f2          0xe ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(libex.o)
- .debug_str       0x000600         0x1c ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(protocol.o)
- .debug_str       0x00061c          0x8 ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(channels.o)
+ .debug_str       0x0000ec         0x98 build/PIC24FJ256GA702/production/src/modules/RTCC.o
+ .debug_str       0x000184         0xbd build/PIC24FJ256GA702/production/src/modules/SPI1.o
+ .debug_str       0x000241         0x39 build/PIC24FJ256GA702/production/src/modules/UART2.o
+ .debug_str       0x00027a         0x42 build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
+ .debug_str       0x0002bc         0x95 build/PIC24FJ256GA702/production/src/sampling/ADA2200.o
+ .debug_str       0x000351         0xdd build/PIC24FJ256GA702/production/src/sampling/acquire.o
+ .debug_str       0x00042e         0x1b build/PIC24FJ256GA702/production/src/device.o
+ .debug_str       0x000449         0x2d build/PIC24FJ256GA702/production/src/utils.o
+ .debug_str       0x000476         0x2e build/PIC24FJ256GA702/production/src/main.o
+ .debug_str       0x0004a4         0x1e build/PIC24FJ256GA702/production/src/daas/libdpt.o
+ .debug_str       0x0004c2        0x11c build/PIC24FJ256GA702/production/src/dev_vamp1k.o
+ .debug_str       0x0005de          0xe src\daas\libex.X.a(libex.o)
+ .debug_str       0x0005ec         0x1c src\daas\libex.X.a(protocol.o)
+ .debug_str       0x000608          0x8 src\daas\libex.X.a(channels.o)
 
 .debug_loc
  *(.debug_loc)
@@ -1007,7 +1009,7 @@ __FDEVOPT1
  *(.debug_macinfo)
 
 .debug_pubnames
-                  0x000000       0x11c9
+                  0x000000       0x11f0
  *(.debug_pubnames)
  .debug_pubnames
                   0x000000         0x5d build/PIC24FJ256GA702/production/src/memory/DEE/dee.o
@@ -1016,37 +1018,37 @@ __FDEVOPT1
  .debug_pubnames
                   0x0000f8        0x2a7 build/PIC24FJ256GA702/production/src/memory/SST26VF064B.o
  .debug_pubnames
-                  0x00039f         0x65 build/PIC24FJ256GA702/production/src/memory/libdpt.o
+                  0x00039f        0x106 build/PIC24FJ256GA702/production/src/modules/RTCC.o
  .debug_pubnames
-                  0x000404        0x111 build/PIC24FJ256GA702/production/src/modules/RTCC.o
+                  0x0004a5         0xbb build/PIC24FJ256GA702/production/src/modules/SPI1.o
  .debug_pubnames
-                  0x000515         0xbb build/PIC24FJ256GA702/production/src/modules/SPI1.o
+                  0x000560        0x140 build/PIC24FJ256GA702/production/src/modules/UART2.o
  .debug_pubnames
-                  0x0005d0        0x140 build/PIC24FJ256GA702/production/src/modules/UART2.o
+                  0x0006a0        0x1e2 build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
  .debug_pubnames
-                  0x000710        0x1e2 build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
+                  0x000882         0x72 build/PIC24FJ256GA702/production/src/sampling/ADA2200.o
  .debug_pubnames
-                  0x0008f2         0x72 build/PIC24FJ256GA702/production/src/sampling/ADA2200.o
+                  0x0008f4         0x67 build/PIC24FJ256GA702/production/src/sampling/measurement.o
  .debug_pubnames
-                  0x000964         0x67 build/PIC24FJ256GA702/production/src/sampling/measurement.o
+                  0x00095b        0x171 build/PIC24FJ256GA702/production/src/sampling/acquire.o
  .debug_pubnames
-                  0x0009cb        0x171 build/PIC24FJ256GA702/production/src/sampling/acquire.o
+                  0x000acc         0x27 build/PIC24FJ256GA702/production/src/device.o
  .debug_pubnames
-                  0x000b3c         0x42 build/PIC24FJ256GA702/production/src/device.o
+                  0x000af3         0x80 build/PIC24FJ256GA702/production/src/utils.o
  .debug_pubnames
-                  0x000b7e         0x80 build/PIC24FJ256GA702/production/src/utils.o
+                  0x000b73        0x140 build/PIC24FJ256GA702/production/src/main.o
  .debug_pubnames
-                  0x000bfe        0x12a build/PIC24FJ256GA702/production/src/main.o
+                  0x000cb3         0xce build/PIC24FJ256GA702/production/src/dev_config.o
  .debug_pubnames
-                  0x000d28         0xb2 build/PIC24FJ256GA702/production/src/dev_config.o
+                  0x000d81         0x65 build/PIC24FJ256GA702/production/src/daas/libdpt.o
  .debug_pubnames
-                  0x000dda         0xbd build/PIC24FJ256GA702/production/src/dev_hardware.o
+                  0x000de6         0xd8 build/PIC24FJ256GA702/production/src/dev_vamp1k.o
  .debug_pubnames
-                  0x000e97        0x1ee ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(libex.o)
+                  0x000ebe        0x1ee src\daas\libex.X.a(libex.o)
  .debug_pubnames
-                  0x001085         0xc5 ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(protocol.o)
+                  0x0010ac         0xc5 src\daas\libex.X.a(protocol.o)
  .debug_pubnames
-                  0x00114a         0x7f ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(channels.o)
+                  0x001171         0x7f src\daas\libex.X.a(channels.o)
 
 .debug_ranges
  *(.debug_ranges)
@@ -1062,37 +1064,37 @@ __FDEVOPT1
  .debug_aranges
                   0x000048         0x18 build/PIC24FJ256GA702/production/src/memory/SST26VF064B.o
  .debug_aranges
-                  0x000060         0x18 build/PIC24FJ256GA702/production/src/memory/libdpt.o
+                  0x000060         0x18 build/PIC24FJ256GA702/production/src/modules/RTCC.o
  .debug_aranges
-                  0x000078         0x18 build/PIC24FJ256GA702/production/src/modules/RTCC.o
+                  0x000078         0x18 build/PIC24FJ256GA702/production/src/modules/SPI1.o
  .debug_aranges
-                  0x000090         0x18 build/PIC24FJ256GA702/production/src/modules/SPI1.o
+                  0x000090         0x20 build/PIC24FJ256GA702/production/src/modules/UART2.o
  .debug_aranges
-                  0x0000a8         0x20 build/PIC24FJ256GA702/production/src/modules/UART2.o
+                  0x0000b0         0x18 build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
  .debug_aranges
-                  0x0000c8         0x18 build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
+                  0x0000c8         0x18 build/PIC24FJ256GA702/production/src/sampling/ADA2200.o
  .debug_aranges
-                  0x0000e0         0x18 build/PIC24FJ256GA702/production/src/sampling/ADA2200.o
+                  0x0000e0         0x18 build/PIC24FJ256GA702/production/src/sampling/measurement.o
  .debug_aranges
-                  0x0000f8         0x18 build/PIC24FJ256GA702/production/src/sampling/measurement.o
+                  0x0000f8         0x18 build/PIC24FJ256GA702/production/src/sampling/acquire.o
  .debug_aranges
-                  0x000110         0x18 build/PIC24FJ256GA702/production/src/sampling/acquire.o
+                  0x000110         0x18 build/PIC24FJ256GA702/production/src/device.o
  .debug_aranges
-                  0x000128         0x18 build/PIC24FJ256GA702/production/src/device.o
+                  0x000128         0x18 build/PIC24FJ256GA702/production/src/utils.o
  .debug_aranges
-                  0x000140         0x18 build/PIC24FJ256GA702/production/src/utils.o
+                  0x000140         0x18 build/PIC24FJ256GA702/production/src/main.o
  .debug_aranges
-                  0x000158         0x18 build/PIC24FJ256GA702/production/src/main.o
+                  0x000158         0x18 build/PIC24FJ256GA702/production/src/dev_config.o
  .debug_aranges
-                  0x000170         0x18 build/PIC24FJ256GA702/production/src/dev_config.o
+                  0x000170         0x18 build/PIC24FJ256GA702/production/src/daas/libdpt.o
  .debug_aranges
-                  0x000188         0x18 build/PIC24FJ256GA702/production/src/dev_hardware.o
+                  0x000188         0x18 build/PIC24FJ256GA702/production/src/dev_vamp1k.o
  .debug_aranges
-                  0x0001a0         0x18 ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(libex.o)
+                  0x0001a0         0x18 src\daas\libex.X.a(libex.o)
  .debug_aranges
-                  0x0001b8         0x18 ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(protocol.o)
+                  0x0001b8         0x18 src\daas\libex.X.a(protocol.o)
  .debug_aranges
-                  0x0001d0         0x18 ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(channels.o)
+                  0x0001d0         0x18 src\daas\libex.X.a(channels.o)
                     0x0000                  WREG0 = 0x0
                     0x0000                  _WREG0 = 0x0
                     0x0002                  WREG1 = 0x2
@@ -2435,7 +2437,7 @@ LOAD default_isr
 LOAD data_init
 
 .debug_pubtypes
-                  0x0001e8       0x1087
+                  0x0001e8       0x103d
  .debug_pubtypes
                   0x0001e8         0x60 build/PIC24FJ256GA702/production/src/memory/DEE/dee.o
  .debug_pubtypes
@@ -2443,180 +2445,182 @@ LOAD data_init
  .debug_pubtypes
                   0x000295         0x74 build/PIC24FJ256GA702/production/src/memory/SST26VF064B.o
  .debug_pubtypes
-                  0x000309         0x38 build/PIC24FJ256GA702/production/src/memory/libdpt.o
+                  0x000309        0x108 build/PIC24FJ256GA702/production/src/modules/RTCC.o
  .debug_pubtypes
-                  0x000341        0x108 build/PIC24FJ256GA702/production/src/modules/RTCC.o
+                  0x000411        0x124 build/PIC24FJ256GA702/production/src/modules/SPI1.o
  .debug_pubtypes
-                  0x000449        0x124 build/PIC24FJ256GA702/production/src/modules/SPI1.o
+                  0x000535         0xc2 build/PIC24FJ256GA702/production/src/modules/UART2.o
  .debug_pubtypes
-                  0x00056d         0xc2 build/PIC24FJ256GA702/production/src/modules/UART2.o
+                  0x0005f7         0x84 build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
  .debug_pubtypes
-                  0x00062f         0x84 build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
+                  0x00067b         0xbd build/PIC24FJ256GA702/production/src/sampling/ADA2200.o
  .debug_pubtypes
-                  0x0006b3         0xbd build/PIC24FJ256GA702/production/src/sampling/ADA2200.o
+                  0x000738         0xd5 build/PIC24FJ256GA702/production/src/sampling/measurement.o
  .debug_pubtypes
-                  0x000770         0xd5 build/PIC24FJ256GA702/production/src/sampling/measurement.o
+                  0x00080d        0x235 build/PIC24FJ256GA702/production/src/sampling/acquire.o
  .debug_pubtypes
-                  0x000845        0x235 build/PIC24FJ256GA702/production/src/sampling/acquire.o
+                  0x000a42         0x85 build/PIC24FJ256GA702/production/src/device.o
  .debug_pubtypes
-                  0x000a7a        0x152 build/PIC24FJ256GA702/production/src/device.o
+                  0x000ac7         0x78 build/PIC24FJ256GA702/production/src/utils.o
  .debug_pubtypes
-                  0x000bcc         0x78 build/PIC24FJ256GA702/production/src/utils.o
+                  0x000b3f        0x198 build/PIC24FJ256GA702/production/src/main.o
  .debug_pubtypes
-                  0x000c44        0x198 build/PIC24FJ256GA702/production/src/main.o
+                  0x000cd7         0xb2 build/PIC24FJ256GA702/production/src/dev_config.o
  .debug_pubtypes
-                  0x000ddc         0xd1 build/PIC24FJ256GA702/production/src/dev_config.o
+                  0x000d89         0x38 build/PIC24FJ256GA702/production/src/daas/libdpt.o
  .debug_pubtypes
-                  0x000ead        0x2d6 build/PIC24FJ256GA702/production/src/dev_hardware.o
+                  0x000dc1        0x378 build/PIC24FJ256GA702/production/src/dev_vamp1k.o
  .debug_pubtypes
-                  0x001183         0x5e ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(libex.o)
+                  0x001139         0x5e src\daas\libex.X.a(libex.o)
  .debug_pubtypes
-                  0x0011e1         0x48 ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(protocol.o)
+                  0x001197         0x48 src\daas\libex.X.a(protocol.o)
  .debug_pubtypes
-                  0x001229         0x46 ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(channels.o)
+                  0x0011df         0x46 src\daas\libex.X.a(channels.o)
 
 __c30_signature
-                  0x00126f        0x10e
+                  0x001225        0x10e
  __c30_signature
-                  0x00126f          0x6 build/PIC24FJ256GA702/production/src/memory/DEE/dee.o
+                  0x001225          0x6 build/PIC24FJ256GA702/production/src/memory/DEE/dee.o
  __c30_signature
-                  0x001275          0x6 build/PIC24FJ256GA702/production/src/memory/DEE/flash.o
+                  0x00122b          0x6 build/PIC24FJ256GA702/production/src/memory/DEE/flash.o
  __c30_signature
-                  0x00127b          0x6 build/PIC24FJ256GA702/production/src/memory/SST26VF064B.o
+                  0x001231          0x6 build/PIC24FJ256GA702/production/src/memory/SST26VF064B.o
  __c30_signature
-                  0x001281          0x6 build/PIC24FJ256GA702/production/src/memory/libdpt.o
+                  0x001237          0x6 build/PIC24FJ256GA702/production/src/modules/RTCC.o
  __c30_signature
-                  0x001287          0x6 build/PIC24FJ256GA702/production/src/modules/RTCC.o
+                  0x00123d          0x6 build/PIC24FJ256GA702/production/src/modules/SPI1.o
  __c30_signature
-                  0x00128d          0x6 build/PIC24FJ256GA702/production/src/modules/SPI1.o
+                  0x001243          0x6 build/PIC24FJ256GA702/production/src/modules/UART2.o
  __c30_signature
-                  0x001293          0x6 build/PIC24FJ256GA702/production/src/modules/UART2.o
+                  0x001249          0x6 build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
  __c30_signature
-                  0x001299          0x6 build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
+                  0x00124f          0x6 build/PIC24FJ256GA702/production/src/sampling/ADA2200.o
  __c30_signature
-                  0x00129f          0x6 build/PIC24FJ256GA702/production/src/sampling/ADA2200.o
+                  0x001255          0x6 build/PIC24FJ256GA702/production/src/sampling/measurement.o
  __c30_signature
-                  0x0012a5          0x6 build/PIC24FJ256GA702/production/src/sampling/measurement.o
+                  0x00125b          0x6 build/PIC24FJ256GA702/production/src/sampling/acquire.o
  __c30_signature
-                  0x0012ab          0x6 build/PIC24FJ256GA702/production/src/sampling/acquire.o
+                  0x001261          0x6 build/PIC24FJ256GA702/production/src/device.o
  __c30_signature
-                  0x0012b1          0x6 build/PIC24FJ256GA702/production/src/device.o
+                  0x001267          0x6 build/PIC24FJ256GA702/production/src/utils.o
  __c30_signature
-                  0x0012b7          0x6 build/PIC24FJ256GA702/production/src/utils.o
+                  0x00126d          0x6 build/PIC24FJ256GA702/production/src/main.o
  __c30_signature
-                  0x0012bd          0x6 build/PIC24FJ256GA702/production/src/main.o
+                  0x001273          0x6 build/PIC24FJ256GA702/production/src/dev_config.o
  __c30_signature
-                  0x0012c3          0x6 build/PIC24FJ256GA702/production/src/dev_config.o
+                  0x001279          0x6 build/PIC24FJ256GA702/production/src/daas/libdpt.o
  __c30_signature
-                  0x0012c9          0x6 build/PIC24FJ256GA702/production/src/dev_hardware.o
+                  0x00127f          0x6 build/PIC24FJ256GA702/production/src/dev_vamp1k.o
  __c30_signature
-                  0x0012cf          0x6 src\daas\libfft.X.a(libfft.o)
+                  0x001285          0x6 src\daas\libfft.X.a(libfft.o)
  __c30_signature
-                  0x0012d5          0x6 ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(libex.o)
+                  0x00128b          0x6 src\daas\libex.X.a(libex.o)
  __c30_signature
-                  0x0012db          0x6 ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(protocol.o)
+                  0x001291          0x6 src\daas\libex.X.a(protocol.o)
  __c30_signature
-                  0x0012e1          0x6 ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(channels.o)
+                  0x001297          0x6 src\daas\libex.X.a(channels.o)
  __c30_signature
-                  0x0012e7          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\liblega-pic30-elf.a(crt0_extended24.o)
+                  0x00129d          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\liblega-pic30-elf.a(crt0_extended24.o)
  __c30_signature
-                  0x0012ed          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\liblega-pic30-elf.a(data_init_24.o)
+                  0x0012a3          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\liblega-pic30-elf.a(data_init_24.o)
  __c30_signature
-                  0x0012f3          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\liblega-pic30-elf.a(delay32da.Leo)
+                  0x0012a9          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\liblega-pic30-elf.a(delay32da.Leo)
  __c30_signature
-                  0x0012f9          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(addsf3.daeo)
+                  0x0012af          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(addsf3.daeo)
  __c30_signature
-                  0x0012ff          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(divsf3.daeo)
+                  0x0012b5          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(divsf3.daeo)
  __c30_signature
-                  0x001305          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(feqltle.daeo)
+                  0x0012bb          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(feqltle.daeo)
  __c30_signature
-                  0x00130b          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(fixsfsi.daeo)
+                  0x0012c1          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(fixsfsi.daeo)
  __c30_signature
-                  0x001311          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(floatsisf.daeo)
+                  0x0012c7          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(floatsisf.daeo)
  __c30_signature
-                  0x001317          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(floatunsisf.daeo)
+                  0x0012cd          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(floatunsisf.daeo)
  __c30_signature
-                  0x00131d          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(fpack.daeo)
+                  0x0012d3          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(fpack.daeo)
  __c30_signature
-                  0x001323          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(funpack.daeo)
+                  0x0012d9          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(funpack.daeo)
  __c30_signature
-                  0x001329          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(funpack2.daeo)
+                  0x0012df          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(funpack2.daeo)
  __c30_signature
-                  0x00132f          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(futil.daeo)
+                  0x0012e5          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(futil.daeo)
  __c30_signature
-                  0x001335          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(mulsf3.daeo)
+                  0x0012eb          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(mulsf3.daeo)
  __c30_signature
-                  0x00133b          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(sinf.daeo)
+                  0x0012f1          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(sinf.daeo)
  __c30_signature
-                  0x001341          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(udivsi3.daeo)
+                  0x0012f7          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(udivsi3.daeo)
  __c30_signature
-                  0x001347          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(fcompare.daeo)
+                  0x0012fd          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(fcompare.daeo)
  __c30_signature
-                  0x00134d          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(floatdisf.daeo)
+                  0x001303          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(floatdisf.daeo)
  __c30_signature
-                  0x001353          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(floatundisf.daeo)
+                  0x001309          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(floatundisf.daeo)
  __c30_signature
-                  0x001359          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(sincosf.daeo)
+                  0x00130f          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(sincosf.daeo)
  __c30_signature
-                  0x00135f          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(errno.daeo)
+                  0x001315          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(errno.daeo)
  __c30_signature
-                  0x001365          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(fmodf.daeo)
+                  0x00131b          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(fmodf.daeo)
  __c30_signature
-                  0x00136b          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(fmodrem.daeo)
+                  0x001321          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(fmodrem.daeo)
  __c30_signature
-                  0x001371          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\liblega-c-elf.a(memcpy.DA_eo)
+                  0x001327          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\liblega-c-elf.a(memcpy.DA_eo)
  __c30_signature
-                  0x001377          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\liblega-c-elf.a(memset.DA_eo)
+                  0x00132d          0x6 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\liblega-c-elf.a(memset.DA_eo)
 
-.nbss               0x0800         0x62
+.nbss               0x0800         0x66
  .nbss              0x0800         0x16 build/PIC24FJ256GA702/production/src/sampling/acquire.o
                     0x0800                  __adcReady
                     0x0801                  __cycletime
                     0x080a                  __icycle
                     0x080c                  __wsready
- .nbss              0x0816         0x10 ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(libex.o)
+ .nbss              0x0816         0x10 src\daas\libex.X.a(libex.o)
  .nbss              0x0826          0xc build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
                     0x082e                  _rxSize
                     0x0830                  _rxCount
  .nbss              0x0832          0xa build/PIC24FJ256GA702/production/src/modules/UART2.o
- .nbss              0x083c          0xa ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(channels.o)
- .nbss              0x0846          0x4 build/PIC24FJ256GA702/production/src/utils.o
-                    0x0848                  _Timeout_CallBack
- .nbss              0x084a          0x4 build/PIC24FJ256GA702/production/src/dev_config.o
- .nbss              0x084e          0x4 src\daas\libfft.X.a(libfft.o)
- .nbss              0x0852          0x4 ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(protocol.o)
-                    0x0854                  _g_nrPacket
- .nbss              0x0856          0x2 build/PIC24FJ256GA702/production/src/memory/DEE/dee.o
-                    0x0856                  _dataEEFlags
- .nbss              0x0858          0x2 build/PIC24FJ256GA702/production/src/memory/SST26VF064B.o
- .nbss              0x085a          0x2 build/PIC24FJ256GA702/production/src/modules/RTCC.o
-                    0x085a                  _RTCC_CallBack
- .nbss              0x085c          0x2 build/PIC24FJ256GA702/production/src/modules/SPI1.o
- .nbss              0x085e          0x2 build/PIC24FJ256GA702/production/src/dev_hardware.o
- .nbss              0x0860          0x2 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(errno.daeo)
-                    0x0860                  _errno
+ .nbss              0x083c          0xa src\daas\libex.X.a(channels.o)
+ .nbss              0x0846          0x8 build/PIC24FJ256GA702/production/src/main.o
+                    0x0846                  _lstime
+                    0x084a                  _DSTIME
+ .nbss              0x084e          0x4 build/PIC24FJ256GA702/production/src/utils.o
+                    0x0850                  _Timeout_CallBack
+ .nbss              0x0852          0x4 src\daas\libfft.X.a(libfft.o)
+ .nbss              0x0856          0x4 src\daas\libex.X.a(protocol.o)
+                    0x0858                  _g_nrPacket
+ .nbss              0x085a          0x2 build/PIC24FJ256GA702/production/src/memory/DEE/dee.o
+                    0x085a                  _dataEEFlags
+ .nbss              0x085c          0x2 build/PIC24FJ256GA702/production/src/memory/SST26VF064B.o
+ .nbss              0x085e          0x2 build/PIC24FJ256GA702/production/src/modules/RTCC.o
+                    0x085e                  _RTCC_CallBack
+ .nbss              0x0860          0x2 build/PIC24FJ256GA702/production/src/modules/SPI1.o
+ .nbss              0x0862          0x2 build/PIC24FJ256GA702/production/src/device.o
+ .nbss              0x0864          0x2 c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\libm-elf.a(errno.daeo)
+                    0x0864                  _errno
 
-.bss                0x0862       0x3224
- .bss               0x0862       0x208a build/PIC24FJ256GA702/production/src/main.o
-                    0x0862                  _device
-                    0x08e0                  _SSBUF
-                    0x28e0                  _lmeas
- .bss               0x28ec       0x1000 src\daas\libfft.X.a(libfft.o)
- .bss               0x38ec         0x8a build/PIC24FJ256GA702/production/src/modules/UART2.o
- .bss               0x3976         0x82 build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
-                    0x3976                  _rxBuf
- .bss               0x39f8         0x80 ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(protocol.o)
- .bss               0x3a78          0x8 build/PIC24FJ256GA702/production/src/modules/RTCC.o
- .bss               0x3a80          0x6 build/PIC24FJ256GA702/production/src/sampling/acquire.o
-                    0x3a80                  __wsptime
+.bss                0x0866       0x3224
+ .bss               0x0866       0x208a build/PIC24FJ256GA702/production/src/main.o
+                    0x0866                  _device
+                    0x08e4                  _SSBUF
+                    0x28e4                  _lmeas
+ .bss               0x28f0       0x1000 src\daas\libfft.X.a(libfft.o)
+ .bss               0x38f0         0x8a build/PIC24FJ256GA702/production/src/modules/UART2.o
+ .bss               0x397a         0x82 build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
+                    0x397a                  _rxBuf
+ .bss               0x39fc         0x80 src\daas\libex.X.a(protocol.o)
+ .bss               0x3a7c          0x8 build/PIC24FJ256GA702/production/src/modules/RTCC.o
+ .bss               0x3a84          0x6 build/PIC24FJ256GA702/production/src/sampling/acquire.o
+                    0x3a84                  __wsptime
 
-.data               0x3a86          0x4
- .data              0x3a86          0x4 build/PIC24FJ256GA702/production/src/memory/DEE/flash_asm.o
-                    0x3a86                  _FlashKey
+.data               0x3a8a          0x4
+ .data              0x3a8a          0x4 build/PIC24FJ256GA702/production/src/memory/DEE/flash_asm.o
+                    0x3a8a                  _FlashKey
 
-_000000000567CC80_at_address_0000000000004000
+_00000000056BDC80_at_address_0000000000004000
                     0xc000       0x4000 load address 0x004000  
- _000000000567CC80_at_address_0000000000004000
+ _00000000056BDC80_at_address_0000000000004000
                     0xc000       0x4000 build/PIC24FJ256GA702/production/src/memory/DEE/dee.o
                     0xc000                  _emulationPages
 
@@ -2679,14 +2683,14 @@ _000000000567CC80_at_address_0000000000004000
 .ivt._INT0Interrupt
                   0x000014          0x2
  .ivt._INT0Interrupt
-                  0x000014          0x2 build/PIC24FJ256GA702/production/src/dev_hardware.o
+                  0x000014          0x2 build/PIC24FJ256GA702/production/src/dev_vamp1k.o
 
 .const              0x8864          0xa load address 0x000864  
  .const             0x8864          0xa build/PIC24FJ256GA702/production/src/sampling/acquire.o
                     0x8864                  _ADC_T
                     0x8868                  Pi::Pi(void)
 
-.text             0x00086e       0x355a
+.text             0x00086e       0x352a
  .text            0x00086e        0x964 build/PIC24FJ256GA702/production/src/memory/DEE/dee.o
                   0x00086e                  _DEE_Init
                   0x0009da                  _DEE_Read
@@ -2706,219 +2710,219 @@ _000000000567CC80_at_address_0000000000004000
                   0x001964                  _acquireET
                   0x001a00                  _everySecond
                   0x001a28                  _acquireWS
- .text            0x001aaa        0x652 build/PIC24FJ256GA702/production/src/modules/RTCC.o
+ .text            0x001aaa        0x6a0 build/PIC24FJ256GA702/production/src/modules/RTCC.o
                   0x001aaa                  _RTCC_SetCallBack
                   0x001aca                  _RTCC_Enable
                   0x001af4                  _RTCC_AlarmSet
                   0x001c2c                  _RTCC_AlarmUnset
                   0x001c42                  _RTCC_Grab
-                  0x001c64                  _RTCC_2LTime
-                  0x001df4                  _RTCC_GetTime
-                  0x001e02                  _RTCC_SetTime
-                  0x001f28                  _L2Time
-                  0x001fd2                  _Time2L
-                  0x001fde                  _RTCC_GetTimeL
-                  0x0020da                  _RTCC_GetMinutes
-                  0x0020f4                  _RTCC_SetWakeup
- .text            0x0020fc        0x63e build/PIC24FJ256GA702/production/src/memory/SST26VF064B.o
-                  0x0020fc                  _SST26_Enable
-                  0x00210e                  _SST26_Disable
-                  0x00211e                  _SST26_Switch_Power
-                  0x00212c                  _SST26_Read_Status
-                  0x002146                  _SST26_Read_Configuration
-                  0x002160                  _SST26_Write_Status_Register
-                  0x002186                  _SST26_Wait_Busy
-                  0x0021b4                  _SST26_ResetEn
-                  0x0021c2                  _SST26_Reset
-                  0x0021d2                  _SST26_NoOp
-                  0x0021e0                  _SST26_Erase_Chip
-                  0x0021ee                  _SST26_Erase_Sector
-                  0x002288                  _SST26_Erase_Block
-                  0x0022f2                  _SST26_WREN
-                  0x002300                  _SST26_WRDI
-                  0x00230e                  _SST26_Write_Suspend
-                  0x00231c                  _SST26_Write_Resume
-                  0x00232a                  _SST26_Write
-                  0x0023f4                  _SST26_Read
-                  0x00244e                  _SST26_HSRead
-                  0x0024e4                  _SST26_ReadSID
-                  0x00255a                  _SST26_ProgSID
-                  0x0025c8                  _SST26_LockSID
-                  0x0025d8                  _SST26_Global_Protection_Unlock
-                  0x0025e8                  _SST26_LockBlockProtection
-                  0x0025f6                  _SST26_ReadBlockProtection
-                  0x002628                  _SST26_WriteBlockProtection
-                  0x002658                  _SST26_NonVolWriteLockProtection
-                  0x002688                  _SST26_SFDP_Read
-                  0x002708                  _SST26_Jedec_ID_Read
- .text            0x00273a        0x5ee ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(libex.o)
-                  0x00273a                  _Exchange_SetDriverPtr
-                  0x002746                  _Exchange_Initialize
-                  0x00277c                  _Exchange_isConnected
-                  0x00278e                  _Exchange_Disconnect
-                  0x00279a                  _Exchange_Connect
-                  0x0028ae                  _sendDeviceState
-                  0x002916                  _sendDeviceConfig
-                  0x002976                  _sendAvailableMeasurement
-                  0x0029be                  _sendMeasurement
-                  0x002b58                  _sendKeepAlive
-                  0x002b66                  _Exchange_SendResponse
-                  0x002b76                  _Exchange_commandsHandler
- .text            0x002d28        0x524 build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
-                  0x002d28                  _MRF24J40_Enable
-                  0x002e9c                  _MRF24J40_Disable
-                  0x002eb8                  _MRF24J40_setPanId
-                  0x002eda                  _MRF24J40_setAddress
-                  0x002efc                  _MRF24J40_setChannel
-                  0x002f5c                  _MRF24J40_reset
-                  0x002f68                  _MRF24J40_getSignalStrength
-                  0x002f82                  _MRF24J40_rxFlush
-                  0x002f8e                  _MRF24J40_TxBuffer
-                  0x003084                  _MRF24J40_RxBuffer
-                  0x0030ca                  _MRF24J40_IsRxReady
-                  0x0030de                  _MRF24J40_transmissionDone
-                  0x0030f6                  _MRF24J40_transmissionSuccess
-                  0x00310e                  _MRF24J40_receivePacket
-                  0x003180                  _MRF24J40_writeShort
-                  0x0031a8                  _MRF24J40_readShort
-                  0x0031e4                  _MRF24J40_writeLong
-                  0x003214                  _MRF24J40_readLong
- .text            0x00324c        0x464 ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(protocol.o)
-                  0x00324c                  _getShort
-                  0x003264                  _setShort
-                  0x003282                  _setLong
-                  0x0032fc                  _calculateLRC
-                  0x00332e                  _sendAck
-                  0x003340                  _sendNack
-                  0x003352                  _waitAck
-                  0x0033a4                  _ptrSendData
-                  0x0033ac                  _ptrReceiveData
-                  0x0033ba                  _protocolSend
-                  0x003470                  _protocolReceive
- .text            0x0036b0        0x412 build/PIC24FJ256GA702/production/src/sampling/measurement.o
-                  0x0036b0                  _measurementAcquire
-                  0x003a2e                  _measurementSave
-                  0x003a62                  _measurementLoad
-                  0x003a98                  _measurementDelete
- .text            0x003ac2        0x306 build/PIC24FJ256GA702/production/src/main.o
-                  0x003ac2                  _main
-                  0x003c80                  _cb_GetDateTime
-                  0x003c98                  _cb_SetDateTime
-                  0x003cfe                  _cb_GetDeviceState
-                  0x003d1a                  _cb_GetDeviceConfigCRC16
-                  0x003d2a                  _cb_SetDeviceConfig
-                  0x003d3c                  _cb_GetDeviceConfigPtr
-                  0x003d50                  _cb_GetMeasurementCounter
-                  0x003d60                  _cb_GetMeasurement
-                  0x003d98                  _cb_GetMeasurementBlock
-                  0x003dbc                  _cb_DeleteMeasurement
+                  0x001c64                  _RTCC_Time2L
+                  0x001df4                  _L2Time
+                  0x001e9e                  _RTCC_GetTime
+                  0x001ea8                  _RTCC_GetTimeL
+                  0x001fa4                  _RTCC_SetTime
+                  0x0020ca                  _RTCC_GetMinutes
+                  0x0020e4                  _RTCC_SetWakeup
+ .text            0x00214a        0x63e build/PIC24FJ256GA702/production/src/memory/SST26VF064B.o
+                  0x00214a                  _SST26_Enable
+                  0x00215c                  _SST26_Disable
+                  0x00216c                  _SST26_Switch_Power
+                  0x00217a                  _SST26_Read_Status
+                  0x002194                  _SST26_Read_Configuration
+                  0x0021ae                  _SST26_Write_Status_Register
+                  0x0021d4                  _SST26_Wait_Busy
+                  0x002202                  _SST26_ResetEn
+                  0x002210                  _SST26_Reset
+                  0x002220                  _SST26_NoOp
+                  0x00222e                  _SST26_Erase_Chip
+                  0x00223c                  _SST26_Erase_Sector
+                  0x0022d6                  _SST26_Erase_Block
+                  0x002340                  _SST26_WREN
+                  0x00234e                  _SST26_WRDI
+                  0x00235c                  _SST26_Write_Suspend
+                  0x00236a                  _SST26_Write_Resume
+                  0x002378                  _SST26_Write
+                  0x002442                  _SST26_Read
+                  0x00249c                  _SST26_HSRead
+                  0x002532                  _SST26_ReadSID
+                  0x0025a8                  _SST26_ProgSID
+                  0x002616                  _SST26_LockSID
+                  0x002626                  _SST26_Global_Protection_Unlock
+                  0x002636                  _SST26_LockBlockProtection
+                  0x002644                  _SST26_ReadBlockProtection
+                  0x002676                  _SST26_WriteBlockProtection
+                  0x0026a6                  _SST26_NonVolWriteLockProtection
+                  0x0026d6                  _SST26_SFDP_Read
+                  0x002756                  _SST26_Jedec_ID_Read
+ .text            0x002788        0x5ee src\daas\libex.X.a(libex.o)
+                  0x002788                  _Exchange_SetDriverPtr
+                  0x002794                  _Exchange_Initialize
+                  0x0027ca                  _Exchange_isConnected
+                  0x0027dc                  _Exchange_Disconnect
+                  0x0027e8                  _Exchange_Connect
+                  0x0028fc                  _sendDeviceState
+                  0x002964                  _sendDeviceConfig
+                  0x0029c4                  _sendAvailableMeasurement
+                  0x002a0c                  _sendMeasurement
+                  0x002ba6                  _sendKeepAlive
+                  0x002bb4                  _Exchange_SendResponse
+                  0x002bc4                  _Exchange_commandsHandler
+ .text            0x002d76        0x524 build/PIC24FJ256GA702/production/src/modules/MRF24J40.o
+                  0x002d76                  _MRF24J40_Enable
+                  0x002eea                  _MRF24J40_Disable
+                  0x002f06                  _MRF24J40_setPanId
+                  0x002f28                  _MRF24J40_setAddress
+                  0x002f4a                  _MRF24J40_setChannel
+                  0x002faa                  _MRF24J40_reset
+                  0x002fb6                  _MRF24J40_getSignalStrength
+                  0x002fd0                  _MRF24J40_rxFlush
+                  0x002fdc                  _MRF24J40_TxBuffer
+                  0x0030d2                  _MRF24J40_RxBuffer
+                  0x003118                  _MRF24J40_IsRxReady
+                  0x00312c                  _MRF24J40_transmissionDone
+                  0x003144                  _MRF24J40_transmissionSuccess
+                  0x00315c                  _MRF24J40_receivePacket
+                  0x0031ce                  _MRF24J40_writeShort
+                  0x0031f6                  _MRF24J40_readShort
+                  0x003232                  _MRF24J40_writeLong
+                  0x003262                  _MRF24J40_readLong
+ .text            0x00329a        0x464 src\daas\libex.X.a(protocol.o)
+                  0x00329a                  _getShort
+                  0x0032b2                  _setShort
+                  0x0032d0                  _setLong
+                  0x00334a                  _calculateLRC
+                  0x00337c                  _sendAck
+                  0x00338e                  _sendNack
+                  0x0033a0                  _waitAck
+                  0x0033f2                  _ptrSendData
+                  0x0033fa                  _ptrReceiveData
+                  0x003408                  _protocolSend
+                  0x0034be                  _protocolReceive
+ .text            0x0036fe        0x3a0 build/PIC24FJ256GA702/production/src/sampling/measurement.o
+                  0x0036fe                  _measurementAcquire
+                  0x003a0a                  _measurementSave
+                  0x003a3e                  _measurementLoad
+                  0x003a74                  _measurementDelete
+ .text            0x003a9e        0x2fa build/PIC24FJ256GA702/production/src/dev_vamp1k.o
+                  0x003a9e                  _Device_SwitchClock
+                  0x003b0c                  _Device_SysBoot
+                  0x003bd6                  _Device_SysDefault
+                  0x003c00                  _Device_SysExchange
+                  0x003c22                  _Device_SysSleep
+                  0x003c50                  _Device_CheckHwReset
+                  0x003c6e                  _Device_SwitchADG
+                  0x003ce0                  _Device_GetBatteryLevel
 
-.text             0x008000        0x70a
- .text            0x008000        0x284 build/PIC24FJ256GA702/production/src/dev_hardware.o
-                  0x008000                  _Device_SwitchClock
-                  0x00806e                  _Device_SysBoot
-                  0x00815c                  _Device_SysDefault
-                  0x008186                  _Device_SysExchange
-                  0x0081a8                  _Device_SysSleep
-                  0x0081d6                  _Device_SwitchSys
-                  0x008266                  _Device_CheckHwReset
- .text            0x008284        0x244 build/PIC24FJ256GA702/production/src/modules/UART2.o
-                  0x008284                  _UART2_Enable
-                  0x0082b2                  _UART2_Disable
-                  0x0082bc                  _UART2_Transmit_CallBack
-                  0x0082c2                  _UART2_Receive_CallBack
-                  0x0082c8                  _UART2_Read
-                  0x0082f4                  _UART2_Write
-                  0x00831e                  _UART2_IsRxReady
-                  0x008334                  _UART2_IsTxReady
-                  0x008368                  _UART2_IsTxDone
-                  0x00838a                  _UART2_RxBuffer
-                  0x008420                  _UART2_TxBuffer
-                  0x008450                  _UART2_Flush
- .text            0x0084c8        0x242 src\daas\libfft.X.a(libfft.o)
-                  0x0084c8                  _fft_init
-                  0x00853c                  _fft_windowing
-                  0x00854c                  _fft_window
-                  0x00856e                  _fft_fix
-                  0x0086a4                  _fft_spectrum
+.text             0x008000        0x2d8
+ .text            0x008000        0x2d8 build/PIC24FJ256GA702/production/src/main.o
+                  0x008000                  _main
+                  0x00817c                  _cb_GetDateTime
+                  0x008194                  _cb_SetDateTime
+                  0x008200                  _cb_GetDeviceState
+                  0x00821c                  _cb_GetDeviceConfigCRC16
+                  0x00822c                  _cb_SetDeviceConfig
+                  0x00824a                  _cb_GetDeviceConfigPtr
+                  0x00825e                  _cb_GetMeasurementCounter
+                  0x00826e                  _cb_GetMeasurement
+                  0x0082a8                  _cb_GetMeasurementBlock
+                  0x0082cc                  _cb_DeleteMeasurement
 
-.text             0x003dc8        0x218
- .text            0x003dc8        0x218 build/PIC24FJ256GA702/production/src/dev_config.o
-                  0x003dc8                  _computeCRC16
-                  0x003e36                  _Device_StatusRefresh
-                  0x003e6e                  _Device_StatusRead
-                  0x003ea6                  _Device_SetLockSKEY
-                  0x003eae                  _Device_ConfigWrite
-                  0x003f10                  _Device_ConfigDefaultSet
-                  0x003f80                  _Device_ConfigRead
+.text             0x003d98        0x246
+ .text            0x003d98        0x246 build/PIC24FJ256GA702/production/src/modules/UART2.o
+                  0x003d98                  _UART2_Enable
+                  0x003dc8                  _UART2_Disable
+                  0x003dd2                  _UART2_Transmit_CallBack
+                  0x003dd8                  _UART2_Receive_CallBack
+                  0x003dde                  _UART2_Read
+                  0x003e0a                  _UART2_Write
+                  0x003e34                  _UART2_IsRxReady
+                  0x003e4a                  _UART2_IsTxReady
+                  0x003e7e                  _UART2_IsTxDone
+                  0x003ea0                  _UART2_RxBuffer
+                  0x003f36                  _UART2_TxBuffer
+                  0x003f66                  _UART2_Flush
 
-.text             0x00870a        0x534
- .text            0x00870a        0x1de build/PIC24FJ256GA702/production/src/modules/SPI1.o
-                  0x00870a                  _SPI1_Enable
-                  0x008786                  _SPI1_Disable
-                  0x008792                  _SPI1_Exchange
-                  0x0087c2                  _SPI1_ExchangeBuffer
-                  0x0088a6                  _SPI1_Exchange8bit
-                  0x0088b6                  _SPI1_Exchange8bitBuffer
-                  0x0088ca                  _SPI1_TransferModeGet
-                  0x0088e0                  _SPI1_StatusGet
- .text            0x0088e8        0x1dc build/PIC24FJ256GA702/production/src/memory/libdpt.o
-                  0x0088e8                  _depotDefaultSet
-                  0x00890a                  _depotFreeSpaceKb
-                  0x00892c                  _depotPush
-                  0x0089ec                  _depotPull
-                  0x008a42                  _depotDrop
- .text            0x008ac4        0x17a build/PIC24FJ256GA702/production/src/sampling/ADA2200.o
-                  0x008ac4                  _ADA2200_EnableSPI1
-                  0x008b02                  _ADA_SetReg8
-                  0x008bd8                  _ADA2200_Enable
-                  0x008c16                  _ADA2200_Synco
-                  0x008c34                  _ADA2200_Disable
+.text             0x0082d8        0x944
+ .text            0x0082d8        0x242 src\daas\libfft.X.a(libfft.o)
+                  0x0082d8                  _fft_init
+                  0x00834c                  _fft_windowing
+                  0x00835c                  _fft_window
+                  0x00837e                  _fft_fix
+                  0x0084b4                  _fft_spectrum
+ .text            0x00851a        0x1de build/PIC24FJ256GA702/production/src/modules/SPI1.o
+                  0x00851a                  _SPI1_Enable
+                  0x008596                  _SPI1_Disable
+                  0x0085a2                  _SPI1_Exchange
+                  0x0085d2                  _SPI1_ExchangeBuffer
+                  0x0086b6                  _SPI1_Exchange8bit
+                  0x0086c6                  _SPI1_Exchange8bitBuffer
+                  0x0086da                  _SPI1_TransferModeGet
+                  0x0086f0                  _SPI1_StatusGet
+ .text            0x0086f8        0x1d6 build/PIC24FJ256GA702/production/src/daas/libdpt.o
+                  0x0086f8                  _depotDefaultSet
+                  0x008714                  _depotFreeSpaceKb
+                  0x008736                  _depotPush
+                  0x0087f6                  _depotPull
+                  0x00884c                  _depotDrop
+ .text            0x0088ce        0x1d4 build/PIC24FJ256GA702/production/src/dev_config.o
+                  0x0088ce                  _computeCRC16
+                  0x00893c                  _Device_StatusRefresh
+                  0x008948                  _Device_StatusRead
+                  0x008986                  _Device_StatusDefaultSet
+                  0x008998                  _Device_SetLockSKEY
+                  0x0089a0                  _Device_ConfigWrite
+                  0x0089f4                  _Device_ConfigDefaultSet
+                  0x008a64                  _Device_ConfigRead
+ .text            0x008aa2        0x17a build/PIC24FJ256GA702/production/src/sampling/ADA2200.o
+                  0x008aa2                  _ADA2200_EnableSPI1
+                  0x008ae0                  _ADA_SetReg8
+                  0x008bb6                  _ADA2200_Enable
+                  0x008bf4                  _ADA2200_Synco
+                  0x008c12                  _ADA2200_Disable
 
-.NVM_flash        0x008c3e        0x154
- .NVM_flash       0x008c3e        0x154 build/PIC24FJ256GA702/production/src/memory/DEE/flash_asm.o
-                  0x008c40                  _FLASH_Unlock
-                  0x008c4a                  _FLASH_Lock
-                  0x008c58                  _FLASH_SendNvmKey
-                  0x008c84                  _FLASH_ReadWord24
-                  0x008c92                  _FLASH_ReadWord16
-                  0x008c9e                  _FLASH_ErasePage
-                  0x008cb8                  _FLASH_WriteDoubleWord24
-                  0x008cea                  _FLASH_WriteDoubleWord16
-                  0x008d1e                  _FLASH_WriteRow24
-                  0x008d50                  _FLASH_WriteRow16
-                  0x008d82                  _FLASH_GetErasePageOffset
-                  0x008d88                  _FLASH_GetErasePageAddress
+.NVM_flash        0x008c1c        0x154
+ .NVM_flash       0x008c1c        0x154 build/PIC24FJ256GA702/production/src/memory/DEE/flash_asm.o
+                  0x008c1e                  _FLASH_Unlock
+                  0x008c28                  _FLASH_Lock
+                  0x008c36                  _FLASH_SendNvmKey
+                  0x008c62                  _FLASH_ReadWord24
+                  0x008c70                  _FLASH_ReadWord16
+                  0x008c7c                  _FLASH_ErasePage
+                  0x008c96                  _FLASH_WriteDoubleWord24
+                  0x008cc8                  _FLASH_WriteDoubleWord16
+                  0x008cfc                  _FLASH_WriteRow24
+                  0x008d2e                  _FLASH_WriteRow16
+                  0x008d60                  _FLASH_GetErasePageOffset
+                  0x008d66                  _FLASH_GetErasePageAddress
 
-.text             0x008d92        0x348
- .text            0x008d92        0x12a build/PIC24FJ256GA702/production/src/device.o
-                  0x008d92                  _Device_SwitchADG
-                  0x008e04                  _Device_GetBatteryLevel
- .text            0x008ebc        0x114 ..\daas-device.X\libex.X\dist\PIC24FJ256GA702\production\libex.X.a(channels.o)
-                  0x008ebc                  _initChannel
-                  0x008ede                  _openChannel
-                  0x008f0c                  _closeChannel
-                  0x008f22                  _flushChannel
-                  0x008f34                  __RxBuffer
-                  0x008f60                  __IsRxReady
-                  0x008f7c                  __TxBuffer
- .text            0x008fd0        0x10a build/PIC24FJ256GA702/production/src/memory/DEE/flash.o
-                  0x008fd0                  _FLASH_EraseBlock
-                  0x009056                  _FLASH_WriteInstructions
-                  0x009094                  _FLASH_ReadInstructions
-                  0x0090c0                  _FLASH_GetEraseBlockOffset
-                  0x0090ce                  _FLASH_GetEraseBlockAddress
+.text             0x008d70        0x2ae
+ .text            0x008d70        0x114 src\daas\libex.X.a(channels.o)
+                  0x008d70                  _initChannel
+                  0x008d92                  _openChannel
+                  0x008dc0                  _closeChannel
+                  0x008dd6                  _flushChannel
+                  0x008de8                  __RxBuffer
+                  0x008e14                  __IsRxReady
+                  0x008e30                  __TxBuffer
+ .text            0x008e84        0x10a build/PIC24FJ256GA702/production/src/memory/DEE/flash.o
+                  0x008e84                  _FLASH_EraseBlock
+                  0x008f0a                  _FLASH_WriteInstructions
+                  0x008f48                  _FLASH_ReadInstructions
+                  0x008f74                  _FLASH_GetEraseBlockOffset
+                  0x008f82                  _FLASH_GetEraseBlockAddress
+ .text            0x008f8e         0x90 build/PIC24FJ256GA702/production/src/device.o
+                  0x008f8e                  _Device_SwitchSys
 
-.dinit            0x0090da         0x90
- .dinit           0x0090da         0x90 data_init
+.dinit            0x00901e         0x90
+ .dinit           0x00901e         0x90 data_init
 
-.text             0x00916a         0x7e
- .text            0x00916a         0x7e build/PIC24FJ256GA702/production/src/utils.o
-                  0x00916a                  _Timeout_SetCallBack
-                  0x009176                  _Timeout_Set
-                  0x0091cc                  _isTimeout
-                  0x0091dc                  _Timeout_Unset
+.text             0x0090ae         0x7e
+ .text            0x0090ae         0x7e build/PIC24FJ256GA702/production/src/utils.o
+                  0x0090ae                  _Timeout_SetCallBack
+                  0x0090ba                  _Timeout_Set
+                  0x009110                  _isTimeout
+                  0x009120                  _Timeout_Unset
 
-.init.delay32     0x003fe0         0x1c
- .init.delay32    0x003fe0         0x1c c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\liblega-pic30-elf.a(delay32da.Leo)
-                  0x003fe0                  ___delay32
+.init.delay32     0x003fde         0x1c
+ .init.delay32    0x003fde         0x1c c:/program files/microchip/xc16/v1.70/bin/bin/../../lib\liblega-pic30-elf.a(delay32da.Leo)
+                  0x003fde                  ___delay32

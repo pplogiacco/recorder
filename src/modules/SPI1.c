@@ -10,11 +10,10 @@ uint16_t SPI1_ExchangeBuffer(uint8_t *pTransmitData, uint16_t byteCount, uint8_t
 
 static bool spi1_enabled = false;
 
-bool SPI1_Enable(SPI_MODE mode, SPI_BRATE speed)
-{
+bool SPI1_Enable(SPI_MODE mode, SPI_BRATE speed) {
     if (!spi1_enabled) {
-    PMD1bits.SPI1MD = 0; // Spi1 On
-    
+        PMD1bits.SPI1MD = 0; // Spi1 On
+
 #if defined(__PIC24FJ256GA702__)  // Work for SST 
 
         // ____________________________________SPI Clock & Mode 
@@ -58,22 +57,22 @@ bool SPI1_Enable(SPI_MODE mode, SPI_BRATE speed)
         //SPI_MODE mode = MODE0;
 
         switch (mode) {
-        case MODE0:
-            SPI1CON1Lbits.CKE = 1;
-            SPI1CON1Lbits.CKP = 0;
-            break;
-        case MODE1:
-            SPI1CON1Lbits.CKE = 0;
-            SPI1CON1Lbits.CKP = 0;
-            break;
-        case MODE2:
-            SPI1CON1Lbits.CKE = 1;
-            SPI1CON1Lbits.CKP = 1;
-            break;
-        case MODE3:
-            SPI1CON1Lbits.CKE = 0;
-            SPI1CON1Lbits.CKP = 1;
-            break;
+            case MODE0:
+                SPI1CON1Lbits.CKE = 1;
+                SPI1CON1Lbits.CKP = 0;
+                break;
+            case MODE1:
+                SPI1CON1Lbits.CKE = 0;
+                SPI1CON1Lbits.CKP = 0;
+                break;
+            case MODE2:
+                SPI1CON1Lbits.CKE = 1;
+                SPI1CON1Lbits.CKP = 1;
+                break;
+            case MODE3:
+                SPI1CON1Lbits.CKE = 0;
+                SPI1CON1Lbits.CKP = 1;
+                break;
         }
 
         //    SPI1CON1Lbits.CKP = 0; // MODE?: Clock Polarity (active is a high level)
@@ -92,14 +91,11 @@ bool SPI1_Enable(SPI_MODE mode, SPI_BRATE speed)
         SPI1STATLbits.SPIROV = 0; // Receive Overflow Flag (0=NO Overflow).
         spi1_enabled = true;
 #endif 
-        return(true);
-    } else return (false); // False if already started
-
-
+    } else spi1_enabled = false;
+    return (spi1_enabled); // False if already started
 }
 
-void SPI1_Disable()
-{
+void SPI1_Disable() {
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
     SPI1STATbits.SPIEN = 0;
 #endif   
@@ -107,13 +103,12 @@ void SPI1_Disable()
 #ifdef __PIC24FJ256GA702__
     SPI1CON1Lbits.SPIEN = 0; // Enable SPI 
 #endif
-    
+
     spi1_enabled = false;
     PMD1bits.SPI1MD = 1; // Spi1 Off
 }
 
-void SPI1_Exchange(uint8_t *pTransmitData, uint8_t *pReceiveData)
-{
+void SPI1_Exchange(uint8_t *pTransmitData, uint8_t *pReceiveData) {
 
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
     while (SPI1STATbits.SPITBF == true) {
@@ -125,16 +120,17 @@ void SPI1_Exchange(uint8_t *pTransmitData, uint8_t *pReceiveData)
 
 #ifdef __PIC24FJ256GA702__
     while (SPI1STATLbits.SPITBF == true) {
+        Nop();
     }
-    SPI1BUFL = *((uint8_t*) pTransmitData);
+    SPI1BUFL = *pTransmitData;
     while (SPI1STATLbits.SPIRBE == true) {
-    };
-    *((uint8_t*) pReceiveData) = SPI1BUFL;
+        Nop();
+    }
+    *pReceiveData = SPI1BUFL;
 #endif
 }
 
-uint16_t SPI1_ExchangeBuffer(uint8_t *pTransmitData, uint16_t byteCount, uint8_t *pReceiveData)
-{
+uint16_t SPI1_ExchangeBuffer(uint8_t *pTransmitData, uint16_t byteCount, uint8_t *pReceiveData) {
 
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
     uint16_t dataSentCount = 0;
@@ -154,8 +150,7 @@ uint16_t SPI1_ExchangeBuffer(uint8_t *pTransmitData, uint16_t byteCount, uint8_t
     if (pTransmitData == NULL) {
         sendAddressIncrement = 0;
         pSend = (uint8_t*) & dummyDataTransmit;
-    }
-    else {
+    } else {
         sendAddressIncrement = addressIncrement;
         pSend = (uint8_t*) pTransmitData;
     }
@@ -163,8 +158,7 @@ uint16_t SPI1_ExchangeBuffer(uint8_t *pTransmitData, uint16_t byteCount, uint8_t
     if (pReceiveData == NULL) {
         receiveAddressIncrement = 0;
         pReceived = (uint8_t*) & dummyDataReceived;
-    }
-    else {
+    } else {
         receiveAddressIncrement = addressIncrement;
         pReceived = (uint8_t*) pReceiveData;
     }
@@ -198,10 +192,10 @@ uint16_t SPI1_ExchangeBuffer(uint8_t *pTransmitData, uint16_t byteCount, uint8_t
             dataReceivedCount++;
         }
     }
-    
+
 #endif   
 
-    
+
 #ifdef __PIC24FJ256GA702__
     uint16_t dataSentCount = 0;
     uint16_t dataReceivedCount = 0;
@@ -220,8 +214,7 @@ uint16_t SPI1_ExchangeBuffer(uint8_t *pTransmitData, uint16_t byteCount, uint8_t
     if (pTransmitData == NULL) {
         sendAddressIncrement = 0;
         pSend = (uint8_t*) & dummyDataTransmit;
-    }
-    else {
+    } else {
         sendAddressIncrement = addressIncrement;
         pSend = (uint8_t*) pTransmitData;
     }
@@ -229,8 +222,7 @@ uint16_t SPI1_ExchangeBuffer(uint8_t *pTransmitData, uint16_t byteCount, uint8_t
     if (pReceiveData == NULL) {
         receiveAddressIncrement = 0;
         pReceived = (uint8_t*) & dummyDataReceived;
-    }
-    else {
+    } else {
         receiveAddressIncrement = addressIncrement;
         pReceived = (uint8_t*) pReceiveData;
     }
@@ -273,15 +265,13 @@ uint16_t SPI1_ExchangeBuffer(uint8_t *pTransmitData, uint16_t byteCount, uint8_t
     return dataSentCount;
 }
 
-uint8_t SPI1_Exchange8bit(uint8_t data)
-{
+uint8_t SPI1_Exchange8bit(uint8_t data) {
     uint8_t receiveData;
     SPI1_Exchange(&data, &receiveData);
     return (receiveData);
 }
 
-uint16_t SPI1_Exchange8bitBuffer(uint8_t *dataTransmitted, uint16_t byteCount, uint8_t *dataReceived)
-{
+uint16_t SPI1_Exchange8bitBuffer(uint8_t *dataTransmitted, uint16_t byteCount, uint8_t *dataReceived) {
     return (SPI1_ExchangeBuffer(dataTransmitted, byteCount, dataReceived));
 }
 
@@ -313,16 +303,14 @@ uint16_t SPI1_Exchange8bitBuffer(uint8_t *dataTransmitted, uint16_t byteCount, u
  
  **/
 
-inline __attribute__((__always_inline__)) SPI1_TRANSFER_MODE SPI1_TransferModeGet(void)
-{
+inline __attribute__((__always_inline__)) SPI1_TRANSFER_MODE SPI1_TransferModeGet(void) {
     if (SPI1CON1bits.MODE16 == 0)
         return SPI1_DRIVER_TRANSFER_MODE_8BIT;
     else
         return SPI1_DRIVER_TRANSFER_MODE_16BIT;
 }
 
-SPI1_STATUS SPI1_StatusGet()
-{
+SPI1_STATUS SPI1_StatusGet() {
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
     return (SPI1STAT);
 #endif   
