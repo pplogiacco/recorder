@@ -42,7 +42,7 @@ timestamp_t stime;
 void Alarm(void) {
     printf("Alarm !\n");
     stime.sec += 5;
-    RTCC_AlarmSet(&stime);
+    RTCC_AlarmSetHourly(&stime);
     //printf("Alarm set: %u:%u:%u \n", stime.hour, stime.min, stime.sec);
 }
 
@@ -186,7 +186,7 @@ int main(void) {
         //        }
 
 
-        RTCC_AlarmSet(&stime);
+        RTCC_AlarmSetHourly(&stime);
         printf("Wakeup set: %u:%u:%u \n", stime.hour, stime.min, stime.sec);
         printf("Sleep mode: waiting event... (RTTC/INT0 Wake) \n");
         __delay(100); // Wait to complete printf
@@ -437,7 +437,7 @@ if (stime.min > 59) {
     stime.min -= 59;
 }
 
-RTCC_AlarmSet(&stime);
+RTCC_AlarmSetHourly(&stime);
 printf("Alarm set: %u:%u:%u \n", stime.hour, stime.min, stime.sec);
 
 while (1) {

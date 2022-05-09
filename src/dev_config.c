@@ -56,14 +56,17 @@ void Device_StatusRefresh() { // Every call
     //device.sts.link_status =  (....  // Exchange: USB / RF-RSSI
 }
 
-void Device_StatusRead() 
-{
+void Device_StatusRead() {
     // Start-up 
-    Device_CheckHwReset(); // critical errors/reset (device.sts.alarm_counter)
     device.sts.DIN = __DEVICE_DIN; // Read from OTP
     device.sts.version = __DEVICE_VER;
+    
+    // Configuration ( last version )
     device.sts.config_counter = device.cnf.CRC16; // To evaluate VMS alignment
-    Device_CheckHwReset(); // device.sts.alarm_counter
+
+    // Critical errors/reset
+    DEE_Read(EEA_RESET_COUNTER, &device.sts.alarm_counter); // persistent counter (dee.h)   
+    device.sts.alarm_counter += Device_CheckHwReset(); // device.sts.alarm_counter
 
     // Memory & Measurement
     DEE_Read(EEA_MEAS_COUNTER, &device.sts.meas_counter); // Persistent: stored measurements (dee.h)   
@@ -78,7 +81,9 @@ void Device_StatusRead()
 void Device_StatusDefaultSet() {
     device.sts.meas_counter = 0;
     DEE_Write(EEA_MEAS_COUNTER, device.sts.meas_counter); // (dee.h)  
-    //Device_StatusRead();
+    device.sts.alarm_counter = 0;
+    DEE_Write(EEA_RESET_COUNTER, device.sts.alarm_counter); // (dee.h)  
+
 }
 
 void Device_SetLockSKEY(uint32_t skey) { // skey: >0 lock, =0 unlock 

@@ -2,7 +2,7 @@
  * VAMP1K Ver. 2                                                               *             
  *                                                                             * 
  *                                                                             *         
- ******************************************************************************/ 
+ ******************************************************************************/
 
 /*******************************************************************************
     Function        ANSx    TRISx   Comments
@@ -10,7 +10,7 @@
     Analog Output   1       1       It is recommended to keep ANSx = 1.
     Digital Input   0       1       Wait one cycle Nop() after configuring
     Digital Output  0       0       Make sure to disable the analog output !!!
-*******************************************************************************/
+ *******************************************************************************/
 
 #ifndef HARDWARE_H
 #define	HARDWARE_H
@@ -80,7 +80,7 @@
     26 MCLR
     27 VREF+/CVREF+/AN0/C3INC/RP26/CTED1/RA0
     28 VREF-/CVREF-/AN1/C3IND/RP27/CTED2/RA1
-*/
+ */
 
 
 #ifdef __BOARD_V2 // (QFN, UQFN)
@@ -256,7 +256,6 @@ POWER   27  Vss
 
 //----------------------------------------------------------------------------//
 
-
 typedef enum {
     CK_DEFAULT,
     CK_SLOW,
@@ -280,13 +279,13 @@ typedef enum {
 runlevel_t Device_SwitchSys(runlevel_t lv);
 
 void Device_SysBoot();
-void Device_SysDefault() ;
-void Device_SysExchange() ;
+void Device_SysDefault();
+void Device_SysExchange();
 void Device_SysSleep();
 
 
 
-void Device_CheckHwReset(void); // Cheack reason of reboot 
+uint16_t Device_CheckHwReset(void); // Cheack reason of reboot 
 
 void Device_SwitchClock(sysclock_t ck);
 

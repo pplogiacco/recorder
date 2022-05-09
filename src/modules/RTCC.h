@@ -50,7 +50,7 @@ extern "C" {
 
     void RTCC_SetTime(timestamp_t *t, unsigned char weekday);
 
-    void RTCC_AlarmSet(timestamp_t *t);
+    void RTCC_AlarmSetHourly(timestamp_t *t);
     void RTCC_AlarmUnset();
 
     // Wake-up

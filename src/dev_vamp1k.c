@@ -116,15 +116,15 @@ void Device_SwitchClock(sysclock_t ck) {
 void Device_SysBoot() { // Initialize system 
 
     Device_SwitchClock(CK_DEFAULT); // Default clock 32Mhz      
-    RTCC_Enable();     
-    
+    RTCC_Enable();
+
 #if defined (__PIC24FJ256GA702__)
 
     TRISA = 0xFFFF; // All tri-state
     TRISB = 0xFFFF;
-    LATA = 0x0000;  
+    LATA = 0x0000;
     LATB = 0x0000;
-    
+
     // Board V2 - Power Managment
     PW_ADP_SetDigitalOutputLow(); // Off
     PW_LTC_SetDigitalOutputLow(); // On 
@@ -193,7 +193,7 @@ void Device_SysBoot() { // Initialize system
     LATBbits.LATB9 = 1;
     TRISBbits.TRISB8 = 0; //SCL1 output
     TRISBbits.TRISB9 = 0; //SDA1 output
-    
+
     //    ET_IN_SetAnalog();      
     //    ET_IN_SetAnalogInput(); // ADC ( Pin 7 AN5/RP3 )
 
@@ -204,9 +204,9 @@ void Device_SysBoot() { // Initialize system
 
 
     __builtin_enable_interrupts();
-    
+
     DEE_Init(); // Emulated Data Eprom 
-    
+
 #endif
 
 } // Device_SysBoot()
@@ -229,7 +229,7 @@ void Device_SysDefault() {
     PMD6 = 0xFF;
     PMD7 = 0xFF;
     PMD8 = 0xFF;
-    
+
 #endif
 }
 
@@ -337,15 +337,15 @@ void Device_SysSleep() {
  */
 #define RCON_RESET_MASK 0b1100001011010010
 
-void Device_CheckHwReset(void) {
+uint16_t Device_CheckHwReset(void) {
 #if defined(__PIC24FJ256GA702__)    
     if (RCON & RCON_RESET_MASK) {
-        device.sts.alarm_counter++;
+        RCON = RCON & RCON_RESET_MASK;
+        return 1;
     }
-    RCON = RCON & RCON_RESET_MASK;
 #endif
+    return 0;
 }
-
 
 void Device_SwitchADG(uint8_t reg) { // ADG729_Switch(uint8_t reg)
 #if defined(__HWDEVICE) 

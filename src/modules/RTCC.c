@@ -136,26 +136,26 @@ void RTCC_Enable(void) {
 }
 
 /* -------------------------------------------------------------------------- */
-void RTCC_AlarmSet(timestamp_t *t) {
+void RTCC_AlarmSetHourly(timestamp_t *t) {
 #if  defined(__PIC24FJ256GA702__)
     // To avoid a false alarm event, the timer and alarm values should only 
     // be changed while the alarm is disabled (ALRMEN = 0).        
+    
     //    __builtin_write_RTCC_WRLOCK();
     RTCCON1Hbits.ALRMEN = 0; // Disable to modify alarm settings
     RTCSTATLbits.ALMEVT = 0x0;
     while (RTCSTATLbits.ALMSYNC); // 0 == Alarm registers may be written/modified safely
 
-    RTCCON1Hbits.AMASK = 0b0101; // Mask every hour hh:mm:ss
-
-    ALMDATEH = (i2bcd(t->year) << 8) | i2bcd(t->month); // Year/Month
-    ALMDATEL = (i2bcd(t->day) << 8); // | i2bcd(weekday); // Date/Wday
+    RTCCON1Hbits.AMASK = 0b0101; // Mask every hour hh:mm:ss - hourly alarm !!!!!!!!!!
+    // ALMDATEH = (i2bcd(t->year) << 8) | i2bcd(t->month); // Year/Month
+    // ALMDATEL = (i2bcd(t->day) << 8); // | i2bcd(weekday); // Date/Wday
     ALMTIMEH = (i2bcd(t->hour) << 8) | i2bcd(t->min); // hours/minutes
     ALMTIMEL = (i2bcd(t->sec) << 8); // seconds             
 
-    RTCCON1Hbits.ALRMEN = 1; // Enable alarm    
     //RTCC_Lock();
     IFS3bits.RTCIF = 0;
     IEC3bits.RTCIE = 1;
+    RTCCON1Hbits.ALRMEN = 1; // Enable alarm    
     // RTCCON1H = 0x8000; // AMASK Every Half Second; ALMRPT 0; CHIME disabled; ALRMEN enabled; 
 
 #endif
@@ -191,6 +191,7 @@ bool RTCC_Grab() {
 #endif  
 
 #if  defined(__PIC24FJ256GA702__)
+
 void RTCC_Grab() {
     while (RTCSTATLbits.SYNC) {
         Nop();
@@ -206,6 +207,7 @@ void RTCC_Grab() {
 
 
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
+
 void RTCC_2LTime(timestamp_t *t) {
     //t->lstamp = 0; // Pack Date: year, month, day  ( 15 bits )
     t->year = bcd2i(_time.prt11 & 0x00FF);
@@ -227,6 +229,7 @@ void RTCC_2LTime(timestamp_t *t) {
 #endif
 
 #if  defined(__PIC24FJ256GA702__)
+
 void RTCC_Time2L(timestamp_t *t) {
     // Populate timestamp_t object ! 
     //        DATEH = 0x2105; // Year/Month
@@ -254,8 +257,7 @@ void RTCC_Time2L(timestamp_t *t) {
 }
 #endif
 
-void L2Time(timestamp_t *t) 
-{
+void L2Time(timestamp_t *t) {
     uint32_t ctmp;
     // Unpack Date
     ctmp = t->lstamp >> 17; // 17 Bits
@@ -275,12 +277,9 @@ void L2Time(timestamp_t *t)
 //    RTCC_2LTime(t);
 //}
 
-
-
-void RTCC_GetTime(timestamp_t *t) 
-{
+void RTCC_GetTime(timestamp_t *t) {
     RTCC_Grab();
-  //  RTCC_2LTime(t);
+    //  RTCC_2LTime(t);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -306,8 +305,7 @@ uint32_t RTCC_GetTimeL() {
 
 #if defined( __PIC24FJ256GA702__)
 
-uint32_t RTCC_GetTimeL() 
-{
+uint32_t RTCC_GetTimeL() {
     uint32_t ltime;
     RTCC_Grab();
     ltime = bcd2i(((_time.dateh & 0xFF00) >> 8)); // year
@@ -338,9 +336,7 @@ uint32_t RTCC_GetTimeL()
 //}
 #endif
 
-
-void RTCC_SetTime(timestamp_t *t, unsigned char weekday) 
-{
+void RTCC_SetTime(timestamp_t *t, unsigned char weekday) {
 #if (defined(__PIC24FV32KA301__) || defined(__PIC24FV32KA302__))
     __builtin_write_RTCWEN(); // Set the RTCWREN bit
     RCFGCALbits.RTCPTR = 3; // start the sequence
@@ -379,8 +375,7 @@ uint16_t RTCC_GetMinutes() {
 
 #if defined( __PIC24FJ256GA702__)
 
-uint16_t RTCC_GetMinutes() 
-{
+uint16_t RTCC_GetMinutes() {
     RTCC_Grab();
     return bcd2i(_time.timeh & 0x00FF);
 }
@@ -416,10 +411,10 @@ uint16_t RTCC_GetMinutes()
 //    return true;
 //}
 
-void RTCC_SetWakeup(uint16_t nsec) 
-{
+void RTCC_SetWakeup(uint16_t nsec) {
     timestamp_t stime;
     // set alarm to current time + delaycycle   
+    
     RTCC_GetTime(&stime);
     stime.sec += nsec; // secs
     if (stime.sec > 59) {
@@ -430,7 +425,7 @@ void RTCC_SetWakeup(uint16_t nsec)
         }
     };
     //__builtin_disable_interrupts();
-    RTCC_AlarmSet(&stime); // Enable RTCC event to Wake-Up on time elapsed
+    RTCC_AlarmSetHourly(&stime); // Enable RTCC Alarm event
 }
 
 

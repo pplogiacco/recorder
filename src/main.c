@@ -166,7 +166,7 @@ int main(void) {
 
             case WAITING:
                 lstate = state;
-                state = SAMPLING; // Smpling on wake-up
+                state = SAMPLING; // Sampling on wake-up
                 //state = EXCHANGE;
 
                 if (Device_IsWireLinked()) {
